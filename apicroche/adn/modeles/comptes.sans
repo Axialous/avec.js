@@ -75,28 +75,28 @@
         )
             return $indicate(400, "Corps incomplet")
 
+        const clef = await $search_one('clef',
+            `
+            $hachage_coordonnee = $body.coordonnee
+          & $type               = authentification
+          & $clef               = $body.clef
+          & $date_validite      > $now
+            `
+        )
+
         const coordonnee_existante = await $search_one('coordonnee',
             `
             $hachage_coordonnee = $body.coordonnee
             `
         )
 
-        const clef = await $search_one('clef',
-            `
-            $hachage_coordonnee = $body.coordonnee
-          & $type               = inscription
-          & $clef               = $body.clef
-          & $date_validite      > $now
-            `
-        )
-
         if (!clef || coordonnee_existante)
-            return $indicate(403, 'Accès refusé')
+            return $indicate(403, "Accès refusé")
 
         await $delete_one('clef',
             `
             $hachage_coordonnee = $body.coordonnee
-          & $type               = inscription
+          & $type               = authentification
             `
         )
 
@@ -112,11 +112,65 @@
             id_compte          : compte.id
         })
 
-        return $indicate(201, "Compte créé")
+        return $indicate(201, "Inscription réussie")
     }
 
     $connecter_compte = async ($body) =>
     {
-        
+        if (
+            !$body.coordonnee
+         || (
+                !$body.clef
+             && !$body.mot_de_passe
+            )
+        )
+            return $indicate(400, "Corps incomplet")
+
+        const coordonnee = await $search_one('coordonnee',
+            `
+            $hachage_coordonnee = $body.coordonnee
+            `
+        )
+
+        if ($body.clef)
+        {
+            const clef = await $search_one('clef',
+            `
+            $hachage_coordonnee = $body.coordonnee
+          & $type               = authentification
+          & $clef               = $body.clef
+          & $date_validite      > $now
+            `
+            )
+
+            if (!clef || !coordonnee)
+                return $indicate(403, "Accès refusé")
+            
+            await $delete_one('clef',
+                `
+                $hachage_coordonnee = $body.coordonnee
+              & $type               = authentification
+                `
+            )
+        }
+        else
+        {
+            if (!coordonnee)
+                return $indicate(403, "Accès refusé")
+
+            const compte = await $search_one('compte',
+                `
+                $id                   = $coordonnee.id_compte
+              & $hachage_mot_de_passe = $body.mot_de_passe
+                `
+            )
+
+            if (!compte)
+                return $indicate(403, "Accès refusé")
+        }
+
+        return $indicate(200, "Connexion réussie", {
+
+        })
     }
 ]

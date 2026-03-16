@@ -9,7 +9,7 @@
         type : hash
 
         can_create  : "
-            $type -{ [inscription, connexion]
+            $type = authentification
           & $hachage_coordonnee ~= /^[^@\s]+@[^@\s]+\.[^@\s]+$/
         "
         prior_create : $supprimer_clef($values)
@@ -17,11 +17,11 @@
 
     {
         name : type
-        type : inscription/connexion
+        type : authentification/autre
         size : 1-32
 
         can_create : "
-            $type -{ [inscription, connexion]
+            $type = authentification
         "
     }
 
@@ -43,6 +43,13 @@
     }
 ]
 
+@routes [
+    {
+        path   : /authentification
+        action : $authentifier_clef($body)
+    }
+]
+
 @script [
     $supprimer_clef = async ($values) =>
     {
@@ -57,10 +64,48 @@
     {
         const clef_affichee = String($values.clef).replace(/(\d{3})(?=\d)/g, '$1 ')
 
+        const coordonnee_existante = await $search_one('coordonnee',
+            `
+            $hachage_coordonnee = $values.hachage_coordonnee
+            `,
+            { $values }
+        )
+
         await $send_email({
             to      : $values.hachage_coordonnee,
-            subject : 'Votre code de vérification',
+            subject : coordonnee_existante ? "Votre code de connexion" : "Votre code d'inscription",
             content : `<p>Votre code : <strong>${clef_affichee}</strong></p>`
+        })
+    }
+
+    $authentifier_clef = async ($body) =>
+    {
+        if (
+            !$body.coordonnee
+         || !$body.clef
+        )
+            return $indicate(400, "Corps incomplet")
+
+        const clef = await $search_one('clef',
+            `
+            $hachage_coordonnee = $body.coordonnee
+          & $type               = authentification
+          & $clef               = $body.clef
+          & $date_validite      > $now
+            `
+        )
+
+        const coordonnee_existante = await $search_one('coordonnee',
+            `
+            $hachage_coordonnee = $body.coordonnee
+            `
+        )
+
+        if (!clef)
+            return $indicate(403, 'Accès refusé')
+
+        return $indicate(200, "Authentification réussie", {
+            type : coordonnee_existante ? 'connexion' : 'inscription'
         })
     }
 ]

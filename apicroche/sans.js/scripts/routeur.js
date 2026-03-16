@@ -4,11 +4,15 @@ import { evaluer, ERREUR as ERREUR_AUGURE } from './augure.js'
 
 // ─── $indicate ────────────────────────────────────────────────────────────────
 
-const creer_indicate = (rep) => (statut, message) =>
+const creer_indicate = (rep) => (statut, message, data) =>
 {
     const succes = statut >= 200 && statut < 300
+    const reponse = succes ? { message } : { erreur: message }
+    if (data !== undefined)
+        reponse.data = data
+
     rep.writeHead(statut, { 'Content-Type': 'application/json; charset=utf-8' })
-    rep.end(JSON.stringify(succes ? { message } : { erreur: message }))
+    rep.end(JSON.stringify(reponse))
 }
 
 // ─── Lecture du corps JSON ────────────────────────────────────────────────────

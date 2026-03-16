@@ -11,5 +11,6 @@
 
 @if [$section = page]
     page
-        <h1>
-            "Bienvenue sur Anicroche !"
+        onglet
+            <h1>
+                "Bienvenue sur Anicroche !"

@@ -121,6 +121,14 @@
         --c-flux: var(--c-inverse);
     }
 
+    html.petit.paysage {
+        --l-tete: 3.5rem;
+    }
+
+    html.petit.portrait {
+        --l-tete: 0rem;
+    }
+
     .clair {
         color-scheme: light;
 

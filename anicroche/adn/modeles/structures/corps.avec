@@ -15,6 +15,7 @@
         grid-area: 1 / 2 / 3 / 3;
         overflow: hidden;
         gap: 0;
+        padding-left: var(--l-tete);
 
         height: 100%;
 
@@ -29,32 +30,17 @@
         grid-area: 1 / 1 / 2 / 2;
     }
 
-    #corps > nav {
+    #navigation {
+        height: 3.5rem;
+
+        align-items: center;
+        flex-flow: row nowrap;
+
         padding: var(--l-marge);
 
         --f-fond: var(--f-degrade-vif);
         --c-fond: var(--c-vif);
         --c-flux: var(--c-creme);
-    }
-
-    #corps > section {
-        position: relative;
-        overflow: hidden;
-        flex: 1;
-    }
-
-    .grand #corps {
-        padding-left: var(--l-tete);
-    }
-
-    .petit.paysage #corps {
-        padding-left: 3.5rem;
-    }
-
-    #navigation {
-        align-items: center;
-        flex-flow: row nowrap;
-        height: 1.5rem;
     }
 
     #navigation span {
@@ -66,22 +52,10 @@
     }
 
     #page {
-        overflow-y: auto;
-        height: 100%;
-    }
-
-    #page > div {
-        --f-fond: var(--c-theme);
-        --c-fond: var(--c-theme);
-        padding: 1rem;
-    }
-
-    .petit.portrait #page {
-        padding-bottom: 3.5rem;
-    }
-
-    #page img {
-        border-radius: 1rem;
+        margin-left: calc(0px - var(--l-tete));
+        position: relative;
+        flex: 1;
+        overflow-y: hidden;
     }
 ]
 
@@ -89,10 +63,8 @@
     #corps
     @mount="$monter_corps($node)"
 >
-    <nav>
-        <div #navigation>
-            routeur navigation
+    <nav #navigation>
+        routeur navigation
 
-    <section>
-        <div #page>
-            routeur page
+    <section #page>
+        routeur page

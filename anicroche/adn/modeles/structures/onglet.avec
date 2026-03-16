@@ -1,0 +1,21 @@
+@style [
+    .onglet {
+        width: 100%;
+        flex-shrink: 0;
+
+        overflow-y: auto;
+        scroll-snap-align: end;
+    }
+
+    .petit.portrait .onglet {
+        padding-bottom: 3.5rem;
+    }
+
+    .onglet > .contenu {
+        padding: var(--l-marge);
+    }
+]
+
+<div .onglet>
+    <section .contenu>
+        @stud

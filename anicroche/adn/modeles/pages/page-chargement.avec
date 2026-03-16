@@ -24,5 +24,6 @@
 
 @if [$section = page]
     page
-        <section .section-chargement>
-            animation-chargement
+        onglet
+            <section .section-chargement>
+                animation-chargement

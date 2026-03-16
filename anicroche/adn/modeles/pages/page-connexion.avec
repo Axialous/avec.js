@@ -16,5 +16,6 @@
 
 @if [$section = page]
     page
-        <h1>
-            "Connectez-vous !"
+        onglet
+            <h1>
+                "Connectez-vous !"

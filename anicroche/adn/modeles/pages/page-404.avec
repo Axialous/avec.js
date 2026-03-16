@@ -15,5 +15,6 @@
 
 @if [$section = page]
     page
-        <h1>
-            "Contenu introuvable !"
+        onglet
+            <h1>
+                "Contenu introuvable !"

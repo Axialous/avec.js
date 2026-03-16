@@ -37,12 +37,9 @@
         --c-fond: var(--c-theme);
     }
 
-    .grand #fond {
-        grid-template-columns: var(--l-tete) 1fr;
-    }
-
+    .grand #fond,
     .petit.paysage #fond {
-        grid-template-columns: 3.5rem 1fr;
+        grid-template-columns: var(--l-tete) 1fr;
     }
 
     .petit.portrait #fond {

@@ -34,8 +34,21 @@
 
 @style [
     .page {
-        min-height: 100%;
+        flex-direction: row;
+        height: 100%;
+        overflow-x: auto;
+        overflow-y: hidden;
+        scroll-snap-type: x mandatory;
+        scrollbar-width: none;
+
+        gap: 0;
+        padding-left: var(--l-tete);
+
         transition: opacity var(--d-animation);
+    }
+
+    .page::-webkit-scrollbar {
+        display: none;
     }
 
     .page.entree {
@@ -44,6 +57,11 @@
 
     .page.sortie {
         opacity: 0;
+    }
+
+    .page img {
+        border-radius: 1rem;
+        max-width: 100%;
     }
 ]
 

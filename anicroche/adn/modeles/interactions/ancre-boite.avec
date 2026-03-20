@@ -9,9 +9,10 @@
     }
 ]
 
-@args [$adresse $alt]
+@args [$adresse, $alt : '']
 
 <a .ancre-boite href="$adresse">
-    alt
-        "$alt"
+    @if [$alt != '']
+        alt
+            "$alt"
     @stud

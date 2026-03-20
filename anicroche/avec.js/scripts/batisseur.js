@@ -75,6 +75,139 @@ const decapsuler = (str) =>
     return texte
 }
 
+const est_entoure_par_bloc = (str) =>
+{
+    const texte = str.trim()
+    if (texte.length < 2)
+        return false
+
+    const paires = { '(':')', '[':']', '{':'}', '<':'>', '"':'"', "'":"'", '`':'`' }
+    const premier = texte[0]
+    const dernier = texte[texte.length - 1]
+    if (!(premier in paires) || paires[premier] !== dernier)
+        return false
+
+    let blocs = ``
+    const ouvrants = { '(':')', '[':']', '{':'}', '"':'"', "'":"'", '`':'`' }
+
+    for (let pos = 0; pos < texte.length; pos++)
+    {
+        const c = texte[pos]
+        if (c === blocs.slice(-1))
+            blocs = blocs.slice(0, -1)
+        else if (c === '<' && !/^[)\]}>"'`]$/.test(blocs.slice(-1)))
+            blocs += '>'
+        else if (c in ouvrants && !/^["'`]$/.test(blocs.slice(-1)))
+            blocs += ouvrants[c]
+
+        if (blocs === `` && pos < texte.length - 1)
+            return false
+    }
+
+    return blocs === ``
+}
+
+const decapsuler_si_entoure = (str) =>
+{
+    if (!est_entoure_par_bloc(str))
+        return str.trim()
+    return decapsuler(str.trim())
+}
+
+const decouper_haut_niveau = (str, separateurs) =>
+{
+    const brut = str.trim()
+    if (brut.length === 0)
+        return []
+
+    const ouvrants = { '(':')', '[':']', '{':'}', '"':'"', "'":"'", '`':'`' }
+    const parties = []
+    let blocs = ``
+    let debut = 0
+
+    for (let pos = 0; pos < brut.length; pos++)
+    {
+        const c = brut[pos]
+
+        if (c === blocs.slice(-1))
+        {
+            blocs = blocs.slice(0, -1)
+        }
+        else if (c === '<' && !/^[)\]}>"'`]$/.test(blocs.slice(-1)))
+        {
+            blocs += '>'
+        }
+        else if (c in ouvrants && !/^["'`]$/.test(blocs.slice(-1)))
+        {
+            blocs += ouvrants[c]
+        }
+        else if (separateurs.has(c) && blocs === ``)
+        {
+            const partie = brut.slice(debut, pos).trim()
+            if (partie.length > 0)
+                parties.push(partie)
+            debut = pos + 1
+        }
+    }
+
+    const derniere_partie = brut.slice(debut).trim()
+    if (derniere_partie.length > 0)
+        parties.push(derniere_partie)
+
+    return parties
+}
+
+const extraire_declaration_arg = (str) =>
+{
+    const ouvrants = { '(':')', '[':']', '{':'}', '"':'"', "'":"'", '`':'`' }
+    let blocs = ``
+
+    for (let pos = 0; pos < str.length; pos++)
+    {
+        const c = str[pos]
+        if (c === blocs.slice(-1))
+        {
+            blocs = blocs.slice(0, -1)
+        }
+        else if (c === '<' && !/^[)\]}>"'`]$/.test(blocs.slice(-1)))
+        {
+            blocs += '>'
+        }
+        else if (c in ouvrants && !/^["'`]$/.test(blocs.slice(-1)))
+        {
+            blocs += ouvrants[c]
+        }
+        else if (c === ':' && blocs === ``)
+        {
+            const nom = str.slice(0, pos).trim()
+            const valeur_defaut = str.slice(pos + 1).trim()
+
+            if (nom.length === 0)
+                throw new Error("@args invalide : nom d'argument manquant")
+            if (/\s/.test(nom))
+                throw new Error("@args invalide : séparer les arguments par ',' ou par '\\n'")
+            if (valeur_defaut.length === 0)
+                throw new Error("@args invalide : valeur par défaut manquante après ':'")
+
+            return { nom, valeur_defaut }
+        }
+    }
+
+    const nom = str.trim()
+    if (nom.length === 0)
+        throw new Error("@args invalide : nom d'argument manquant")
+    if (/\s/.test(nom))
+        throw new Error("@args invalide : séparer les arguments par ',' ou par '\\n'")
+
+    return { nom, valeur_defaut: null }
+}
+
+const extraire_declarations_args = (str) =>
+{
+    return decouper_haut_niveau(str, new Set([',', '\n']))
+        .map(extraire_declaration_arg)
+}
+
 const construire_bloc = (bloc, donnees) =>
 {
     switch (bloc.type)
@@ -671,11 +804,13 @@ const construire_modele = (bloc, donnees) =>
         }
         if (enfant.type === `instruction` && enfant.args[0] === `@args`)
         {
-            const noms = decapsuler(enfant.args[1]).split(/\s+/)
+            const declarations = extraire_declarations_args(decapsuler(enfant.args[1]))
             const valeurs = bloc.args.slice(1)
-            for (let i = 0; i < noms.length; i++)
+            for (let i = 0; i < declarations.length; i++)
             {
-                args[noms[i]] = valoriser(decapsuler(valeurs[i] ?? ``), donnees)
+                const { nom, valeur_defaut } = declarations[i]
+                const valeur_brute = valeurs[i] ?? valeur_defaut ?? ``
+                args[nom] = valoriser(decapsuler_si_entoure(valeur_brute), donnees)
             }
         }
     }

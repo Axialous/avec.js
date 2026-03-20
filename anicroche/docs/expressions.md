@@ -40,7 +40,7 @@ Ces variables sont mises à jour à chaque navigation sans rechargement de page.
 Les arguments déclarés via `@args` sont des variables locales à l'instance du modèle. Ils s'utilisent comme des variables réactives dans les expressions, mais ne sont pas partagés avec les autres modèles.
 
 ```
-@args [$titre $couleur]
+@args [$titre, $couleur : "bleu"]
 
 <h1 style="color: $couleur">
     "$titre"

@@ -94,7 +94,7 @@
     .page {
         flex-direction: row;
         height: 100%;
-        overflow-x: auto;
+        overflow-x: hidden;
         scroll-snap-type: x mandatory;
         scrollbar-width: none;
 
@@ -102,6 +102,10 @@
         padding-left: var(--l-tete);
 
         transition: opacity var(--d-animation);
+    }
+
+    .page.defilable {
+        overflow-x: auto;
     }
 
     .page:has(> .barre-onglets) {
@@ -126,9 +130,20 @@
     }
 ]
 
-<div
-    .page
-    @mount="$monter_page($node)"
-    @unmount="await $demonter_page($node)"
->
-    @stud
+@args [$defilable : :)]
+
+@if [$defilable]
+    <div
+        .page
+        .defilable
+        @mount="$monter_page($node)"
+        @unmount="await $demonter_page($node)"
+    >
+        @stud
+@else
+    <div
+        .page
+        @mount="$monter_page($node)"
+        @unmount="await $demonter_page($node)"
+    >
+        @stud

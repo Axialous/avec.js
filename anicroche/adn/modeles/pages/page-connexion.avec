@@ -15,7 +15,7 @@
                 icone-engrenage
 
 @if [$section = page]
-    page
+    page :(
         barre-onglets
             bouton-onglet
                 "Onglet 1"

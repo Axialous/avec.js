@@ -49,9 +49,20 @@ Déclare du code JavaScript exécuté une fois lors du premier chargement du mod
 ### `@args`
 
 Déclare les paramètres acceptés par le modèle. Les valeurs sont passées de façon positionnelle lors de l'appel du modèle.
+Une valeur par défaut peut être déclarée avec `:`.
 
 ```
-@args [$titre $description]
+@args [$titre, $description : "Aucune description"]
+```
+
+Les arguments sont séparés par `,` ou par un retour à la ligne.
+
+```
+@args [
+    $titre,
+    $couleur : bleu,
+    $message : 'Bonjour'
+]
 ```
 
 ### Conditionnelles

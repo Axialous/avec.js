@@ -44,11 +44,12 @@
     * {
         gap: var(--l-ecart);
 
-        background:  var(--f-fond);
-        font-size:   var(--l-fonte);
-        font-weight: var(--e-fonte);
-        line-height: var(--l-fonte);
-        color:       var(--c-flux);
+        background:      var(--f-fond);
+        font-size:       var(--l-fonte);
+        font-weight:     var(--e-fonte);
+        line-height:     var(--l-fonte);
+        color:           var(--c-flux);
+        scrollbar-color: var(--c-flux) transparent;
 
         outline-style:  solid;
         outline-color:  transparent;

@@ -30,6 +30,18 @@
 
         await new Promise(r => setTimeout(r, maxTime))
     }
+
+    $basculer_vers_onglet = (n, $node) =>
+    {
+        const page = $node.closest('.page')
+        if (!page) return
+
+        const onglets = page.querySelectorAll(':scope > .onglet')
+        const cible = onglets[n - 1]
+        if (!cible) return
+
+        cible.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' })
+    }
 ]
 
 @style [

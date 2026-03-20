@@ -19,3 +19,18 @@
         onglet
             <h1>
                 "Connectez-vous !"
+            <button @click="$basculer_vers_onglet(2, $node)">
+                "TEST"
+            <img src="https://wallpaperaccess.com/full/3665285.png">
+            <img src="https://th.bing.com/th/id/R.b750baff86cb9a6929f5e08f57ef98a4?rik=bmi8r8ZGmo%2fjLA&pid=ImgRaw&r=0">
+            <img src="https://wallpaperaccess.com/full/3665285.png">
+            <img src="https://th.bing.com/th/id/R.b750baff86cb9a6929f5e08f57ef98a4?rik=bmi8r8ZGmo%2fjLA&pid=ImgRaw&r=0">
+        onglet
+            <h1>
+                "Connectez-vous !"
+            <button @click="$basculer_vers_onglet(1, $node)">
+                "TEST"
+            <img src="https://th.bing.com/th/id/R.b750baff86cb9a6929f5e08f57ef98a4?rik=bmi8r8ZGmo%2fjLA&pid=ImgRaw&r=0">
+            <img src="https://wallpaperaccess.com/full/3665285.png">
+            <img src="https://th.bing.com/th/id/R.b750baff86cb9a6929f5e08f57ef98a4?rik=bmi8r8ZGmo%2fjLA&pid=ImgRaw&r=0">
+            <img src="https://wallpaperaccess.com/full/3665285.png">

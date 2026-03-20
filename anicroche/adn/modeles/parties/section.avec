@@ -1,0 +1,25 @@
+@style [
+    .section {
+        flex: 0;
+    }
+
+    .section.centree {
+        flex-grow: 1;
+
+        align-items: center;
+        justify-content: center;
+    }
+
+    .section.centree > * {
+        width: min(48rem, 100%);
+    }
+]
+
+@args [$type : classique]
+
+@if [$type = centree]
+    <section .section .centree>
+        @stud
+@else
+    <section .section>
+        @stud

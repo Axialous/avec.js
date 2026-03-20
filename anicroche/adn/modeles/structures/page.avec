@@ -12,20 +12,24 @@
 
         $node.addEventListener('scroll', () =>
         {
-            const barre = $node.querySelector(':scope > .barre-onglets')
-            if (!barre) return
-
-            const boutons = barre.querySelectorAll(':scope > .bouton-onglet')
-            const indicateur = barre.querySelector(':scope > .indicateur')
-            if (!indicateur) return
-
             const ratio = $node.scrollLeft / ($node.scrollWidth - $node.clientWidth)
-            const nb = boutons.length
 
-            indicateur.style.transition = 'none'
-            indicateur.style.left = `calc((100% - ${nb + 1}rem) / ${nb} * ${ratio * (nb - 1)} + ${ratio * (nb - 1) + 1}rem)`
+            const barre = $node.querySelector(':scope > .barre-onglets')
+            if (barre)
+            {
+                const boutons = barre.querySelectorAll(':scope > .bouton-onglet')
+                const indicateur = barre.querySelector(':scope > .indicateur')
 
-            const n = Math.round(ratio * (nb - 1)) + 1
+                if (indicateur)
+                {
+                    const nb = boutons.length
+                    indicateur.style.transition = 'none'
+                    indicateur.style.left = `calc((100% - ${nb + 1}rem) / ${nb} * ${ratio * (nb - 1)} + ${ratio * (nb - 1) + 1}rem)`
+                }
+            }
+
+            const onglets = $node.querySelectorAll(':scope > .onglet')
+            const n = Math.round(ratio * (onglets.length - 1)) + 1
             marquer_onglet_actif($node, n)
         })
     }
@@ -76,6 +80,30 @@
         indicateur.style.left = `calc((100% - ${boutons.length + 1}rem) / ${boutons.length} * ${n - 1} + ${n}rem)`
 
         marquer_onglet_actif(page, n)
+    }
+
+    $basculer_vers_onglet_suivant = ($node) =>
+    {
+        const page = $node.closest('.page')
+        if (!page) return
+
+        const onglets = page.querySelectorAll(':scope > .onglet')
+        const actif = [...onglets].findIndex(onglet => onglet.classList.contains('actif'))
+        if (actif === -1 || actif === onglets.length - 1) return
+
+        $basculer_vers_onglet(actif + 2, $node)
+    }
+
+    $basculer_vers_onglet_precedant = ($node) =>
+    {
+        const page = $node.closest('.page')
+        if (!page) return
+
+        const onglets = page.querySelectorAll(':scope > .onglet')
+        const actif = [...onglets].findIndex(onglet => onglet.classList.contains('actif'))
+        if (actif <= 0) return
+
+        $basculer_vers_onglet(actif, $node)
     }
 
     const marquer_onglet_actif = (page, n) =>

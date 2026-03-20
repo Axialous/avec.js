@@ -1,0 +1,19 @@
+@style [
+    .titre {
+        font-family: var(--p-titre);
+        --l-fonte: 1.5em;
+    }
+
+    .titre.centre {
+        text-align: center;
+    }
+]
+
+@args [$type : classique]
+
+@if [$type = centre]
+    <h1 .titre .centre>
+        @stud
+@else
+    <h1 .titre>
+        @stud

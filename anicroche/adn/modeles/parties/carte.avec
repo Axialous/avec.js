@@ -1,0 +1,12 @@
+@style [
+    .carte {
+        border-radius: 1.5rem;
+        padding: var(--l-marge);
+
+        --f-fond: var(--c-analogue);
+        --c-fond: var(--c-analogue);
+    }
+]
+
+<div .carte>
+    @stud

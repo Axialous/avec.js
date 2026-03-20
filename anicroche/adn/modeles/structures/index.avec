@@ -47,7 +47,7 @@
         background:      var(--f-fond);
         font-size:       var(--l-fonte);
         font-weight:     var(--e-fonte);
-        line-height:     var(--l-fonte);
+        line-height:     1;
         color:           var(--c-flux);
         scrollbar-color: var(--c-flux) transparent;
 

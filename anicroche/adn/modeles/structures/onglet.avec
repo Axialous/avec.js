@@ -7,6 +7,10 @@
         scroll-snap-align: end;
     }
 
+    .onglet:not(.actif) {
+        pointer-events: none;
+    }
+
     .petit.portrait .onglet {
         padding-bottom: 3.5rem;
     }

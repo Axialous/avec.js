@@ -7,6 +7,27 @@
                 $node.classList.remove('entree')
             )
         )
+        
+        marquer_onglet_actif($node, 1)
+
+        $node.addEventListener('scroll', () =>
+        {
+            const barre = $node.querySelector(':scope > .barre-onglets')
+            if (!barre) return
+
+            const boutons = barre.querySelectorAll(':scope > .bouton-onglet')
+            const indicateur = barre.querySelector(':scope > .indicateur')
+            if (!indicateur) return
+
+            const ratio = $node.scrollLeft / ($node.scrollWidth - $node.clientWidth)
+            const nb = boutons.length
+
+            indicateur.style.transition = 'none'
+            indicateur.style.left = `calc((100% - ${nb + 1}rem) / ${nb} * ${ratio * (nb - 1)} + ${ratio * (nb - 1) + 1}rem)`
+
+            const n = Math.round(ratio * (nb - 1)) + 1
+            marquer_onglet_actif($node, n)
+        })
     }
 
     $demonter_page = async ($node) =>
@@ -41,6 +62,31 @@
         if (!cible) return
 
         cible.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' })
+
+        const barre = page.querySelector(':scope > .barre-onglets')
+        if (!barre) return
+
+        const boutons = barre.querySelectorAll(':scope > .bouton-onglet')
+        const bouton = boutons[n - 1]
+        if (!bouton) return
+
+        const indicateur = barre.querySelector(':scope > .indicateur')
+        if (!indicateur) return
+
+        indicateur.style.left = `calc((100% - ${boutons.length + 1}rem) / ${boutons.length} * ${n - 1} + ${n}rem)`
+
+        marquer_onglet_actif(page, n)
+    }
+
+    const marquer_onglet_actif = (page, n) =>
+    {
+        const onglets = page.querySelectorAll(':scope > .onglet')
+        onglets.forEach((onglet, i) =>
+        {
+            const actif = i === n - 1
+            onglet.classList.toggle('actif', actif)
+            onglet.inert = !actif
+        })
     }
 ]
 
@@ -49,7 +95,6 @@
         flex-direction: row;
         height: 100%;
         overflow-x: auto;
-        overflow-y: hidden;
         scroll-snap-type: x mandatory;
         scrollbar-width: none;
 
@@ -57,6 +102,10 @@
         padding-left: var(--l-tete);
 
         transition: opacity var(--d-animation);
+    }
+
+    .page:has(> .barre-onglets) {
+        padding-top: 2rem;
     }
 
     .page::-webkit-scrollbar {

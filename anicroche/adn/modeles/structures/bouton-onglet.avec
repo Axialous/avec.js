@@ -1,0 +1,23 @@
+@script [
+    $basculer_bouton_onglet = ($node) =>
+    {
+        const barre = $node.closest('.barre-onglets')
+        if (!barre) return
+
+        const boutons = barre.querySelectorAll(':scope > .bouton-onglet')
+        const n = [...boutons].indexOf($node) + 1
+
+        $basculer_vers_onglet(n, $node)
+    }
+]
+
+@style [
+    .bouton-onglet {
+        flex: 1;
+
+        border-radius: 0.1875rem;
+    }
+]
+
+<button .bouton-onglet @click="$basculer_bouton_onglet($node)">
+    @stud

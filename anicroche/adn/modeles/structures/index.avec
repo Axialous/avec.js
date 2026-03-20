@@ -69,6 +69,10 @@
         background: var(--c-flux);
     }
 
+    a, button {
+        cursor: pointer;
+    }
+
     path {
         stroke: var(--c-flux);
         stroke-width: 0.125rem;

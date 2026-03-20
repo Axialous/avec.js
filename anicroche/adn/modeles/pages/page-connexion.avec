@@ -16,6 +16,12 @@
 
 @if [$section = page]
     page
+        barre-onglets
+            bouton-onglet
+                "Onglet 1"
+            bouton-onglet
+                "Onglet 2"
+
         onglet
             <h1>
                 "Connectez-vous !"

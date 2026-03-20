@@ -2,13 +2,14 @@ import { initialiser_sculpteur, etat_sculpteur } from './sculpteur.js'
 
 export const initialiser_navigateur = () =>
 {
-
     document.addEventListener('click', (e) => {
         const cible = e.target
         const lien = cible.closest('a')
 
         if (!lien)
             return
+
+        e.target.blur()
 
         if (e.ctrlKey || e.metaKey || e.shiftKey || e.button !== 0)
             return

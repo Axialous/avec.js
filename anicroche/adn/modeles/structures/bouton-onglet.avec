@@ -8,6 +8,7 @@
         const n = [...boutons].indexOf($node) + 1
 
         $basculer_vers_onglet(n, $node)
+        $node.blur()
     }
 ]
 

@@ -1,0 +1,31 @@
+@style [
+    .lien-soumission {
+        display: inline;
+        width: fit-content;
+
+        border-radius: 0.5rem;
+        text-decoration: underline transparent;
+
+        transition: text-decoration-color var(--d-animation);
+    }
+
+    .lien-soumission:hover {
+        text-decoration-color: var(--c-flux);
+    }
+]
+
+@args [$etiquette, $type : :(]
+
+@if [$type]
+    <button
+        .lien-soumission
+        type="submit"
+        value="$type"
+    >
+        "$etiquette"
+@else
+    <button
+        .lien-soumission
+        type="submit"
+    >
+        "$etiquette"

@@ -1,3 +1,10 @@
+@script [
+    $test = () =>
+    {
+        alert("Hey !")
+    }
+]
+
 @args [$section]
 
 @if [$section = navigation]
@@ -21,7 +28,10 @@
                 titre centre
                     "Connectez-vous ou inscrivez-vous"
                 carte
-                    form
+                    formulaire $test
+                        champ-courriel "Adresse électronique" courriel
+                        bouton-soumission "Continuer" clef
+                        lien-soumission "Me connecter avec mon mot de passe" mot_de_passe
         onglet
             section
                 titre

@@ -1,0 +1,19 @@
+@script [
+    $envoyer_formulaire = ($node, $event) =>
+    {
+        $event.preventDefault()
+        alert($event.submitter.value)
+    }
+]
+
+@style [
+    .formulaire {
+        align-items: center;
+    }
+]
+
+@args [$fonction]
+
+<form .formulaire @submit="$envoyer_formulaire($node, $event)">
+    "$fonction"
+    @stud

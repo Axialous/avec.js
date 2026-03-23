@@ -1,0 +1,29 @@
+@style [
+    .bouton-soumission {
+        width: 100%;
+
+        border-radius: 0.5rem;
+        padding: 0.5rem;
+
+        --f-fond:  var(--c-vif);
+        --c-fond:  var(--c-vif);
+        --c-flux:  var(--c-creme);
+        --c-focus: var(--c-vif);
+    }
+]
+
+@args [$etiquette, $type : :(]
+
+@if [$type]
+    <button
+        .bouton-soumission
+        type="submit"
+        value="$type"
+    >
+        "$etiquette"
+@else
+    <button
+        .bouton-soumission
+        type="submit"
+    >
+        "$etiquette"

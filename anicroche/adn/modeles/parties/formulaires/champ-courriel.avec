@@ -1,0 +1,37 @@
+@style [
+    .champ-courriel {
+        width: 100%;
+
+        border: 0.125rem solid var(--c-vif);
+        border-radius: 0.5rem;
+        padding: 0.375rem;
+
+        font-family: var(--p-champs);
+
+        --c-focus: var(--c-vif);
+    }
+
+    .champ-courriel::placeholder {
+        color: var(--c-moins);
+    }
+]
+
+
+
+@args [$etiquette, $nom, $requis : :)]
+
+@if [$requis]
+    <input
+        .champ-courriel
+        name="$nom"
+        type="email"
+        placeholder="$etiquette"
+        required
+    >
+@else
+    <input
+        .champ-courriel
+        name="$nom"
+        type="email"
+        placeholder="$etiquette"
+    >

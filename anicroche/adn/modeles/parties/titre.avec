@@ -1,6 +1,8 @@
 @style [
     .titre {
         font-family: var(--p-titre);
+        text-wrap: balance;
+
         --l-fonte: 1.5em;
     }
 

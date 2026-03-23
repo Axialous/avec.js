@@ -59,10 +59,11 @@
         transition: outline-color var(--d-animation);
 
         --f-fond: transparent;
+        --c-focus: --c-flux;
     }
 
     *:focus-visible {
-        outline-color: var(--c-flux);
+        outline-color: var(--c-focus);
     }
 
     *::selection {
@@ -87,6 +88,7 @@
 
         --p-titre:  'Eczar', serif;
         --p-bouton: 'Eczar', sans-serif;
+        --p-champs: monospace;
 
         --l-fonte: 1rem;
         --l-ligne: 1;

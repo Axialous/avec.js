@@ -7,8 +7,8 @@
 | Concept | Description |
 |---|---|
 | **Modèle** | Un fichier `.avec` décrivant un fragment d'interface réutilisable |
-| **Variable réactive** | Une variable partagée entre tous les modèles ; sa modification met à jour le DOM automatiquement |
-| **Argument** | Une valeur passée à un modèle lors de son appel, locale à cette instance |
+| **Variable de scope** | Une variable réactive résolue du scope courant vers les parents ; sa modification met à jour le DOM automatiquement |
+| **Argument** | Une valeur passée à un modèle lors de son appel, locale et en lecture seule pour cette instance |
 | **Tenon** | Le contenu injecté dans un modèle via `@stud` |
 
 ## Table des matières

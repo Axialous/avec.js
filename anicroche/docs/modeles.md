@@ -34,7 +34,7 @@ Déclare les styles CSS du modèle. Ils sont injectés dans la page au montage d
 
 ### `@script`
 
-Déclare du code JavaScript exécuté une fois lors du premier chargement du modèle. Typiquement utilisé pour initialiser des variables réactives ou déclarer des fonctions.
+Déclare du code JavaScript exécuté une fois lors du premier chargement d'une instance de modèle. Typiquement utilisé pour initialiser des variables de scope ou déclarer des fonctions.
 
 ```
 @script [
@@ -44,7 +44,7 @@ Déclare du code JavaScript exécuté une fois lors du premier chargement du mod
 ]
 ```
 
-> **Note :** `@script` est exécuté une seule fois par modèle, même si celui-ci est instancié plusieurs fois dans la page. Pour du code lié à une instance spécifique, utiliser les événements `@mount` / `@unmount`.
+> **Note :** `@script` est exécuté une seule fois **par instance de modèle** (c'est-à-dire par scope). Les variables déclarées dans `@script` sont accessibles à cette instance et à tous ses enfants. Pour du code lié à un nœud DOM spécifique, utiliser les événements `@mount` / `@unmount`.
 
 ### `@args`
 
@@ -64,6 +64,12 @@ Les arguments sont séparés par `,` ou par un retour à la ligne.
     $message : 'Bonjour'
 ]
 ```
+
+Les arguments sont accessibles dans les textes, les expressions et les scripts (`@script`, événements, `@mount`, `@unmount`).
+
+Les arguments sont **en lecture seule** : une affectation sur un argument déclenche une erreur.
+
+En cas de conflit de nom, `@args` est prioritaire sur une variable de scope.
 
 ### Conditionnelles
 
@@ -85,7 +91,7 @@ Les arguments sont séparés par `,` ou par un retour à la ligne.
     "Veuillez vous connecter"
 ```
 
-Ces blocs sont **réactifs** : si une variable réactive utilisée dans la condition change, le contenu se met à jour automatiquement.
+Ces blocs sont **réactifs** : si une variable de scope utilisée dans la condition change, le contenu se met à jour automatiquement.
 
 ### Boucles
 

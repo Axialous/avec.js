@@ -1,5 +1,5 @@
 import {valoriser} from './scribe.js'
-import {etat_sculpteur} from './sculpteur.js'
+import {ecrire_variable, lire_variable} from './sculpteur.js'
 
 // ============================================================
 // Types de résultat
@@ -766,7 +766,7 @@ const op_correspondance = (chaine, motif_brut, donnees) =>
     // Écrire les variables capturées dans le runtime
     for (const [nom, valeur] of Object.entries(captures))
     {
-        etat_sculpteur.instance[`$${nom}`] = valeur
+        ecrire_variable(donnees?.scope, donnees?.args || {}, `$${nom}`, valeur)
     }
 
     return VRAI
@@ -790,8 +790,8 @@ const evaluer_noeud = (noeud, donnees) =>
 
     case 'variable':
     {
-        const result = valoriser(noeud.valeur, donnees)
-        return result === noeud.valeur ? ERREUR : result
+        const lecture = lire_variable(donnees?.scope, donnees?.args || {}, noeud.valeur, true)
+        return lecture.trouve ? lecture.valeur : ERREUR
     }
 
     case 'acces':

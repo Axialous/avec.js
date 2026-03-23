@@ -11,9 +11,11 @@ Les expressions permettent de calculer des valeurs dans les conditions, les bouc
 
 ## Variables
 
-### Variables réactives
+### Variables de scope
 
-Les variables réactives sont partagées entre tous les modèles. Elles sont préfixées par `$` et s'écrivent directement dans les expressions et les textes.
+Les variables de scope sont des variables réactives préfixées par `$`. Elles sont accessibles dans les expressions, les textes et les scripts.
+
+Chaque instance de modèle possède son propre scope. La résolution d'une variable se fait en remontant la chaîne des scopes : modèle courant → parent → ... → racine.
 
 ```
 @if [$connecte]
@@ -23,9 +25,13 @@ Les variables réactives sont partagées entre tous les modèles. Elles sont pr�
 "Bonjour $nom !"
 ```
 
-Lorsqu'une variable réactive change de valeur, le cadriciel met à jour automatiquement toutes les parties du DOM qui en dépendent.
+Lorsqu'une variable de scope change de valeur, le cadriciel met à jour automatiquement toutes les parties du DOM qui en dépendent.
 
-**Variables réactives prédéfinies** (gérées automatiquement par le cadriciel) :
+Si une variable existe déjà dans un scope parent, une affectation depuis un enfant met à jour la variable du parent.
+
+Si une variable n'existe dans aucun parent, l'affectation crée la variable dans le scope courant.
+
+**Variables de scope prédéfinies à la racine** (gérées automatiquement par le cadriciel) :
 
 | Variable | Type | Description |
 |---|---|---|
@@ -37,7 +43,11 @@ Ces variables sont mises à jour à chaque navigation sans rechargement de page.
 
 ### Arguments de modèle
 
-Les arguments déclarés via `@args` sont des variables locales à l'instance du modèle. Ils s'utilisent comme des variables réactives dans les expressions, mais ne sont pas partagés avec les autres modèles.
+Les arguments déclarés via `@args` sont des variables locales à l'instance du modèle. Ils s'utilisent dans les expressions, les textes et les scripts.
+
+Les arguments sont **en lecture seule** : toute tentative d'affectation d'un argument provoque une erreur.
+
+En cas de conflit de nom, `@args` est prioritaire sur les variables de scope.
 
 ```
 @args [$titre, $couleur : "bleu"]
@@ -197,7 +207,7 @@ L'opérateur `~=` vérifie si un texte correspond à un motif. Il peut capturer 
 # $section capture tout jusqu'au premier /, $id capture tout jusqu'à la fin
 ```
 
-Les variables capturées sont écrites dans l'état réactif global et immédiatement disponibles dans les expressions et les textes.
+Les variables capturées sont écrites dans le scope courant (ou dans un parent si la variable existe déjà) et immédiatement disponibles dans les expressions, les textes et les scripts.
 
 **Exemple complet — routeur :**
 

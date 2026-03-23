@@ -5,7 +5,8 @@ import {activer_style, desactiver_style} from './decorateur.js'
 import {
     initialiser_sculpteur, executer_script, executer_script_async,
     activer_script, desactiver_script,
-    observer_sculpteur, etat_sculpteur,
+    observer_sculpteur,
+    creer_scope, obtenir_scope_racine,
     definir_noeud_courant, effacer_noeud_courant
 } from './sculpteur.js'
 
@@ -24,11 +25,15 @@ export const initialiser_batisseur = async () =>
 {
     const corps = document.querySelector(`#avec`)
 
+    initialiser_sculpteur()
+
     const index = await charger_modele(`index`)
     if (index)
     {
         const donnees = {
             dependances: index.dependances,
+            scope: obtenir_scope_racine(),
+            args: {},
             tenons: [],
             attente: null,
             repli: null
@@ -601,6 +606,8 @@ const construire_balise = (bloc, donnees) =>
         : document.createElement(etiquette)
     
     noeud._avec_vars = Object.create(null)
+    noeud._avec_scope = donnees.scope
+    noeud._avec_args = donnees.args || {}
 
     for (const attribut of attributs)
     {
@@ -634,7 +641,7 @@ const construire_balise = (bloc, donnees) =>
             else
             {
                 noeud.addEventListener(evenement, (e) => {
-                    executer_script(script, e, noeud)
+                    executer_script(script, e, noeud, noeud._avec_scope, noeud._avec_args)
                 })
             }
         }
@@ -788,20 +795,11 @@ const construire_modele = (bloc, donnees) =>
     }
 
     const modele = donnees.dependances[nom]
+    const scope_modele = creer_scope(donnees.scope)
     const args = {}
 
     for (const enfant of modele.enfants)
     {
-        if (enfant.type === `instruction` && enfant.args[0] === `@style`)
-        {
-            const css = decapsuler(enfant.args[1])
-            activer_style(nom, css)
-        }
-        if (enfant.type === `instruction` && enfant.args[0] === `@script`)
-        {
-            const js = decapsuler(enfant.args[1])
-            activer_script(nom, js)
-        }
         if (enfant.type === `instruction` && enfant.args[0] === `@args`)
         {
             const declarations = extraire_declarations_args(decapsuler(enfant.args[1]))
@@ -815,8 +813,23 @@ const construire_modele = (bloc, donnees) =>
         }
     }
 
+    for (const enfant of modele.enfants)
+    {
+        if (enfant.type === `instruction` && enfant.args[0] === `@style`)
+        {
+            const css = decapsuler(enfant.args[1])
+            activer_style(nom, css)
+        }
+        if (enfant.type === `instruction` && enfant.args[0] === `@script`)
+        {
+            const js = decapsuler(enfant.args[1])
+            activer_script(nom, js, scope_modele, args)
+        }
+    }
+
     const donnees_modele = {
         ...donnees,
+        scope: scope_modele,
         args: args,
         tenons: [...donnees.tenons, { enfants: bloc.enfants, donnees }]
     }
@@ -833,7 +846,7 @@ const monter_noeud = (noeud) =>
     {
         if (noeud._avec_actions?.mount)
         {
-            executer_script(noeud._avec_actions.mount, null, noeud)
+            executer_script(noeud._avec_actions.mount, null, noeud, noeud._avec_scope, noeud._avec_args)
         }
     }
 }
@@ -844,7 +857,7 @@ const demonter_noeud = async (noeud) =>
     {
         if (noeud._avec_actions?.unmount)
         {
-            await executer_script_async(noeud._avec_actions.unmount, null, noeud)
+            await executer_script_async(noeud._avec_actions.unmount, null, noeud, noeud._avec_scope, noeud._avec_args)
         }
 
         await Promise.all([...noeud.children].map(enfant => demonter_noeud(enfant)))
@@ -858,7 +871,7 @@ const nettoyer_noeud = (noeud) =>
         if (noeud._avec_modele)
         {
             desactiver_style(noeud._avec_modele)
-            desactiver_script(noeud._avec_modele)
+            desactiver_script(noeud._avec_modele, noeud._avec_scope)
         }
 
         for (const enfant of noeud.children)

@@ -1,4 +1,4 @@
-import { initialiser_sculpteur, etat_sculpteur } from './sculpteur.js'
+import { initialiser_sculpteur, definir_variable_racine } from './sculpteur.js'
 
 export const initialiser_navigateur = () =>
 {
@@ -64,9 +64,9 @@ const naviguer = (bord) =>
 
     initialiser_sculpteur()
 
-    etat_sculpteur.instance.$path   = lien.pathname
-    etat_sculpteur.instance.$params = Object.fromEntries(lien.searchParams)
-    etat_sculpteur.instance.$hash   = lien.hash
+    definir_variable_racine(`$path`, lien.pathname)
+    definir_variable_racine(`$params`, Object.fromEntries(lien.searchParams))
+    definir_variable_racine(`$hash`, lien.hash)
 
     console.log(`Navigation vers ${bord}`)
 }

@@ -2,7 +2,7 @@
     $envoyer_formulaire = ($node, $event) =>
     {
         $event.preventDefault()
-        alert($event.submitter.value)
+        $fonction($node, $event)
     }
 ]
 
@@ -15,5 +15,4 @@
 @args [$fonction]
 
 <form .formulaire @submit="$envoyer_formulaire($node, $event)">
-    "$fonction"
     @stud

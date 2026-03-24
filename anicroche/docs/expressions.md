@@ -38,6 +38,7 @@ Si une variable n'existe dans aucun parent, l'affectation crée la variable dans
 | `$path` | texte | Chemin de l'URL courante (ex : `/page/42`) |
 | `$params` | dictionnaire | Paramètres de l'URL (ex : `{q: "recherche"}`) |
 | `$hash` | texte | Fragment de l'URL (ex : `#section`) |
+| `$navigate` | fonction | Navigue vers une URL (`$navigate('/connexion')`, `$navigate('/article/42?q=test')`) |
 
 Ces variables sont mises à jour à chaque navigation sans rechargement de page.
 

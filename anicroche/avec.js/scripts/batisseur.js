@@ -6,7 +6,7 @@ import {
     initialiser_sculpteur, executer_script, executer_script_async,
     activer_script, desactiver_script,
     observer_sculpteur,
-    creer_scope, obtenir_scope_racine,
+    creer_scope, obtenir_scope_racine, lire_variable,
     definir_noeud_courant, effacer_noeud_courant
 } from './sculpteur.js'
 
@@ -378,6 +378,7 @@ const construire_enfants = (bloc, donnees) =>
                     }
                     const donnees_tenon = {
                         ...tenon.donnees,
+                        scope: donnees.scope,
                         tenons: donnees.tenons.slice(0, -1)
                     }
                     enfants.push(...construire_enfants(bloc_tenon, donnees_tenon))
@@ -808,7 +809,28 @@ const construire_modele = (bloc, donnees) =>
             {
                 const { nom, valeur_defaut } = declarations[i]
                 const valeur_brute = valeurs[i] ?? valeur_defaut ?? ``
-                args[nom] = valoriser(decapsuler_si_entoure(valeur_brute), donnees)
+                const valeur_decapsule = decapsuler_si_entoure(valeur_brute)
+
+                if (/^\$[a-zA-Z_][\w]*$/.test(valeur_decapsule))
+                {
+                    args[nom] = {
+                        __avec_liaison_arg: true,
+                        variable: valeur_decapsule,
+                        scope: donnees.scope,
+                        args: donnees.args || {}
+                    }
+                    continue
+                }
+                
+                const lecture = lire_variable(donnees.scope, donnees.args || {}, valeur_decapsule, false)
+                if (lecture.trouve)
+                {
+                    args[nom] = lecture.valeur
+                }
+                else
+                {
+                    args[nom] = valoriser(valeur_decapsule, donnees)
+                }
             }
         }
     }

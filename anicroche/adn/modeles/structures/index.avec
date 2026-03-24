@@ -45,6 +45,7 @@
         gap: var(--l-ecart);
 
         background:      var(--f-fond);
+        font-family:     var(--p-fonte);
         font-size:       var(--l-fonte);
         font-weight:     var(--e-fonte);
         line-height:     1;
@@ -86,9 +87,11 @@
     html {
         overflow: hidden;
 
+        --p-fonte:  var(--p-texte);
         --p-titre:  'Eczar', serif;
-        --p-bouton: 'Eczar', sans-serif;
-        --p-champs: monospace;
+        --p-texte:  sans;
+        --p-bouton: monospace;
+        --p-champ:  monospace;
 
         --l-fonte: 1rem;
         --l-ligne: 1;
@@ -97,7 +100,10 @@
         --l-blur: 4rem;
         --l-tete: 10.625rem;
 
-        --e-fonte: 400;
+        --e-fonte:  var(--e-texte);
+        --e-titre:  450;
+        --e-texte:  400;
+        --e-bouton: 600;
 
         --d-animation:  500ms;
 

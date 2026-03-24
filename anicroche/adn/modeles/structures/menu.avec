@@ -6,9 +6,8 @@
     }
 
     #menu span {
-        font-family: var(--p-bouton);
-
-        --e-fonte: 500;
+        --e-fonte: var(--e-texte);
+        --p-fonte: var(--p-texte);
     }
 
     .grand #menu .alt,

@@ -1,8 +1,12 @@
 @script [
-    $test = () =>
-    {
-        alert("Hey !")
-    }
+    $mode_formulaire = ''
+
+    $courriel_formulaire = ''
+    $clef_formulaire     = ''
+
+    $erreur_mot_de_passe = ':('
+    $erreur_clef         = ':('
+    $erreur_inscription  = ':('
 ]
 
 @args [$section]
@@ -24,15 +28,11 @@
 @if [$section = page]
     page :(
         onglet
-            section centree
-                titre centre
-                    "Connectez-vous ou inscrivez-vous"
-                carte
-                    formulaire $test
-                        champ-courriel "Adresse électronique" courriel
-                        bouton-soumission "Continuer" clef
-                        lien-soumission "Me connecter avec mon mot de passe" mot_de_passe
+            section-connexion courriel
         onglet
-            section
-                titre
-                    "Connectez-vous !"
+            @if [$mode_formulaire = clef]
+                section-connexion clef
+            @else-if [$mode_formulaire = mot_de_passe]
+                section-connexion mot_de_passe
+        onglet
+            section-connexion inscription

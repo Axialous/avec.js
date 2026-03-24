@@ -45,10 +45,10 @@
 
     #navigation span {
         white-space: nowrap;
-        font-family: var(--p-titre);
 
         --l-fonte: 1.5rem;
-        --e-fonte: 450;
+        --e-fonte: var(--e-titre);
+        --p-fonte: var(--p-titre);
     }
 
     #page {

@@ -1,5 +1,5 @@
 @style [
-    .champ-texte {
+    .champ-mot-de-passe {
         width: 100%;
 
         border: 0.125rem solid var(--c-vif);
@@ -10,13 +10,13 @@
         --p-fonte: var(--p-champ);
     }
 
-    .champ-texte[readonly] {
+    .champ-mot-de-passe[readonly] {
         cursor: not-allowed;
 
         --c-flux: var(--c-vif);
     }
 
-    .champ-texte::placeholder {
+    .champ-mot-de-passe::placeholder {
         color: var(--c-moins);
     }
 ]
@@ -26,18 +26,18 @@
 @if [$requis]
     @if [$modifiable]
         <input
-            .champ-texte
+            .champ-mot-de-passe
             name="$nom"
-            type="text"
+            type="password"
             placeholder="$etiquette"
             value="$valeur"
             required
         >
     @else
         <input
-            .champ-texte
+            .champ-mot-de-passe
             name="$nom"
-            type="text"
+            type="password"
             placeholder="$etiquette"
             value="$valeur"
             required
@@ -46,17 +46,17 @@
 @else
     @if [$modifiable]
         <input
-            .champ-texte
+            .champ-mot-de-passe
             name="$nom"
-            type="text"
+            type="password"
             placeholder="$etiquette"
             value="$valeur"
         >
     @else
         <input
-            .champ-texte
+            .champ-mot-de-passe
             name="$nom"
-            type="text"
+            type="password"
             placeholder="$etiquette"
             value="$valeur"
             readonly

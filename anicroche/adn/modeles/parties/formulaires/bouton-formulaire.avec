@@ -1,5 +1,5 @@
 @style [
-    .bouton-soumission {
+    .bouton-formulaire {
         width: 100%;
         flex: 1;
 
@@ -15,18 +15,11 @@
     }
 ]
 
-@args [$etiquette, $type : :(]
+@args [$etiquette, $fonction]
 
-@if [$type]
-    <button
-        .bouton-soumission
-        type="submit"
-        value="$type"
-    >
-        "$etiquette"
-@else
-    <button
-        .bouton-soumission
-        type="submit"
-    >
-        "$etiquette"
+<button
+    .bouton-formulaire
+    type="button"
+    @click="$fonction($node)"
+>
+    "$etiquette"

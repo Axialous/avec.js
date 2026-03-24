@@ -1,0 +1,123 @@
+@script [
+    $envoyer_formulaire_courriel = ($node, $event) =>
+    {
+        $mode_formulaire = $event.submitter.value
+
+        data = new FormData($node)
+        $courriel_formulaire = data.get('courriel')
+
+        $basculer_vers_onglet_suivant($node)
+    }
+
+    $envoyer_formulaire_mot_de_passe = ($node, $event) =>
+    {
+        data = new FormData($node)
+
+        if (confirm("Simulation : est-ce le bon mot de passe ?"))
+        {
+            alert(`Connexion avec le courriel "${data.get('courriel')}"`)
+            $navigate("/")
+        }
+        else
+        {
+            $erreur_mot_de_passe = "L'adresse électronique ou le mot de passe est invalide"
+        }
+    }
+
+    $envoyer_formulaire_clef = ($node, $event) =>
+    {
+        data = new FormData($node)
+        $clef_formulaire = data.get('clef')
+
+        if (confirm("Simulation : est-ce la bonne clef ?"))
+        {
+            type = confirm("Simulation : est-ce qu le compte existe déjà ?") ? 'connexion' : 'inscription'
+            if (type == 'inscription')
+            {
+                $basculer_vers_onglet_suivant($node)
+            }
+            else if (type == 'connexion')
+            {
+                alert(`Connexion avec le courriel "${data.get('courriel')}"`)
+                $navigate("/")
+            }
+        }
+        else
+        {
+            $erreur_clef = "La clef de validation est invalide"
+        }
+    }
+
+    $envoyer_formulaire_inscription = ($node, $event) =>
+    {
+        data = new FormData($node)
+
+        if (confirm("Simulation : est-ce que la clef de validation a expiré ?"))
+        {
+            alert(`Incription avec le courriel "${data.get('courriel')}"`)
+            $navigate("/")
+        }
+        else
+        {
+            $erreur_inscription = "La clef de validation a expiré"
+        }
+    }
+]
+
+@args [$etape]
+
+@if [$etape = courriel]
+    section centree
+        titre centre
+            "Connectez-vous ou inscrivez-vous"
+        carte
+            formulaire $envoyer_formulaire_courriel
+                champ-courriel "Adresse électronique" courriel
+                bouton-soumission "Continuer" clef
+                lien-soumission "Me connecter avec mon mot de passe" mot_de_passe
+
+@else-if [$etape = mot_de_passe]
+    section centree
+        titre centre
+            "Saisissez votre mot de passe"
+        carte
+            formulaire $envoyer_formulaire_mot_de_passe
+                @if [$erreur_mot_de_passe]
+                    erreur-formulaire
+                        "$erreur_mot_de_passe"
+                champ-courriel "Adresse électronique" courriel :) $courriel_formulaire :(
+                champ-mot-de-passe "Mot de passe" mot_de_passe
+                ligne
+                    bouton-formulaire "Retour" $basculer_vers_onglet_precedant
+                    bouton-soumission "Continuer"
+
+@else-if [$etape = clef]
+    section centree
+        titre centre
+            "Saisissez la clef de validation"
+        carte
+            formulaire $envoyer_formulaire_clef
+                @if [$erreur_clef]
+                    erreur-formulaire
+                        "$erreur_clef"
+                champ-courriel "Adresse électronique" courriel :) $courriel_formulaire :(
+                champ-texte "Clef de validation" clef
+                lien-formulaire "Renvoyer la clef"
+                ligne
+                    bouton-formulaire "Retour" $basculer_vers_onglet_precedant
+                    bouton-soumission "Continuer"
+
+@else-if [$etape = inscription]
+    section centree
+        titre centre
+            "Définissez un mot de passe fort"
+        carte
+            formulaire $envoyer_formulaire_inscription
+                @if [$erreur_inscription]
+                    erreur-formulaire
+                        "$erreur_inscription"
+                champ-courriel "Adresse électronique" courriel :) $courriel_formulaire :(
+                champ-mot-de-passe "Mot de passe" mot_de_passe
+                ligne
+                    bouton-formulaire "Retour" $basculer_vers_onglet_precedant
+                    bouton-soumission "Continuer"

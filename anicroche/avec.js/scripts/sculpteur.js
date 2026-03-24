@@ -66,9 +66,28 @@ export const lire_variable = (scope, args, propriete, suivre_dependance = true) 
 
     if (args && Object.prototype.hasOwnProperty.call(args, propriete))
     {
+        const valeur_arg = args[propriete]
+
+        if (valeur_arg && valeur_arg.__avec_liaison_arg === true)
+        {
+            const lecture_liaison = lire_variable(
+                valeur_arg.scope,
+                valeur_arg.args || {},
+                valeur_arg.variable,
+                suivre_dependance
+            )
+
+            return {
+                trouve: true,
+                valeur: lecture_liaison.trouve ? lecture_liaison.valeur : ``,
+                est_arg: true,
+                clef: lecture_liaison.clef || null
+            }
+        }
+
         return {
             trouve: true,
-            valeur: args[propriete],
+            valeur: valeur_arg,
             est_arg: true,
             clef: `arg:${String(propriete)}`
         }
@@ -78,6 +97,13 @@ export const lire_variable = (scope, args, propriete, suivre_dependance = true) 
     const scope_proprietaire = trouver_scope_variable(base, propriete)
     if (!scope_proprietaire)
     {
+        if (suivre_dependance && noeud_courant && typeof propriete === 'string')
+        {
+            if (!noeud_courant._avec_deps)
+                noeud_courant._avec_deps = new Set()
+            noeud_courant._avec_deps.add(clef_dependance(base, propriete))
+        }
+
         return {
             trouve: false,
             valeur: undefined,
@@ -252,8 +278,7 @@ export const activer_script = (modele, js, scope = null, args = {}) =>
         const fonction = new Function(
             `runtime`,
             `
-            with (runtime)
-            {
+            with (runtime) {
                 ${js}
             }
             `

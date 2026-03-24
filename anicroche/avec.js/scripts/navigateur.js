@@ -2,6 +2,27 @@ import { initialiser_sculpteur, definir_variable_racine } from './sculpteur.js'
 
 export const initialiser_navigateur = () =>
 {
+    initialiser_sculpteur()
+
+    definir_variable_racine(`$navigate`, (board) => {
+        if (board === null || board === undefined)
+            return
+
+        const url = new URL(String(board), location.origin)
+
+        if (url.origin !== location.origin)
+        {
+            location.href = url.href
+            return
+        }
+
+        const nouvelle_url = url.pathname + url.search + url.hash
+        const ancienne_url = location.pathname + location.search + location.hash
+
+        if (nouvelle_url !== ancienne_url)
+            history.pushState({}, '', nouvelle_url)
+    })
+
     document.addEventListener('click', (e) => {
         const cible = e.target
         const lien = cible.closest('a')

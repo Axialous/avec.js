@@ -188,6 +188,14 @@ const valider_bloc_avec = (bloc, str, pos, fichier) =>
     }
     else if (bloc.type == 'modele')
     {
+        if (bloc.args.length > 2)
+            erreur(`un appel de modèle doit utiliser la syntaxe : ${bloc.args[0]} [argument_1, argument_2]`, fichier, str, pos)
+        if (bloc.args.length == 2)
+        {
+            const args = bloc.args[1].trim()
+            if (!(args.startsWith('[') && args.endsWith(']')))
+                erreur(`les arguments d'un modèle doivent être entre crochets : ${bloc.args[0]} [argument_1, argument_2]`, fichier, str, pos)
+        }
         return
     }
     else

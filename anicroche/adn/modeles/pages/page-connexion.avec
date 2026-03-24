@@ -14,7 +14,7 @@
 @if [$section = navigation]
     navigation
         <div .gauche>
-            ancre-boite / Retour
+            ancre-boite [/ Retour]
                 icone-fleche-gauche
 
         <div .centre>
@@ -22,17 +22,17 @@
                 "Connexion"
 
         <div .droite>
-            ancre-boite /preferences Préférences
+            ancre-boite [/preferences Préférences]
                 icone-engrenage
 
 @if [$section = page]
-    page :(
+    page [:(]
         onglet
-            section-connexion courriel
+            section-connexion [courriel]
         onglet
             @if [$mode_formulaire = clef]
-                section-connexion clef
+                section-connexion [clef]
             @else-if [$mode_formulaire = mot_de_passe]
-                section-connexion mot_de_passe
+                section-connexion [mot_de_passe]
         onglet
-            section-connexion inscription
+            section-connexion [inscription]

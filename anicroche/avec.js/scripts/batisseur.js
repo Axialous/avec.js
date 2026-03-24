@@ -53,6 +53,12 @@ const decapsuler = (str) =>
     while (pos < str.length)
     {
         const c = str[pos]
+        if (c === ':' && /^[)(x]$/.test(str[pos + 1]) && !/^["'`]$/.test(blocs.slice(-1)))
+        {
+            texte += str.slice(pos, pos + 2)
+            pos += 2
+            continue
+        }
         if (c == blocs.slice(-1))
         {
             blocs = blocs.slice(0, -1)
@@ -98,6 +104,11 @@ const est_entoure_par_bloc = (str) =>
     for (let pos = 0; pos < texte.length; pos++)
     {
         const c = texte[pos]
+        if (c === ':' && /^[)(x]$/.test(texte[pos + 1]) && !/^["'`]$/.test(blocs.slice(-1)))
+        {
+            pos++
+            continue
+        }
         if (c === blocs.slice(-1))
             blocs = blocs.slice(0, -1)
         else if (c === '<' && !/^[)\]}>"'`]$/.test(blocs.slice(-1)))
@@ -133,6 +144,12 @@ const decouper_haut_niveau = (str, separateurs) =>
     for (let pos = 0; pos < brut.length; pos++)
     {
         const c = brut[pos]
+
+        if (c === ':' && /^[)(x]$/.test(brut[pos + 1]) && !/^["'`]$/.test(blocs.slice(-1)))
+        {
+            pos++
+            continue
+        }
 
         if (c === blocs.slice(-1))
         {
@@ -170,6 +187,11 @@ const extraire_declaration_arg = (str) =>
     for (let pos = 0; pos < str.length; pos++)
     {
         const c = str[pos]
+        if (c === ':' && /^[)(x]$/.test(str[pos + 1]) && !/^["'`]$/.test(blocs.slice(-1)))
+        {
+            pos++
+            continue
+        }
         if (c === blocs.slice(-1))
         {
             blocs = blocs.slice(0, -1)
@@ -211,6 +233,243 @@ const extraire_declarations_args = (str) =>
 {
     return decouper_haut_niveau(str, new Set([',', '\n']))
         .map(extraire_declaration_arg)
+}
+
+const extraire_argument_modele = (str) =>
+{
+    const valeur = str.trim()
+    if (/^:[)(x]$/.test(valeur))
+        return { nom: null, valeur }
+
+    const ouvrants = { '(':')', '[':']', '{':'}', '"':'"', "'":"'", '`':'`' }
+    let blocs = ``
+
+    for (let pos = 0; pos < str.length; pos++)
+    {
+        const c = str[pos]
+        if (c === ':' && /^[)(x]$/.test(str[pos + 1]) && !/^["'`]$/.test(blocs.slice(-1)))
+        {
+            pos++
+            continue
+        }
+        if (c === blocs.slice(-1))
+        {
+            blocs = blocs.slice(0, -1)
+        }
+        else if (c === '<' && !/^[)\]}>"'`]$/.test(blocs.slice(-1)))
+        {
+            blocs += '>'
+        }
+        else if (c in ouvrants && !/^["'`]$/.test(blocs.slice(-1)))
+        {
+            blocs += ouvrants[c]
+        }
+        else if (c === ':' && blocs === ``)
+        {
+            const nom = str.slice(0, pos).trim()
+            const valeur = str.slice(pos + 1).trim()
+
+            if (nom.length === 0)
+                throw new Error("argument nommé invalide : nom d'argument manquant")
+            if (!/^\$[a-zA-Z_][\w]*$/.test(nom))
+                throw new Error(`argument nommé invalide : ${nom} n'est pas un nom d'argument valide`)
+            if (valeur.length === 0)
+                throw new Error(`argument nommé invalide : valeur manquante pour ${nom}`)
+
+            return { nom, valeur }
+        }
+    }
+
+    if (valeur.length === 0)
+        throw new Error("argument de modèle invalide : valeur manquante")
+
+    return { nom: null, valeur }
+}
+
+const extraire_arguments_modele = (str) =>
+{
+    return decouper_haut_niveau(str, new Set([',', '\n']))
+        .map(extraire_argument_modele)
+}
+
+const est_bloc_crochets = (str) =>
+{
+    const texte = str.trim()
+    return texte.startsWith('[') && texte.endsWith(']') && est_entoure_par_bloc(texte)
+}
+
+const assembler_attributs_conditionnels = (attributs) =>
+{
+    const resultat = []
+
+    for (let i = 0; i < attributs.length; i++)
+    {
+        const courant = attributs[i]
+
+        if (est_bloc_crochets(courant) && attributs[i + 1] == '?')
+        {
+            const attr_vrai = attributs[i + 2]
+            if (!attr_vrai)
+                throw new Error(`Attribut conditionnel invalide : attribut manquant apres '?'`)
+
+            if (attributs[i + 3] == ':')
+            {
+                const attr_faux = attributs[i + 4]
+                if (!attr_faux)
+                    throw new Error(`Attribut conditionnel invalide : attribut manquant apres ':'`)
+
+                resultat.push(`${courant}?${attr_vrai}:${attr_faux}`)
+                i += 4
+            }
+            else
+            {
+                resultat.push(`${courant}?${attr_vrai}`)
+                i += 2
+            }
+        }
+        else
+        {
+            resultat.push(courant)
+        }
+    }
+
+    return resultat
+}
+
+const extraire_attribut_conditionnel = (str) =>
+{
+    const brut = str.trim()
+    if (brut.length === 0)
+        return null
+
+    const ouvrants = { '(':')', '[':']', '{':'}', '"':'"', "'":"'", '`':'`' }
+    let blocs = ``
+    let pos_point_interrogation = -1
+    let pos_deux_points = -1
+
+    for (let pos = 0; pos < brut.length; pos++)
+    {
+        const c = brut[pos]
+        if (c === ':' && /^[)(x]$/.test(brut[pos + 1]) && !/^["'`]$/.test(blocs.slice(-1)))
+        {
+            pos++
+            continue
+        }
+
+        if (c === blocs.slice(-1))
+        {
+            blocs = blocs.slice(0, -1)
+        }
+        else if (c === '<' && !/^[)\]}>"'`]$/.test(blocs.slice(-1)))
+        {
+            blocs += '>'
+        }
+        else if (c in ouvrants && !/^["'`]$/.test(blocs.slice(-1)))
+        {
+            blocs += ouvrants[c]
+        }
+        else if (c === '?' && blocs === `` && pos_point_interrogation < 0)
+        {
+            pos_point_interrogation = pos
+        }
+        else if (c === ':' && blocs === `` && pos_point_interrogation >= 0 && pos_deux_points < 0)
+        {
+            pos_deux_points = pos
+        }
+    }
+
+    if (pos_point_interrogation < 0)
+        return null
+
+    const condition = brut.slice(0, pos_point_interrogation).trim()
+    if (!est_bloc_crochets(condition))
+        throw new Error(`Attribut conditionnel invalide : la condition doit etre entre crochets []`)
+
+    const attr_vrai = pos_deux_points < 0
+        ? brut.slice(pos_point_interrogation + 1).trim()
+        : brut.slice(pos_point_interrogation + 1, pos_deux_points).trim()
+
+    if (attr_vrai.length === 0)
+        throw new Error(`Attribut conditionnel invalide : attribut manquant apres '?'`)
+
+    const attr_faux = pos_deux_points < 0
+        ? null
+        : brut.slice(pos_deux_points + 1).trim()
+
+    if (pos_deux_points >= 0 && (!attr_faux || attr_faux.length === 0))
+        throw new Error(`Attribut conditionnel invalide : attribut manquant apres ':'`)
+
+    return {
+        condition,
+        attr_vrai,
+        attr_faux
+    }
+}
+
+const appliquer_attribut_brut = (noeud, attribut, donnees) =>
+{
+    if (attribut[0] == `#`)
+    {
+        const id = attribut.slice(1)
+        noeud.id = id
+        return () => {
+            if (noeud.id === id)
+                noeud.id = ``
+        }
+    }
+
+    if (attribut[0] == `.`)
+    {
+        const classe = attribut.slice(1)
+        noeud.classList.add(classe)
+        return () => noeud.classList.remove(classe)
+    }
+
+    if (!attribut.includes(`=`))
+    {
+        noeud.setAttribute(attribut, ``)
+        return () => noeud.removeAttribute(attribut)
+    }
+
+    if (attribut.startsWith('on') || attribut[0] == '@')
+    {
+        initialiser_sculpteur()
+
+        let [evenement, ...reste] = attribut.split('=')
+        evenement = evenement[0] == `@` ? evenement.slice(1) : evenement.slice(2)
+        const script = decapsuler(reste.join('='))
+
+        if (evenement === 'mount' || evenement === 'unmount')
+        {
+            if (!noeud._avec_actions)
+                noeud._avec_actions = {}
+
+            noeud._avec_actions[evenement] = script
+            return () => {
+                if (noeud._avec_actions?.[evenement] === script)
+                    delete noeud._avec_actions[evenement]
+            }
+        }
+
+        const gestionnaire = (e) => {
+            executer_script(script, e, noeud, noeud._avec_scope, noeud._avec_args)
+        }
+        noeud.addEventListener(evenement, gestionnaire)
+        return () => noeud.removeEventListener(evenement, gestionnaire)
+    }
+
+    const [clef, ...reste] = attribut.split(`=`)
+    const valeur_brute = reste.join(`=`)
+    const valeur = valoriser(decapsuler(valeur_brute), donnees)
+    appliquer_attribut(noeud, clef, valeur)
+    return () => {
+        if (clef === 'id')
+            noeud.id = ``
+        else if (clef === 'class')
+            noeud.className = ``
+        else
+            noeud.removeAttribute(clef)
+    }
 }
 
 const construire_bloc = (bloc, donnees) =>
@@ -557,49 +816,9 @@ const construire_texte = (bloc, donnees) =>
 const construire_balise = (bloc, donnees) =>
 {
     const str = decapsuler(bloc.args[0]).trim()
-    let etiquette = ``
-    let attributs = []
-    let pos = 0
-    let blocs = ``
-    let mot = ``
-
-    while (pos < str.length)
-    {
-        const c = str[pos]
-        if (/\s/.test(c) && blocs == ``)
-        {
-            if (mot.length > 0)
-            {
-                if (etiquette == ``)
-                    etiquette = mot
-                else
-                    attributs.push(mot)
-                mot = ``
-            }
-        }
-        else if (c == blocs.slice(-1))
-        {
-            blocs = blocs.slice(0, -1)
-            mot += c
-        }
-        else if (/^["'`]$/.test(c) && !/^["'`]$/.test(blocs.slice(-1)))
-        {
-            blocs += c
-            mot += c
-        }
-        else
-        {
-            mot += c
-        }
-        pos++
-    }
-    if (mot.length > 0)
-    {
-        if (etiquette == ``)
-            etiquette = mot
-        else
-            attributs.push(mot)
-    }
+    let attributs = decouper_haut_niveau(str, new Set([' ', '\n', '\r', '\t']))
+    const etiquette = attributs.shift()
+    attributs = assembler_attributs_conditionnels(attributs)
     
     const ESPACE_SVG = 'http://www.w3.org/2000/svg'
     const noeud = BALISES_SVG.has(etiquette)
@@ -612,7 +831,44 @@ const construire_balise = (bloc, donnees) =>
 
     for (const attribut of attributs)
     {
-        if (attribut[0] == `#`)
+        const conditionnel = extraire_attribut_conditionnel(attribut)
+        if (conditionnel)
+        {
+            let nettoyer = null
+            const appliquer_conditionnel = () =>
+            {
+                if (nettoyer)
+                {
+                    nettoyer()
+                    nettoyer = null
+                }
+
+                const condition_valide = !!evaluer(decapsuler(conditionnel.condition), donnees)
+                const cible = condition_valide ? conditionnel.attr_vrai : conditionnel.attr_faux
+                if (!cible)
+                    return
+
+                nettoyer = appliquer_attribut_brut(noeud, cible, donnees)
+            }
+
+            definir_noeud_courant(noeud)
+            appliquer_conditionnel()
+            effacer_noeud_courant()
+
+            if (noeud._avec_deps?.size > 0)
+            {
+                const desabonner = observer_sculpteur((propriete) =>
+                {
+                    if (!noeud._avec_deps.has(propriete)) return
+                    if (!document.contains(noeud)) { desabonner(); return }
+
+                    definir_noeud_courant(noeud)
+                    appliquer_conditionnel()
+                    effacer_noeud_courant()
+                })
+            }
+        }
+        else if (attribut[0] == `#`)
         {
             noeud.id = attribut.slice(1)
         }
@@ -626,25 +882,7 @@ const construire_balise = (bloc, donnees) =>
         }
         else if (attribut.startsWith('on') || attribut[0] == '@')
         {
-            initialiser_sculpteur()
-
-            let [evenement, script] = attribut.split('=')
-            evenement = evenement[0] == `@` ? evenement.slice(1) : evenement.slice(2)
-            script = decapsuler(script)
-
-            if (evenement === 'mount' || evenement === 'unmount')
-            {
-                if (!noeud._avec_actions)
-                    noeud._avec_actions = {}
-
-                noeud._avec_actions[evenement] = script
-            }
-            else
-            {
-                noeud.addEventListener(evenement, (e) => {
-                    executer_script(script, e, noeud, noeud._avec_scope, noeud._avec_args)
-                })
-            }
+            appliquer_attribut_brut(noeud, attribut, donnees)
         }
         else if (attribut.includes(`=`) && !attribut.startsWith('on') && attribut[0] !== '@')
         {
@@ -804,11 +1042,53 @@ const construire_modele = (bloc, donnees) =>
         if (enfant.type === `instruction` && enfant.args[0] === `@args`)
         {
             const declarations = extraire_declarations_args(decapsuler(enfant.args[1]))
-            const valeurs = bloc.args.slice(1)
-            for (let i = 0; i < declarations.length; i++)
+            const declarations_par_nom = new Map()
+            for (const declaration of declarations)
             {
-                const { nom, valeur_defaut } = declarations[i]
-                const valeur_brute = valeurs[i] ?? valeur_defaut ?? ``
+                declarations_par_nom.set(declaration.nom, declaration)
+            }
+
+            const affectations = new Map()
+            const arguments_appel = bloc.args[1]
+                ? extraire_arguments_modele(decapsuler(bloc.args[1]))
+                : []
+
+            const obtenir_premier_argument_libre = () =>
+            {
+                for (const declaration of declarations)
+                {
+                    if (!affectations.has(declaration.nom))
+                        return declaration.nom
+                }
+                return null
+            }
+
+            for (const argument_appel of arguments_appel)
+            {
+                if (argument_appel.nom)
+                {
+                    if (!declarations_par_nom.has(argument_appel.nom))
+                        throw new Error(`argument nommé inconnu : ${argument_appel.nom}`)
+                    if (affectations.has(argument_appel.nom))
+                        throw new Error(`conflit d'affectation : ${argument_appel.nom} est défini plusieurs fois`)
+
+                    affectations.set(argument_appel.nom, argument_appel.valeur)
+                    continue
+                }
+
+                const argument_libre = obtenir_premier_argument_libre()
+                if (!argument_libre)
+                    throw new Error(`trop d'arguments positionnels passés au modèle ${nom}`)
+
+                affectations.set(argument_libre, argument_appel.valeur)
+            }
+
+            for (const declaration of declarations)
+            {
+                const { nom, valeur_defaut } = declaration
+                const valeur_brute = affectations.has(nom)
+                    ? affectations.get(nom)
+                    : (valeur_defaut ?? ``)
                 const valeur_decapsule = decapsuler_si_entoure(valeur_brute)
 
                 if (/^\$[a-zA-Z_][\w]*$/.test(valeur_decapsule))

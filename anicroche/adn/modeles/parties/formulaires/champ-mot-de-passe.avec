@@ -23,41 +23,12 @@
 
 @args [$etiquette, $nom, $requis : :), $valeur : '', $modifiable : :)]
 
-@if [$requis]
-    @if [$modifiable]
-        <input
-            .champ-mot-de-passe
-            name="$nom"
-            type="password"
-            placeholder="$etiquette"
-            value="$valeur"
-            required
-        >
-    @else
-        <input
-            .champ-mot-de-passe
-            name="$nom"
-            type="password"
-            placeholder="$etiquette"
-            value="$valeur"
-            required
-            readonly
-        >
-@else
-    @if [$modifiable]
-        <input
-            .champ-mot-de-passe
-            name="$nom"
-            type="password"
-            placeholder="$etiquette"
-            value="$valeur"
-        >
-    @else
-        <input
-            .champ-mot-de-passe
-            name="$nom"
-            type="password"
-            placeholder="$etiquette"
-            value="$valeur"
-            readonly
-        >
+<input
+    .champ-mot-de-passe
+    name="$nom"
+    type="password"
+    placeholder="$etiquette"
+    value="$valeur"
+    [$requis] ? required
+    [! $modifiable] ? readonly
+>

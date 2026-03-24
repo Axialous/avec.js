@@ -3,7 +3,7 @@
 @if [$section = navigation]
     navigation
         <div .gauche>
-            ancre-boite / Retour
+            ancre-boite [/ Retour]
                 icone-fleche-gauche
 
         <div .centre>

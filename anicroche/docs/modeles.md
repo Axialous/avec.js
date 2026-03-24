@@ -48,7 +48,7 @@ Déclare du code JavaScript exécuté une fois lors du premier chargement d'une 
 
 ### `@args`
 
-Déclare les paramètres acceptés par le modèle. Les valeurs sont passées de façon positionnelle lors de l'appel du modèle.
+Déclare les paramètres acceptés par le modèle. Les valeurs sont passées lors de l'appel du modèle entre crochets, en positionnel et/ou en nommé.
 Une valeur par défaut peut être déclarée avec `:`.
 
 ```
@@ -172,6 +172,39 @@ Une balise s'écrit avec les chevrons HTML, suivie d'attributs optionnels :
 | `attr="valeur"` | Attribut avec valeur (supporte l'interpolation de variables `$var`) |
 | `class="a b"` | Définit les classes CSS (remplace les précédentes) |
 
+### Attributs conditionnels
+
+Un attribut peut être appliqué conditionnellement avec la syntaxe :
+
+```
+[condition] ? attribut
+```
+
+Avec une branche alternative :
+
+```
+[condition] ? attribut_si_vrai : attribut_si_faux
+```
+
+La condition suit la même syntaxe que `@if` / `@else-if` / `@unless`.
+
+Exemples :
+
+```
+<input
+    .champ
+    [$requis] ? required
+    [!$modifiable] ? readonly
+>
+
+<button
+    [$actif] ? .actif : .inactif
+    [$edition] ? @click="$enregistrer($event)" : @click="$ouvrir($event)"
+>
+```
+
+Les attributs conditionnels sont réactifs : quand la condition change, l'attribut appliqué est mis à jour automatiquement.
+
 ### Gestionnaires d'événements
 
 Les événements DOM s'écrivent avec le préfixe `@` ou `on` :
@@ -242,16 +275,35 @@ Un texte est une chaîne entre guillemets (`"`, `'` ou `` ` ``). Les variables `
 
 ## Appels de modèles
 
-Un modèle s'appelle par son nom. Les arguments éventuels sont passés à la suite, séparés par des espaces :
+Un modèle s'appelle par son nom. Les arguments éventuels sont passés entre crochets `[...]`.
+
+Chaque argument peut être :
+- positionnel : `"Mon titre"`
+- nommé : `$titre : "Mon titre"`
+
+Les arguments sont séparés par `,` ou par retour à la ligne (on peut mélanger).
+
+Règles d'attribution :
+- Un argument nommé (`$nom : valeur`) est affecté au paramètre portant ce nom.
+- Un argument positionnel (`valeur`) est affecté au premier paramètre encore non affecté.
+- Un conflit d'affectation (même paramètre défini deux fois) déclenche une erreur.
+- Un argument nommé inconnu déclenche une erreur.
 
 ```
-carte "Mon titre" "Ma description"
+carte ["Mon titre", "Ma description"]
+```
+
+```
+carte [
+    $titre : "Mon titre",
+    "Ma description"
+]
 ```
 
 Les enfants du modèle (destinés à `@stud`) se déclarent en indentation :
 
 ```
-carte "Mon titre" "Ma description"
+carte ["Mon titre", "Ma description"]
     "Contenu injecté dans @stud"
     <span>
         "autre enfant"
@@ -269,7 +321,7 @@ carte "Mon titre" "Ma description"
 `?nom` et `!nom` déclarent des comportements pour les modèles différés (`-nom`) présents dans le **même bloc parent**. Ils ne s'affichent pas directement.
 
 ```
--contenu-lourd $section
+-contenu-lourd [$section]
 
 ?animation-chargement
 !message-erreur
@@ -278,6 +330,6 @@ carte "Mon titre" "Ma description"
 Des arguments peuvent être passés aux modèles d'attente et de repli de la même façon qu'aux modèles standard :
 
 ```
-?chargement "Chargement en cours…"
-!erreur "Impossible de charger le contenu"
+?chargement ["Chargement en cours…"]
+!erreur ["Impossible de charger le contenu"]
 ```

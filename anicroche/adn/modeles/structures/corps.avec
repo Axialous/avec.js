@@ -64,7 +64,7 @@
     @mount="$monter_corps($node)"
 >
     <nav #navigation>
-        routeur navigation
+        routeur [navigation]
 
     <section #page>
-        routeur page
+        routeur [page]

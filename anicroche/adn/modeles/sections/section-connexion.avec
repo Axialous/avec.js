@@ -31,7 +31,7 @@
 
         if (confirm("Simulation : est-ce la bonne clef ?"))
         {
-            type = confirm("Simulation : est-ce qu le compte existe déjà ?") ? 'connexion' : 'inscription'
+            type = confirm("Simulation : est-ce que le compte existe déjà ?") ? 'connexion' : 'inscription'
             if (type == 'inscription')
             {
                 $basculer_vers_onglet_suivant($node)
@@ -67,57 +67,57 @@
 @args [$etape]
 
 @if [$etape = courriel]
-    section centree
-        titre centre
+    section [centree]
+        titre [centre]
             "Connectez-vous ou inscrivez-vous"
         carte
-            formulaire $envoyer_formulaire_courriel
-                champ-courriel "Adresse électronique" courriel
-                bouton-soumission "Continuer" clef
-                lien-soumission "Me connecter avec mon mot de passe" mot_de_passe
+            formulaire [$envoyer_formulaire_courriel]
+                champ-courriel ["Adresse électronique", courriel]
+                bouton-soumission ["Continuer", clef]
+                lien-soumission ["Me connecter avec mon mot de passe", mot_de_passe]
 
 @else-if [$etape = mot_de_passe]
-    section centree
-        titre centre
+    section [centree]
+        titre [centre]
             "Saisissez votre mot de passe"
         carte
-            formulaire $envoyer_formulaire_mot_de_passe
+            formulaire [$envoyer_formulaire_mot_de_passe]
                 @if [$erreur_mot_de_passe]
                     erreur-formulaire
                         "$erreur_mot_de_passe"
-                champ-courriel "Adresse électronique" courriel :) $courriel_formulaire :(
-                champ-mot-de-passe "Mot de passe" mot_de_passe
+                champ-courriel ["Adresse électronique", courriel, :), $courriel_formulaire, :(]
+                champ-mot-de-passe ["Mot de passe", mot_de_passe]
                 ligne
-                    bouton-formulaire "Retour" $basculer_vers_onglet_precedant
-                    bouton-soumission "Continuer"
+                    bouton-formulaire ["Retour", $basculer_vers_onglet_precedant]
+                    bouton-soumission ["Continuer"]
 
 @else-if [$etape = clef]
-    section centree
-        titre centre
+    section [centree]
+        titre [centre]
             "Saisissez la clef de validation"
         carte
-            formulaire $envoyer_formulaire_clef
+            formulaire [$envoyer_formulaire_clef]
                 @if [$erreur_clef]
                     erreur-formulaire
                         "$erreur_clef"
-                champ-courriel "Adresse électronique" courriel :) $courriel_formulaire :(
-                champ-texte "Clef de validation" clef
-                lien-formulaire "Renvoyer la clef"
+                champ-courriel ["Adresse électronique", courriel, :), $courriel_formulaire, :(]
+                champ-clef ["Clef de validation", clef]
+                lien-formulaire ["Renvoyer la clef"]
                 ligne
-                    bouton-formulaire "Retour" $basculer_vers_onglet_precedant
-                    bouton-soumission "Continuer"
+                    bouton-formulaire ["Retour", $basculer_vers_onglet_precedant]
+                    bouton-soumission ["Continuer"]
 
 @else-if [$etape = inscription]
-    section centree
-        titre centre
+    section [centree]
+        titre [centre]
             "Définissez un mot de passe fort"
         carte
-            formulaire $envoyer_formulaire_inscription
+            formulaire [$envoyer_formulaire_inscription]
                 @if [$erreur_inscription]
                     erreur-formulaire
                         "$erreur_inscription"
-                champ-courriel "Adresse électronique" courriel :) $courriel_formulaire :(
-                champ-mot-de-passe "Mot de passe" mot_de_passe
+                champ-courriel ["Adresse électronique", courriel, :), $courriel_formulaire, :(]
+                champ-mot-de-passe ["Mot de passe", mot_de_passe]
                 ligne
-                    bouton-formulaire "Retour" $basculer_vers_onglet_precedant
-                    bouton-soumission "Continuer"
+                    bouton-formulaire ["Retour", $basculer_vers_onglet_precedant]
+                    bouton-soumission ["Continuer"]

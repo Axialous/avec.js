@@ -23,41 +23,12 @@
 
 @args [$etiquette, $nom, $requis : :), $valeur : '', $modifiable : :)]
 
-@if [$requis]
-    @if [$modifiable]
-        <input
-            .champ-courriel
-            name="$nom"
-            type="email"
-            placeholder="$etiquette"
-            value="$valeur"
-            required
-        >
-    @else
-        <input
-            .champ-courriel
-            name="$nom"
-            type="email"
-            placeholder="$etiquette"
-            value="$valeur"
-            required
-            readonly
-        >
-@else
-    @if [$modifiable]
-        <input
-            .champ-courriel
-            name="$nom"
-            type="email"
-            placeholder="$etiquette"
-            value="$valeur"
-        >
-    @else
-        <input
-            .champ-courriel
-            name="$nom"
-            type="email"
-            placeholder="$etiquette"
-            value="$valeur"
-            readonly
-        >
+<input
+    .champ-courriel
+    name="$nom"
+    type="email"
+    placeholder="$etiquette"
+    value="$valeur"
+    [$requis] ? required
+    [! $modifiable] ? readonly
+>

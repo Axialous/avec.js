@@ -52,9 +52,9 @@
     {
         data = new FormData($node)
 
-        if (confirm("Simulation : est-ce que la clef de validation a expiré ?"))
+        if (confirm("Simulation : est-ce que la clef de validation est encore valide ?"))
         {
-            alert(`Incription avec le courriel "${data.get('courriel')}"`)
+            alert(`Inscription avec le courriel "${data.get('courriel')}"`)
             $navigate("/")
         }
         else
@@ -73,8 +73,12 @@
         carte
             formulaire [$envoyer_formulaire_courriel]
                 champ-courriel ["Adresse électronique", courriel]
-                bouton-soumission ["Continuer", clef]
-                lien-soumission ["Me connecter avec mon mot de passe", mot_de_passe]
+                bouton-soumission [clef]
+                    <span>
+                        "Continuer"
+                    icone-fleche-droite
+                lien-soumission [mot_de_passe]
+                    "Me connecter avec mon mot de passe"
 
 @else-if [$etape = mot_de_passe]
     section [connexion, centree]
@@ -88,8 +92,14 @@
                 champ-courriel ["Adresse électronique", courriel, :), $courriel_formulaire, :(]
                 champ-mot-de-passe ["Mot de passe", mot_de_passe]
                 ligne
-                    bouton-formulaire ["Retour", $basculer_vers_onglet_precedant]
-                    bouton-soumission ["Continuer"]
+                    bouton-formulaire [$basculer_vers_onglet_precedant]
+                        icone-fleche-gauche
+                        alt
+                            "Retour"
+                    bouton-soumission
+                        <span>
+                            "Continuer"
+                        icone-fleche-droite
 
 @else-if [$etape = clef]
     section [connexion, centree]
@@ -102,10 +112,17 @@
                         "$erreur_clef"
                 champ-courriel ["Adresse électronique", courriel, :), $courriel_formulaire, :(]
                 champ-clef ["Clef de validation", clef]
-                lien-formulaire ["Renvoyer la clef"]
+                lien-formulaire
+                    "Renvoyer la clef"
                 ligne
-                    bouton-formulaire ["Retour", $basculer_vers_onglet_precedant]
-                    bouton-soumission ["Continuer"]
+                    bouton-formulaire [$basculer_vers_onglet_precedant]
+                        icone-fleche-gauche
+                        alt
+                            "Retour"
+                    bouton-soumission
+                        <span>
+                            "Continuer"
+                        icone-fleche-droite
 
 @else-if [$etape = inscription]
     section [connexion, centree]
@@ -119,5 +136,11 @@
                 champ-courriel ["Adresse électronique", courriel, :), $courriel_formulaire, :(]
                 champ-mot-de-passe ["Mot de passe", mot_de_passe]
                 ligne
-                    bouton-formulaire ["Retour", $basculer_vers_onglet_precedant]
-                    bouton-soumission ["Continuer"]
+                    bouton-formulaire [$basculer_vers_onglet_precedant]
+                        icone-fleche-gauche
+                        alt
+                            "Retour"
+                    bouton-soumission
+                        <span>
+                            "Continuer"
+                        icone-fleche-droite

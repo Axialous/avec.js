@@ -1,6 +1,7 @@
 @style [
     .champ-clef {
         position: relative;
+        height: 2rem;
 
         width: 100%;
 
@@ -53,7 +54,6 @@
 
     .champ-clef .chiffre::placeholder {
         color: var(--c-plus);
-        font-style: italic;
     }
 
     .champ-clef .chiffre::-webkit-outer-spin-button,

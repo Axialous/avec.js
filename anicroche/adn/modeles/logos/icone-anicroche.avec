@@ -64,6 +64,7 @@
 ]
 
 <svg
+    .icone
     .icone-anicroche
     @mount="$monter_icone_anicroche($node, $vars)"
     @unmount="$demonter_icone_anicroche($node, $vars)"

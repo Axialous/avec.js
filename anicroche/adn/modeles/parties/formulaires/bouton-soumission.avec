@@ -1,10 +1,19 @@
 @style [
     .bouton-soumission {
         width: 100%;
+        height: 2rem;
         flex: 1;
 
+        border: 0.125rem solid var(--c-vif);
         border-radius: 0.5rem;
-        padding: 0.5rem;
+        padding: 0.375rem;
+
+        display: flex;
+        justify-content: center;
+
+        transition: outline-color var(--d-animation),
+                    background var(--d-animation),
+                    color var(--d-animation);
 
         --f-fond:  var(--c-vif);
         --c-fond:  var(--c-vif);
@@ -13,20 +22,35 @@
         --e-fonte: var(--e-bouton);
         --p-fonte: var(--p-bouton);
     }
+
+    .bouton-soumission:has(.icone:only-child) {
+        flex: 0;
+    }
+
+    .bouton-soumission:hover {
+        --f-fond: var(--c-creme);
+        --c-fond: var(--c-creme);
+        --c-flux: var(--c-vif);
+    }
+
+    .bouton-soumission .icone {
+        margin: -0.25rem;
+    }
+
+    .bouton-soumission .icone path {
+        transition: stroke var(--d-animation);
+    }
+
+    .bouton-soumission span {
+        transition: color var(--d-animation);
+    }
 ]
 
-@args [$etiquette, $type : :(]
+@args [$type : :(]
 
-@if [$type]
-    <button
-        .bouton-soumission
-        type="submit"
-        value="$type"
-    >
-        "$etiquette"
-@else
-    <button
-        .bouton-soumission
-        type="submit"
-    >
-        "$etiquette"
+<button
+    .bouton-soumission
+    type="submit"
+    [$type] ? value="$type"
+>
+    @stud

@@ -98,6 +98,7 @@
 ]
 
 <svg
+    .icone
     .icone-horloge
     @mount="$monter_icone_horloge($node, $vars)"
     @unmount="$demonter_icone_horloge($node, $vars)"

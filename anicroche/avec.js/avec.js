@@ -12,7 +12,7 @@ console.log(`\
 
 const adn = generer_adn()
 
-const delai = 3
+const delai = 0
 
 const composants = {
     "/systeme/scripts": {

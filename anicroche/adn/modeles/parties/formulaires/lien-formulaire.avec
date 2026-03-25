@@ -13,11 +13,11 @@
     }
 ]
 
-@args [$etiquette, $fonction]
+@args [$fonction]
 
 <button
     .lien-formulaire
     type="button"
     @click="$fonction($node)"
 >
-    "$etiquette"
+    @stud

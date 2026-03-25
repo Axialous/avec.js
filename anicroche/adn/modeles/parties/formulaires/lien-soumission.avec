@@ -13,18 +13,11 @@
     }
 ]
 
-@args [$etiquette, $type : :(]
+@args [$type : :(]
 
-@if [$type]
-    <button
-        .lien-soumission
-        type="submit"
-        value="$type"
-    >
-        "$etiquette"
-@else
-    <button
-        .lien-soumission
-        type="submit"
-    >
-        "$etiquette"
+<button
+    .lien-soumission
+    type="submit"
+    [$type] ? value="$type"
+>
+    @stud

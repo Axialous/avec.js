@@ -17,7 +17,8 @@
     }
 
     .champ-mot-de-passe::placeholder {
-        color: var(--c-moins);
+        color: var(--c-plus);
+        font-style: italic;
     }
 ]
 

@@ -1,6 +1,7 @@
 @style [
     .bouton-formulaire {
-        width: 100%;
+        position: relative;
+
         height: 2rem;
         flex: 1;
 
@@ -21,10 +22,6 @@
         --c-focus: var(--c-vif);
         --e-fonte: var(--e-bouton);
         --p-fonte: var(--p-bouton);
-    }
-
-    .bouton-formulaire:has(.icone:only-child) {
-        flex: 0;
     }
 
     .bouton-formulaire:hover {

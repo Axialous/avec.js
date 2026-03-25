@@ -15,11 +15,11 @@
     }
 ]
 
-@args [$type : classique]
+@args [$nom, $type : classique]
 
-@if [$type = centree]
-    <section .section .centree>
-        @stud
-@else
-    <section .section>
-        @stud
+<section
+    .section-$nom
+    .section
+    [$type = centree] ? .centree
+>
+    @stud

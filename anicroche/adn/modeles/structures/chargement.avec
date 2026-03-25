@@ -40,6 +40,7 @@
         place-items: center;
 
         transition: opacity var(--d-animation);
+        cursor: wait;
 
         --f-fond: var(--f-degrade-vif);
         --c-fond: var(--c-vif);

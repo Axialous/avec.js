@@ -67,7 +67,7 @@
 @args [$etape]
 
 @if [$etape = courriel]
-    section [centree]
+    section [connexion, centree]
         titre [centre]
             "Connectez-vous ou inscrivez-vous"
         carte
@@ -77,7 +77,7 @@
                 lien-soumission ["Me connecter avec mon mot de passe", mot_de_passe]
 
 @else-if [$etape = mot_de_passe]
-    section [centree]
+    section [connexion, centree]
         titre [centre]
             "Saisissez votre mot de passe"
         carte
@@ -92,7 +92,7 @@
                     bouton-soumission ["Continuer"]
 
 @else-if [$etape = clef]
-    section [centree]
+    section [connexion, centree]
         titre [centre]
             "Saisissez la clef de validation"
         carte
@@ -108,7 +108,7 @@
                     bouton-soumission ["Continuer"]
 
 @else-if [$etape = inscription]
-    section [centree]
+    section [connexion, centree]
         titre [centre]
             "Définissez un mot de passe fort"
         carte

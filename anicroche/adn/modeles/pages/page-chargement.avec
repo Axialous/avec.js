@@ -1,29 +1,19 @@
-@style [
-    .section-chargement {
-        height: 100%;
-
-        display: grid;
-        place-items: center;
-
-        margin: var(--l-marge);
-
-        --l-marge: -1rem;
-        --f-fond:  var(--f-degrade-vif);
-        --c-fond:  var(--c-vif);
-        --c-flux:  var(--c-creme)
-    }
-]
-
 @args [$section]
 
 @if [$section = navigation]
     navigation
+        <div .gauche>
+            ancre-boite [/, Retour]
+                icone-fleche-gauche
+
         <div .centre>
             <span>
                 "Chargement"
 
+        <div .droite>
+            icone-horloge
+
 @if [$section = page]
     page
         onglet
-            <section .section-chargement>
-                animation-chargement
+            section-chargement

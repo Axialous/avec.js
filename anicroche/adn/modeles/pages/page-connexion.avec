@@ -14,7 +14,7 @@
 @if [$section = navigation]
     navigation
         <div .gauche>
-            ancre-boite [/ Retour]
+            ancre-boite [/, Retour]
                 icone-fleche-gauche
 
         <div .centre>
@@ -22,7 +22,7 @@
                 "Connexion"
 
         <div .droite>
-            ancre-boite [/preferences Préférences]
+            ancre-boite [/preferences, Préférences]
                 icone-engrenage
 
 @if [$section = page]

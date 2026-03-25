@@ -410,7 +410,7 @@ const appliquer_attribut_brut = (noeud, attribut, donnees) =>
 {
     if (attribut[0] == `#`)
     {
-        const id = attribut.slice(1)
+        const id = valoriser(attribut.slice(1), donnees)
         noeud.id = id
         return () => {
             if (noeud.id === id)
@@ -420,9 +420,10 @@ const appliquer_attribut_brut = (noeud, attribut, donnees) =>
 
     if (attribut[0] == `.`)
     {
-        const classe = attribut.slice(1)
-        noeud.classList.add(classe)
-        return () => noeud.classList.remove(classe)
+        const classe = valoriser(attribut.slice(1), donnees)
+        const classes = classe.split(/\s+/).filter(Boolean)
+        classes.forEach(c => noeud.classList.add(c))
+        return () => classes.forEach(c => noeud.classList.remove(c))
     }
 
     if (!attribut.includes(`=`))
@@ -870,11 +871,11 @@ const construire_balise = (bloc, donnees) =>
         }
         else if (attribut[0] == `#`)
         {
-            noeud.id = attribut.slice(1)
+            appliquer_attribut_brut(noeud, attribut, donnees)
         }
         else if (attribut[0] == `.`)
         {
-            noeud.classList.add(attribut.slice(1))
+            appliquer_attribut_brut(noeud, attribut, donnees)
         }
         else if (!attribut.includes(`=`))
         {

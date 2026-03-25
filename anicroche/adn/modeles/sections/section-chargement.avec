@@ -1,0 +1,14 @@
+@style [
+    .section-chargement {
+        margin: var(--l-marge);
+        cursor: wait;
+
+        --l-marge: -1rem;
+        --f-fond:  var(--f-degrade-vif);
+        --c-fond:  var(--c-vif);
+        --c-flux:  var(--c-creme)
+    }
+]
+
+section [chargement, centree]
+    animation-chargement

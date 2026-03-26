@@ -13,8 +13,7 @@
         justify-content: center;
 
         transition: outline-color var(--d-animation),
-                    background var(--d-animation),
-                    color var(--d-animation);
+                    background var(--d-animation);
 
         --f-fond:  var(--c-vif);
         --c-fond:  var(--c-vif);
@@ -28,22 +27,14 @@
         flex: 1;
     }
 
-    .bouton-soumission:hover {
-        --f-fond: var(--c-creme);
-        --c-fond: var(--c-creme);
-        --c-flux: var(--c-vif);
+    .bouton-soumission:hover,
+    .bouton-soumission:focus {
+        --f-fond: var(--c-plus);
+        --c-fond: var(--c-plus);
     }
 
     .bouton-soumission .icone {
         margin: -0.25rem;
-    }
-
-    .bouton-soumission .icone path {
-        transition: stroke var(--d-animation);
-    }
-
-    .bouton-soumission span {
-        transition: color var(--d-animation);
     }
 ]
 

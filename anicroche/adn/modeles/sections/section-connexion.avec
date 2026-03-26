@@ -89,7 +89,11 @@
                 @if [$erreur_mot_de_passe]
                     erreur-formulaire
                         "$erreur_mot_de_passe"
-                champ-courriel ["Adresse électronique", courriel, :), $courriel_formulaire, :(]
+                champ-courriel [
+                    "Adresse électronique", courriel
+                    $valeur : $courriel_formulaire
+                    $modifiable : :(
+                ]
                 champ-mot-de-passe ["Mot de passe", mot_de_passe]
                 ligne
                     bouton-formulaire [$basculer_vers_onglet_precedant]
@@ -110,7 +114,11 @@
                 @if [$erreur_clef]
                     erreur-formulaire
                         "$erreur_clef"
-                champ-courriel ["Adresse électronique", courriel, :), $courriel_formulaire, :(]
+                champ-courriel [
+                    "Adresse électronique", courriel
+                    $valeur : $courriel_formulaire
+                    $modifiable : :(
+                ]
                 champ-clef ["Clef de validation", clef]
                 lien-formulaire
                     "Renvoyer la clef"
@@ -133,8 +141,16 @@
                 @if [$erreur_inscription]
                     erreur-formulaire
                         "$erreur_inscription"
-                champ-courriel ["Adresse électronique", courriel, :), $courriel_formulaire, :(]
-                champ-mot-de-passe ["Mot de passe", mot_de_passe]
+                champ-courriel [
+                    "Adresse électronique", courriel
+                    $valeur : $courriel_formulaire
+                    $modifiable : :(
+                ]
+                champ-mot-de-passe [
+                    "Mot de passe", mot_de_passe
+                    $longueur_minimale : 12
+                    $longueur_maximale : 128
+                ]
                 ligne
                     bouton-formulaire [$basculer_vers_onglet_precedant]
                         icone-fleche-gauche

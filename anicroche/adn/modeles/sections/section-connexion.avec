@@ -16,7 +16,7 @@
         if (confirm("Simulation : est-ce le bon mot de passe ?"))
         {
             alert(`Connexion avec le courriel "${data.get('courriel')}"`)
-            $navigate("/")
+            $navigate_to("/")
         }
         else
         {
@@ -39,7 +39,7 @@
             else if (type == 'connexion')
             {
                 alert(`Connexion avec le courriel "${data.get('courriel')}"`)
-                $navigate("/")
+                $navigate_to("/")
             }
         }
         else
@@ -55,7 +55,7 @@
         if (confirm("Simulation : est-ce que la clef de validation est encore valide ?"))
         {
             alert(`Inscription avec le courriel "${data.get('courriel')}"`)
-            $navigate("/")
+            $navigate_to("/")
         }
         else
         {

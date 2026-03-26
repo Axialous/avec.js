@@ -38,9 +38,22 @@ Si une variable n'existe dans aucun parent, l'affectation crée la variable dans
 | `$path` | texte | Chemin de l'URL courante (ex : `/page/42`) |
 | `$params` | dictionnaire | Paramètres de l'URL (ex : `{q: "recherche"}`) |
 | `$hash` | texte | Fragment de l'URL (ex : `#section`) |
-| `$navigate` | fonction | Navigue vers une URL (`$navigate('/connexion')`, `$navigate('/article/42?q=test')`) |
+| `$navigate_to` | fonction | Navigue vers une URL (`$navigate_to('/connexion')`, `$navigate_to('/article/42?q=test')`) |
+| `$navigate_prev` | fonction | Reproduit la flèche "retour" du navigateur (`$navigate_prev()`) |
+| `$navigate_post` | fonction | Reproduit la flèche "suivant" du navigateur (`$navigate_post()`) |
+| `$history` | fonction | Retourne une entrée de l'historique interne (`$history()`, `$history(1)`, `$history(2)`) |
 
 Ces variables sont mises à jour à chaque navigation sans rechargement de page.
+
+Précisions :
+
+- `$navigate_to(url)` accepte une URL relative ou absolue.
+- Si l'URL cible est externe (origine différente), la navigation est déléguée au navigateur (rechargement normal).
+- `$history(age = 0)` renvoie l'URL relative (chemin + query + hash) enregistrée lors des navigations internes :
+    - `0` = entrée la plus récente,
+    - `1` = entrée précédente,
+    - etc.
+    - si l'entrée demandée n'existe pas, la fonction renvoie `null`.
 
 ### Arguments de modèle
 

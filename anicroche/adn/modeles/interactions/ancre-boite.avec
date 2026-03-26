@@ -3,6 +3,9 @@
         display: flex;
         flex-flow: row nowrap;
         align-items: center;
+
+        height: fit-content;
+
         border-radius: 0.1875rem;
 
         --l-ecart: 1rem;

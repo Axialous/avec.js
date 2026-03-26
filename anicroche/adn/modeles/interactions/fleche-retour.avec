@@ -1,0 +1,18 @@
+@script [
+    $naviguer_en_arriere = () =>
+    {
+        if ($history(1))
+        {
+            $navigate_prev()
+        }
+        else
+        {
+            $navigate_to($page_repli)
+        }
+    }
+]
+
+@args [$page_repli : /]
+
+<button @click="$naviguer_en_arriere()">
+    icone-fleche-gauche

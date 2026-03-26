@@ -1,10 +1,12 @@
 import { initialiser_sculpteur, definir_variable_racine } from './sculpteur.js'
 
+const historique = []
+
 export const initialiser_navigateur = () =>
 {
     initialiser_sculpteur()
 
-    definir_variable_racine(`$navigate`, (board) => {
+    definir_variable_racine(`$navigate_to`, (board) => {
         if (board === null || board === undefined)
             return
 
@@ -21,6 +23,18 @@ export const initialiser_navigateur = () =>
 
         if (nouvelle_url !== ancienne_url)
             history.pushState({}, '', nouvelle_url)
+    })
+
+    definir_variable_racine(`$navigate_prev`, () => {
+        history.back()
+    })
+
+    definir_variable_racine(`$navigate_post`, () => {
+        history.forward()
+    })
+
+    definir_variable_racine(`$history`, (age = 0) => {
+        return historique.at(-(age + 1)) ?? null
     })
 
     document.addEventListener('click', (e) => {
@@ -82,6 +96,8 @@ export const initialiser_navigateur = () =>
 const naviguer = (bord) =>
 {
     const lien = new URL(bord, location.origin)
+
+    historique.push(lien.pathname + lien.search + lien.hash)
 
     initialiser_sculpteur()
 

@@ -148,10 +148,16 @@ const rechercher_fichier = (dossier, nom, recursif) =>
     return (false)
 }
 
-const repondre_json = (rep, statut, corps) =>
+const repondre_json = (rep, statut, message, data) =>
 {
+    const succes = statut >= 200 && statut < 300
+    const reponse = {
+        code: statut,
+        [succes ? 'message' : 'error']: message,
+        data: data !== undefined ? data : {}
+    }
     rep.writeHead(statut, {"Content-Type": "application/json; charset=utf-8"})
-    rep.end(JSON.stringify(corps))
+    rep.end(JSON.stringify(reponse))
 }
 
 const serveur = http.createServer(async (req, rep) =>
@@ -195,7 +201,7 @@ const serveur = http.createServer(async (req, rep) =>
                 }
                 else
                 {
-                    repondre_json(rep, 404, {erreur: "Fichier introuvable"})
+                    repondre_json(rep, 404, "Fichier introuvable")
                 }
                 return
             }
@@ -210,7 +216,7 @@ const serveur = http.createServer(async (req, rep) =>
             return
         }
 
-        repondre_json(rep, 200, {message: `Bienvenue sur l'API ${adn.nom || "sans.js"}`})
+        repondre_json(rep, 200, `Bienvenue sur l'API ${adn.nom || "sans.js"}`)
     }
 )
 

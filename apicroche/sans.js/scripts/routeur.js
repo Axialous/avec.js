@@ -7,9 +7,11 @@ import { evaluer, ERREUR as ERREUR_AUGURE } from './augure.js'
 const creer_indicate = (rep) => (statut, message, data) =>
 {
     const succes = statut >= 200 && statut < 300
-    const reponse = succes ? { message } : { erreur: message }
-    if (data !== undefined)
-        reponse.data = data
+    const reponse = {
+        code: statut,
+        [succes ? 'message' : 'error']: message,
+        data: data !== undefined ? data : {}
+    }
 
     rep.writeHead(statut, { 'Content-Type': 'application/json; charset=utf-8' })
     rep.end(JSON.stringify(reponse))

@@ -30,6 +30,28 @@ const coercer_nombre = (v) =>
     return ERREUR
 }
 
+const parser_now_relatif = (texte) =>
+{
+    const match = /^now\s*([+-])\s*(\d+)\s*([smhd])$/i.exec(texte)
+    if (!match) return null
+
+    const signe  = match[1] === '+' ? 1 : -1
+    const valeur = Number(match[2])
+    const unite  = match[3].toLowerCase()
+
+    const multiplicateurs = {
+        s: 1000,
+        m: 60 * 1000,
+        h: 60 * 60 * 1000,
+        d: 24 * 60 * 60 * 1000,
+    }
+
+    const multiplicateur = multiplicateurs[unite]
+    if (!multiplicateur || Number.isNaN(valeur)) return null
+
+    return Date.now() + (signe * valeur * multiplicateur)
+}
+
 const coercer_timestamp = (v) =>
 {
     if (v instanceof Date)
@@ -40,6 +62,13 @@ const coercer_timestamp = (v) =>
 
     if (est_texte(v))
     {
+        if (v.toLowerCase() === 'now')
+            return Date.now()
+
+        const relatif = parser_now_relatif(v)
+        if (relatif !== null)
+            return relatif
+
         const t = Date.parse(v)
         return isNaN(t) ? ERREUR : t
     }

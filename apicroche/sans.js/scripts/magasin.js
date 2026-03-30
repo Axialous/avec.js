@@ -173,9 +173,38 @@ const normaliser_contexte_condition = (contexte) =>
     return contexte
 }
 
+const parser_now_relatif = (token) =>
+{
+    const match = /^now\s*([+-])\s*(\d+)\s*([smhd])$/i.exec(token)
+    if (!match) return null
+
+    const signe  = match[1] === '+' ? 1 : -1
+    const valeur = Number(match[2])
+    const unite  = match[3].toLowerCase()
+
+    const multiplicateurs = {
+        s: 1000,
+        m: 60 * 1000,
+        h: 60 * 60 * 1000,
+        d: 24 * 60 * 60 * 1000,
+    }
+
+    const multiplicateur = multiplicateurs[unite]
+    if (!multiplicateur || Number.isNaN(valeur)) return null
+
+    return new Date(Date.now() + (signe * valeur * multiplicateur))
+}
+
 const parser_litteral_condition = (token) =>
 {
     if (!token) return null
+
+    if (token.toLowerCase() === 'now')
+        return new Date()
+
+    const now_relatif = parser_now_relatif(token)
+    if (now_relatif)
+        return now_relatif
 
     if (token.startsWith('"') && token.endsWith('"'))
     {
@@ -297,13 +326,81 @@ const extraire_criteres_depuis_condition = (modele, condition, contexte_conditio
     return criteres
 }
 
+const UNITES_SQL = {
+    s: 'SECOND',
+    m: 'MINUTE',
+    h: 'HOUR',
+    d: 'DAY'
+}
+
+const traduire_now_sql = (expression) =>
+{
+    const expr = expression.trim().toLowerCase()
+    if (expr === 'now')
+        return 'NOW()'
+
+    const match = /^now\s*([+-])\s*(\d+)\s*([smhd])$/.exec(expr)
+    if (!match)
+        return null
+
+    const operation = match[1] === '+' ? 'DATE_ADD' : 'DATE_SUB'
+    const valeur    = Number(match[2])
+    const unite     = UNITES_SQL[match[3]]
+
+    if (!unite || Number.isNaN(valeur))
+        return null
+
+    return `${operation}(NOW(), INTERVAL ${valeur} ${unite})`
+}
+
+const extraire_filtres_temps_sql = (modele, condition) =>
+{
+    const champs_modele = new Map(modele.fields.map(f => [f.name, f]))
+    const clauses = []
+
+    const regex = /\$(\w+)\s*(>=|>|<=|<)\s*(now(?:\s*[+-]\s*\d+\s*[smhd])?)/gi
+    let match
+
+    while ((match = regex.exec(condition)) !== null)
+    {
+        const nom_champ = match[1]
+        const operateur = match[2]
+        const droite    = match[3]
+
+        const champ = champs_modele.get(nom_champ)
+        if (!champ)
+            continue
+
+        // Uniquement les dates "natives" SQL pour éviter les champs chiffrés/hashés.
+        if ((champ.type !== 'date' && champ.type !== 'datetime') || champ.treatment)
+            continue
+
+        const droite_sql = traduire_now_sql(droite)
+        if (!droite_sql)
+            continue
+
+        clauses.push(`\`${nom_champ}\` ${operateur} ${droite_sql}`)
+    }
+
+    return clauses
+}
+
 // Construire la clause WHERE
-const construire_where = (criteres_sql) =>
+const construire_where = (criteres_sql, clauses_supplementaires = []) =>
 {
     const noms = Object.keys(criteres_sql)
-    if (!noms.length) return { clause: '', valeurs: [] }
+    const morceaux = []
+
+    if (noms.length)
+        morceaux.push(...noms.map(n => `\`${n}\` = ?`))
+
+    if (clauses_supplementaires.length)
+        morceaux.push(...clauses_supplementaires)
+
+    if (!morceaux.length) return { clause: '', valeurs: [] }
+
     return {
-        clause : 'WHERE ' + noms.map(n => `\`${n}\` = ?`).join(' AND '),
+        clause : 'WHERE ' + morceaux.join(' AND '),
         valeurs: Object.values(criteres_sql)
     }
 }
@@ -326,9 +423,10 @@ const creer_search_one = (schemas) => async (nom_modele, condition, contexte_con
     const contexte_norm  = normaliser_contexte_condition(contexte_condition)
 
     const criteres = extraire_criteres_depuis_condition(modele, condition_norm, contexte_norm)
+    const filtres_temps_sql = extraire_filtres_temps_sql(modele, condition_norm)
 
     const { sql, post }       = separer_criteres(modele, criteres)
-    const { clause, valeurs } = construire_where(sql)
+    const { clause, valeurs } = construire_where(sql, filtres_temps_sql)
     const besoin_post         = Object.keys(post).length > 0
 
     const requete  = `SELECT * FROM \`${modele.name}\` ${clause}`.trim()
@@ -338,11 +436,14 @@ const creer_search_one = (schemas) => async (nom_modele, condition, contexte_con
 
     for (const ligne of lignes)
     {
-        if (besoin_post && !await verifier_post(modele, ligne, post))
+        const post_ok = besoin_post ? await verifier_post(modele, ligne, post) : true
+        if (!post_ok)
             continue
 
         const ligne_decryptee = decrypter_ligne(modele, ligne)
-        if (!respecter_condition(modele, ligne_decryptee, condition_norm, now, contexte_norm, criteres))
+        const condition_ok = respecter_condition(modele, ligne_decryptee, condition_norm, now, contexte_norm, criteres)
+
+        if (!condition_ok)
             continue
 
         return ligne_decryptee
@@ -360,9 +461,10 @@ const creer_search_all = (schemas) => async (nom_modele, condition, contexte_con
     const contexte_norm  = normaliser_contexte_condition(contexte_condition)
 
     const criteres = extraire_criteres_depuis_condition(modele, condition_norm, contexte_norm)
+    const filtres_temps_sql = extraire_filtres_temps_sql(modele, condition_norm)
 
     const { sql, post }       = separer_criteres(modele, criteres)
-    const { clause, valeurs } = construire_where(sql)
+    const { clause, valeurs } = construire_where(sql, filtres_temps_sql)
     const besoin_post         = Object.keys(post).length > 0
 
     const [lignes] = await pool().query(
@@ -396,9 +498,10 @@ const creer_delete_one = (schemas) => async (nom_modele, condition, contexte_con
     const contexte_norm  = normaliser_contexte_condition(contexte_condition)
 
     const criteres = extraire_criteres_depuis_condition(modele, condition_norm, contexte_norm)
+    const filtres_temps_sql = extraire_filtres_temps_sql(modele, condition_norm)
 
     const { sql, post }       = separer_criteres(modele, criteres)
-    const { clause, valeurs } = construire_where(sql)
+    const { clause, valeurs } = construire_where(sql, filtres_temps_sql)
     const besoin_post         = Object.keys(post).length > 0
 
     const [lignes] = await pool().query(
@@ -430,9 +533,10 @@ const creer_delete_all = (schemas) => async (nom_modele, condition, contexte_con
     const contexte_norm  = normaliser_contexte_condition(contexte_condition)
 
     const criteres = extraire_criteres_depuis_condition(modele, condition_norm, contexte_norm)
+    const filtres_temps_sql = extraire_filtres_temps_sql(modele, condition_norm)
 
     const { sql, post }       = separer_criteres(modele, criteres)
-    const { clause, valeurs } = construire_where(sql)
+    const { clause, valeurs } = construire_where(sql, filtres_temps_sql)
     const besoin_post         = Object.keys(post).length > 0
 
     const [lignes] = await pool().query(

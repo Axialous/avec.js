@@ -37,6 +37,12 @@
     }
 
     {
+        name    : date_emission
+        type    : datetime
+        default : now
+    }
+
+    {
         name    : date_validite
         type    : datetime
         default : now+15m
@@ -53,9 +59,23 @@
 @script [
     $supprimer_clef = async ($values) =>
     {
-        await $delete_all(
-            'clefs',
-            '$hachage_coordonnee = $values.hachage_coordonnee & $type = $values.type',
+        const clef_recente = await $search_one('clef',
+            `
+            $hachage_coordonnee = $values.hachage_coordonnee
+          & $type               = $values.type
+          & $date_emission      > now-1m
+            `,
+            { $values }
+        )
+
+        if (clef_recente)
+            return $indicate(429, "Clef trop récente déjà existante")
+
+        await $delete_all('clefs',
+            `
+            $hachage_coordonnee = $values.hachage_coordonnee
+          & $type = $values.type
+            `,
             { $values }
         )
     }
@@ -91,7 +111,7 @@
             $hachage_coordonnee = $body.coordonnee
           & $type               = authentification
           & $clef               = $body.clef
-          & $date_validite      > $now
+          & $date_validite      > now
             `
         )
 

@@ -182,7 +182,7 @@ export const construire_routes = (schemas) =>
         if (!champs_can_create.length) continue
 
         const nom_entree = table.entry_name ?? table.name
-        const chemin     = `/${table.name}`
+        const chemin     = `/${nom_entree}`
         const methode    = 'POST'
 
         const handler = async (req, rep) =>

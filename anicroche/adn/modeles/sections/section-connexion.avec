@@ -1,5 +1,5 @@
 @script [
-    $envoyer_formulaire_courriel = ($node, $event) =>
+    $envoyer_formulaire_courriel = async ($node, $event) =>
     {
         $mode_formulaire = $event.submitter.value
 
@@ -11,10 +11,10 @@
 
             if (!reponse)
             {
-                reponse = confirm("Simulation : est-ce que la clef d'activation a été créée ?")
+                reponse = await $create('clef', {type: 'authentification', coordonnee: data.get('courriel')})
             }
 
-            if (reponse)
+            if (!reponse.error)
             {
                 $courriel_formulaire = data.get('courriel')
                 $basculer_vers_onglet_suivant($node)
@@ -27,19 +27,22 @@
         }
         else if ($mode_formulaire == 'mot_de_passe')
         {
+            $courriel_formulaire = data.get('courriel')
             $basculer_vers_onglet_suivant($node)
         }
     }
 
-    $envoyer_formulaire_mot_de_passe = ($node, $event) =>
+    $envoyer_formulaire_mot_de_passe = async ($node, $event) =>
     {
         data = new FormData($node)
 
-        let reponse = confirm("Simulation : est-ce le bon mot de passe ?")
+        let reponse = await $create('connexion', {
+            coordonnee: data.get('courriel'),
+            mot_de_passe: data.get('mot_de_passe')
+        })
 
-        if (reponse)
+        if (!reponse.error)
         {
-            alert(`Connexion avec le courriel "${data.get('courriel')}"`)
             $navigate_to("/")
         }
         else
@@ -48,11 +51,11 @@
         }
     }
 
-    $renvoyer_clef = ($node, $event) =>
+    $renvoyer_clef = async ($node, $event) =>
     {
-        let reponse = confirm("Simulation : est-ce que la clef d'activation a été créée ?")
+        let reponse = await $create('clef', {type: 'authentification', coordonnee: $courriel_formulaire})
 
-        if (reponse)
+        if (!reponse.error)
         {
             $succes_clef   = "Une nouvelle clef a été envoyée"
             $erreur_clef = ":("
@@ -64,42 +67,53 @@
         }
     }
 
-    $envoyer_formulaire_clef = ($node, $event) =>
+    $envoyer_formulaire_clef = async ($node, $event) =>
     {
         data = new FormData($node)
         $clef_formulaire = data.get('clef')
 
-        let reponse = confirm("Simulation : est-ce la bonne clef ?")
+        let reponse = await $create('authentification', {
+            coordonnee: data.get('courriel'),
+            clef: data.get('clef')
+        })
 
-        if (reponse)
+        if (!reponse.error)
         {
-            type = confirm("Simulation : est-ce que le compte existe déjà ?") ? 'connexion' : 'inscription'
+            type = reponse.data?.type
             if (type == 'inscription')
             {
                 $basculer_vers_onglet_suivant($node)
             }
             else if (type == 'connexion')
             {
-                alert(`Connexion avec le courriel "${data.get('courriel')}"`)
                 $navigate_to("/")
+            }
+            else
+            {
+                $succes_clef = ':('
+                $erreur_clef = "Réponse serveur invalide"
             }
         }
         else
         {
             $succes_clef = ':('
-            $erreur_clef = "La clef de validation est invalide"
+            $erreur_clef = reponse.error || "La clef de validation est invalide"
         }
     }
 
-    $envoyer_formulaire_inscription = ($node, $event) =>
+    $envoyer_formulaire_inscription = async ($node, $event) =>
     {
         data = new FormData($node)
 
-        let reponse = confirm("Simulation : est-ce que la clef de validation est encore valide ?")
+        let reponse = await $create('inscription', {
+            type_coordonnee: 'courriel',
+            coordonnee: data.get('courriel'),
+            clef: $clef_formulaire,
+            mot_de_passe: data.get('mot_de_passe')
+        })
 
-        if (reponse)
+        if (!reponse.error)
         {
-            alert(`Inscription avec le courriel "${data.get('courriel')}"`)
             $navigate_to("/")
         }
         else
@@ -184,7 +198,7 @@
                     $modifiable : :(
                 ]
                 champ-clef ["Clef de validation", clef]
-                lien-formulaire [$renvoyer_clef, 5]
+                lien-formulaire [$renvoyer_clef, 60]
                     "Renvoyer la clef"
                 ligne
                     bouton-formulaire [$basculer_vers_section_courriel]

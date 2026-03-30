@@ -129,6 +129,16 @@ const composants = {
     }
 }
 
+const origine_cors = process.env.cors_origin || process.env.app_url || "http://localhost:4030"
+
+const appliquer_cors = (rep) =>
+{
+    rep.setHeader("Access-Control-Allow-Origin", origine_cors)
+    rep.setHeader("Access-Control-Allow-Methods", "GET,POST,PATCH,DELETE,OPTIONS")
+    rep.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization")
+    rep.setHeader("Vary", "Origin")
+}
+
 const rechercher_fichier = (dossier, nom, recursif) =>
 {
     const fichiers = fs.readdirSync(dossier, {withFileTypes: true})
@@ -164,6 +174,15 @@ const serveur = http.createServer(async (req, rep) =>
     {
         const url     = req.url.split('?')[0]
         const methode = req.method.toUpperCase()
+
+        appliquer_cors(rep)
+
+        if (methode === "OPTIONS")
+        {
+            rep.writeHead(204)
+            rep.end()
+            return
+        }
 
         // Routes des modèles
         for (const route of routes)

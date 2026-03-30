@@ -89,7 +89,7 @@
 
         --p-fonte:  var(--p-texte);
         --p-titre:  'Eczar', serif;
-        --p-texte:  sans;
+        --p-texte:  sans-serif;
         --p-bouton: monospace;
         --p-champ:  monospace;
 

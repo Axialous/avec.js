@@ -2,7 +2,7 @@ import http from "http"
 import path from "path"
 import fs   from "fs"
 
-import {generer_adn} from "./analyseur_adn.js"
+import {generer_adn, analyser_adn} from "./analyseur_adn.js"
 import {analyser_avec} from "./analyseur_avec.js"
 
 console.log(`\
@@ -17,6 +17,13 @@ const delai = 0
 const composants = {
     "/systeme/scripts": {
         chemin: "avec.js/scripts",
+    },
+    "/systeme/app.adn": {
+        chemin: "adn/app.adn",
+        composant: true,
+        script: analyser_adn,
+        ext: ".json",
+        env_supp: ['api_url']
     },
     "/systeme/modeles": {
         chemin: "adn/modeles",
@@ -88,11 +95,13 @@ const serveur = http.createServer(async (req, rep) =>
         let infos = null
         for (const prefixe in composants)
         {
-            if (req.url.startsWith(`${prefixe}/`)
+            if ((req.url.startsWith(`${prefixe}/`) || req.url === prefixe)
              && (!composants[prefixe].composant
               || req.headers['x-ac-composant'] === `true`))
             {
-                chemin = `${composants[prefixe].chemin}${req.url.slice(prefixe.length)}`
+                chemin = req.url === prefixe
+                    ? composants[prefixe].chemin
+                    : `${composants[prefixe].chemin}${req.url.slice(prefixe.length)}`
                 infos = composants[prefixe]
                 break
             }
@@ -130,11 +139,57 @@ const serveur = http.createServer(async (req, rep) =>
                     return
                 }
             }
+
+            if (ext === ".json" && Array.isArray(infos?.env_supp) && infos.env_supp.length > 0)
+            {
+                let json = null
+
+                if (typeof contenu === "string")
+                {
+                    try
+                    {
+                        json = JSON.parse(contenu)
+                    }
+                    catch (erreur)
+                    {
+                        json = null
+                    }
+                }
+                else if (typeof contenu === "object"
+                      && contenu !== null
+                      && !Buffer.isBuffer(contenu)
+                      && !(contenu instanceof Uint8Array))
+                {
+                    json = contenu
+                }
+
+                if (json && typeof json === "object" && !Array.isArray(json))
+                {
+                    infos.env_supp.forEach((cle_env) => {
+                        if (typeof cle_env !== "string" || cle_env.length === 0)
+                            return
+
+                        if (process.env[cle_env] !== undefined)
+                            json[cle_env] = process.env[cle_env]
+                    })
+                    contenu = json
+                }
+            }
+
             let type = types_mime[ext] || "application/octet-stream"
             if (types_utf8.includes(ext))
             {
                 type += "; charset=utf-8"
             }
+
+            if (ext === ".json"
+             && typeof contenu === "object"
+             && !Buffer.isBuffer(contenu)
+             && !(contenu instanceof Uint8Array))
+            {
+                contenu = JSON.stringify(contenu)
+            }
+
             rep.writeHead(200, {"Content-Type": type})
             rep.end(contenu)
         }

@@ -101,7 +101,7 @@
     }
 
     .lien-formulaire:disabled {
-        cursor: wait;
+        cursor: not-allowed;
         text-decoration-color: transparent;
     }
 ]

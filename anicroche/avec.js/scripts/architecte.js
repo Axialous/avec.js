@@ -10,7 +10,7 @@ import {initialiser_batisseur} from './batisseur.js'
 const initialiser = async () =>
 {
     initialiser_navigateur()
-    initialiser_heraut()
+    await initialiser_heraut()
     initialiser_batisseur()
 }
 

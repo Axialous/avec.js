@@ -4,7 +4,11 @@
     $courriel_formulaire = ''
     $clef_formulaire     = ''
 
+    $courriels_clefs     = new Set()
+
+    $erreur_courriel     = ':('
     $erreur_mot_de_passe = ':('
+    $succes_clef         = ':('
     $erreur_clef         = ':('
     $erreur_inscription  = ':('
 ]

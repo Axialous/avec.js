@@ -1,3 +1,91 @@
+@script [
+    const demarrer_compte_a_rebours = ($node, $vars, delai) =>
+    {
+        const compte_a_rebours = $node.querySelector('.compte-a-rebours')
+
+        if ($vars.chronometre)
+        {
+            clearInterval($vars.chronometre)
+            $vars.chronometre = null
+        }
+
+        if (delai <= 0)
+        {
+            $node.disabled = false
+
+            if (compte_a_rebours)
+            {
+                compte_a_rebours.textContent = ''
+            }
+
+            return
+        }
+
+        let restant = delai
+
+        const actualiser = () =>
+        {
+            if (!compte_a_rebours) return
+            compte_a_rebours.textContent = ` (${restant} s)`
+        }
+
+        $node.disabled = true
+        actualiser()
+
+        const chronometre = setInterval(() =>
+        {
+            restant -= 1
+
+            if (restant <= 0)
+            {
+                clearInterval(chronometre)
+                $vars.chronometre = null
+                $node.disabled = false
+
+                if (compte_a_rebours)
+                {
+                    compte_a_rebours.textContent = ''
+                }
+
+                return
+            }
+
+            actualiser()
+        }, 1000)
+
+        $vars.chronometre = chronometre
+    }
+
+    $monter_lien_formulaire = ($node, $vars, $delai) =>
+    {
+        const delai = Math.max(0, Math.floor(Number($delai) || 0))
+
+        $vars.delai = delai
+
+        demarrer_compte_a_rebours($node, $vars, delai)
+    }
+
+    $demonter_lien_formulaire = ($vars) =>
+    {
+        if (!$vars.chronometre) return
+
+        clearInterval($vars.chronometre)
+        $vars.chronometre = null
+    }
+
+    $clic_lien_formulaire = ($node, $vars, $fonction) =>
+    {
+        if ($node.disabled) return
+
+        if ($vars.delai > 0)
+        {
+            demarrer_compte_a_rebours($node, $vars, $vars.delai)
+        }
+
+        $fonction($node)
+    }
+]
+
 @style [
     .lien-formulaire {
         display: inline;
@@ -11,13 +99,26 @@
     .lien-formulaire:hover {
         text-decoration-color: var(--c-flux);
     }
+
+    .lien-formulaire:disabled {
+        cursor: wait;
+        text-decoration-color: transparent;
+    }
 ]
 
-@args [$fonction]
+@args [
+    $fonction
+    $delai : :(
+]
 
 <button
     .lien-formulaire
     type="button"
-    @click="$fonction($node)"
+    @mount="$monter_lien_formulaire($node, $vars, $delai)"
+    @unmount="$demonter_lien_formulaire($vars)"
+    @click="$clic_lien_formulaire($node, $vars, $fonction)"
 >
     @stud
+
+    @if [$delai]
+        <span .compte-a-rebours>

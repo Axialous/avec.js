@@ -4,16 +4,40 @@
         $mode_formulaire = $event.submitter.value
 
         data = new FormData($node)
-        $courriel_formulaire = data.get('courriel')
 
-        $basculer_vers_onglet_suivant($node)
+        if ($mode_formulaire == 'clef')
+        {
+            let reponse = $courriels_clefs.has(data.get('courriel'))
+
+            if (!reponse)
+            {
+                reponse = confirm("Simulation : est-ce que la clef d'activation a été créée ?")
+            }
+
+            if (reponse)
+            {
+                $courriel_formulaire = data.get('courriel')
+                $basculer_vers_onglet_suivant($node)
+                $courriels_clefs.add($courriel_formulaire)
+            }
+            else
+            {
+                $erreur_courriel = "Veuillez réessayer dans une minute"
+            }
+        }
+        else if ($mode_formulaire == 'mot_de_passe')
+        {
+            $basculer_vers_onglet_suivant($node)
+        }
     }
 
     $envoyer_formulaire_mot_de_passe = ($node, $event) =>
     {
         data = new FormData($node)
 
-        if (confirm("Simulation : est-ce le bon mot de passe ?"))
+        let reponse = confirm("Simulation : est-ce le bon mot de passe ?")
+
+        if (reponse)
         {
             alert(`Connexion avec le courriel "${data.get('courriel')}"`)
             $navigate_to("/")
@@ -24,12 +48,30 @@
         }
     }
 
+    $renvoyer_clef = ($node, $event) =>
+    {
+        let reponse = confirm("Simulation : est-ce que la clef d'activation a été créée ?")
+
+        if (reponse)
+        {
+            $succes_clef   = "Une nouvelle clef a été envoyée"
+            $erreur_clef = ":("
+        }
+        else
+        {
+            $erreur_clef = "Veuillez réessayer dans une minute"
+            $succes_clef   = ":("
+        }
+    }
+
     $envoyer_formulaire_clef = ($node, $event) =>
     {
         data = new FormData($node)
         $clef_formulaire = data.get('clef')
 
-        if (confirm("Simulation : est-ce la bonne clef ?"))
+        let reponse = confirm("Simulation : est-ce la bonne clef ?")
+
+        if (reponse)
         {
             type = confirm("Simulation : est-ce que le compte existe déjà ?") ? 'connexion' : 'inscription'
             if (type == 'inscription')
@@ -44,6 +86,7 @@
         }
         else
         {
+            $succes_clef = ':('
             $erreur_clef = "La clef de validation est invalide"
         }
     }
@@ -52,7 +95,9 @@
     {
         data = new FormData($node)
 
-        if (confirm("Simulation : est-ce que la clef de validation est encore valide ?"))
+        let reponse = confirm("Simulation : est-ce que la clef de validation est encore valide ?")
+
+        if (reponse)
         {
             alert(`Inscription avec le courriel "${data.get('courriel')}"`)
             $navigate_to("/")
@@ -61,6 +106,19 @@
         {
             $erreur_inscription = "La clef de validation a expiré"
         }
+    }
+
+    $basculer_vers_section_courriel = ($node) =>
+    {
+        $erreur_courriel = ':('
+        $basculer_vers_onglet_precedant($node)
+    }
+
+    $basculer_vers_section_clef = ($node) =>
+    {
+        $succes_clef = ':('
+        $erreur_clef = ':('
+        $basculer_vers_onglet_precedant($node)
     }
 ]
 
@@ -72,6 +130,9 @@
             "Connectez-vous ou inscrivez-vous"
         carte
             formulaire [$envoyer_formulaire_courriel]
+                @if [$erreur_courriel]
+                    erreur-formulaire
+                        "$erreur_courriel"
                 champ-courriel ["Adresse électronique", courriel]
                 bouton-soumission [clef]
                     <span>
@@ -96,7 +157,7 @@
                 ]
                 champ-mot-de-passe ["Mot de passe", mot_de_passe]
                 ligne
-                    bouton-formulaire [$basculer_vers_onglet_precedant]
+                    bouton-formulaire [$basculer_vers_section_courriel]
                         icone-fleche-gauche
                         alt
                             "Retour"
@@ -111,6 +172,9 @@
             "Saisissez la clef de validation"
         carte
             formulaire [$envoyer_formulaire_clef]
+                @if [$succes_clef]
+                    succes-formulaire
+                        "$succes_clef"
                 @if [$erreur_clef]
                     erreur-formulaire
                         "$erreur_clef"
@@ -120,10 +184,10 @@
                     $modifiable : :(
                 ]
                 champ-clef ["Clef de validation", clef]
-                lien-formulaire
+                lien-formulaire [$renvoyer_clef, 5]
                     "Renvoyer la clef"
                 ligne
-                    bouton-formulaire [$basculer_vers_onglet_precedant]
+                    bouton-formulaire [$basculer_vers_section_courriel]
                         icone-fleche-gauche
                         alt
                             "Retour"
@@ -152,7 +216,7 @@
                     $longueur_maximale : 128
                 ]
                 ligne
-                    bouton-formulaire [$basculer_vers_onglet_precedant]
+                    bouton-formulaire [$basculer_vers_section_clef]
                         icone-fleche-gauche
                         alt
                             "Retour"

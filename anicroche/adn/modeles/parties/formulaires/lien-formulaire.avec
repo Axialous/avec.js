@@ -102,7 +102,7 @@
 
     .lien-formulaire:disabled {
         cursor: not-allowed;
-        text-decoration-color: transparent;
+        text-decoration: none;
     }
 ]
 

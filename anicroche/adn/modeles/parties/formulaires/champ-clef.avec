@@ -377,6 +377,7 @@
         type="text"
         value="$valeur"
         tabindex="-1"
+        autocomplete="off"
         data-requis="$requis"
         data-modifiable="$modifiable"
         @beforeinput="$avant_saisie_cache_champ_clef($node, $event)"
@@ -386,16 +387,133 @@
     >
 
     <div>
-        <input .chiffre type="number" placeholder="x" min="0" max="9" step="1" inputmode="numeric" autocomplete="one-time-code" @focus="$focus_champ_clef($node.closest('.champ-clef'), $vars, $event, 0)" @input="$saisie_champ_clef($node.closest('.champ-clef'), $event, 0)" @keydown="$clavier_champ_clef($node.closest('.champ-clef'), $event, 0)" @paste="$coller_champ_clef($node.closest('.champ-clef'), $event, 0)" [! $modifiable] ? readonly>
-        <input .chiffre type="number" placeholder="x" min="0" max="9" step="1" inputmode="numeric" autocomplete="one-time-code" @focus="$focus_champ_clef($node.closest('.champ-clef'), $vars, $event, 1)" @input="$saisie_champ_clef($node.closest('.champ-clef'), $event, 1)" @keydown="$clavier_champ_clef($node.closest('.champ-clef'), $event, 1)" @paste="$coller_champ_clef($node.closest('.champ-clef'), $event, 1)" [! $modifiable] ? readonly>
-        <input .chiffre type="number" placeholder="x" min="0" max="9" step="1" inputmode="numeric" autocomplete="one-time-code" @focus="$focus_champ_clef($node.closest('.champ-clef'), $vars, $event, 2)" @input="$saisie_champ_clef($node.closest('.champ-clef'), $event, 2)" @keydown="$clavier_champ_clef($node.closest('.champ-clef'), $event, 2)" @paste="$coller_champ_clef($node.closest('.champ-clef'), $event, 2)" [! $modifiable] ? readonly>
+        <input
+            .chiffre
+            type="number"
+            placeholder="x"
+            min="0"
+            max="9"
+            step="1"
+            inputmode="numeric"
+            autocomplete="one-time-code"
+            @focus="$focus_champ_clef($node.closest('.champ-clef'), $vars, $event, 0)"
+            @input="$saisie_champ_clef($node.closest('.champ-clef'), $event, 0)"
+            @keydown="$clavier_champ_clef($node.closest('.champ-clef'), $event, 0)"
+            @paste="$coller_champ_clef($node.closest('.champ-clef'), $event, 0)" [! $modifiable] ? readonly
+        >
+        <input
+            .chiffre
+            type="number"
+            placeholder="x"
+            min="0"
+            max="9"
+            step="1"
+            inputmode="numeric"
+            autocomplete="one-time-code"
+            @focus="$focus_champ_clef($node.closest('.champ-clef'), $vars, $event, 1)"
+            @input="$saisie_champ_clef($node.closest('.champ-clef'), $event, 1)"
+            @keydown="$clavier_champ_clef($node.closest('.champ-clef'), $event, 1)"
+            @paste="$coller_champ_clef($node.closest('.champ-clef'), $event, 1)" [! $modifiable] ? readonly
+        >
+        <input
+            .chiffre
+            type="number"
+            placeholder="x"
+            min="0"
+            max="9"
+            step="1"
+            inputmode="numeric"
+            autocomplete="one-time-code"
+            @focus="$focus_champ_clef($node.closest('.champ-clef'), $vars, $event, 2)"
+            @input="$saisie_champ_clef($node.closest('.champ-clef'), $event, 2)"
+            @keydown="$clavier_champ_clef($node.closest('.champ-clef'), $event, 2)"
+            @paste="$coller_champ_clef($node.closest('.champ-clef'), $event, 2)" [! $modifiable] ? readonly
+        >
 
     <div>
-        <input .chiffre type="number" placeholder="x" min="0" max="9" step="1" inputmode="numeric" autocomplete="one-time-code" @focus="$focus_champ_clef($node.closest('.champ-clef'), $vars, $event, 3)" @input="$saisie_champ_clef($node.closest('.champ-clef'), $event, 3)" @keydown="$clavier_champ_clef($node.closest('.champ-clef'), $event, 3)" @paste="$coller_champ_clef($node.closest('.champ-clef'), $event, 3)" [! $modifiable] ? readonly>
-        <input .chiffre type="number" placeholder="x" min="0" max="9" step="1" inputmode="numeric" autocomplete="one-time-code" @focus="$focus_champ_clef($node.closest('.champ-clef'), $vars, $event, 4)" @input="$saisie_champ_clef($node.closest('.champ-clef'), $event, 4)" @keydown="$clavier_champ_clef($node.closest('.champ-clef'), $event, 4)" @paste="$coller_champ_clef($node.closest('.champ-clef'), $event, 4)" [! $modifiable] ? readonly>
-        <input .chiffre type="number" placeholder="x" min="0" max="9" step="1" inputmode="numeric" autocomplete="one-time-code" @focus="$focus_champ_clef($node.closest('.champ-clef'), $vars, $event, 5)" @input="$saisie_champ_clef($node.closest('.champ-clef'), $event, 5)" @keydown="$clavier_champ_clef($node.closest('.champ-clef'), $event, 5)" @paste="$coller_champ_clef($node.closest('.champ-clef'), $event, 5)" [! $modifiable] ? readonly>
+        <input
+            .chiffre
+            type="number"
+            placeholder="x"
+            min="0"
+            max="9"
+            step="1"
+            inputmode="numeric"
+            autocomplete="one-time-code"
+            @focus="$focus_champ_clef($node.closest('.champ-clef'), $vars, $event, 3)"
+            @input="$saisie_champ_clef($node.closest('.champ-clef'), $event, 3)"
+            @keydown="$clavier_champ_clef($node.closest('.champ-clef'), $event, 3)"
+            @paste="$coller_champ_clef($node.closest('.champ-clef'), $event, 3)" [! $modifiable] ? readonly
+        >
+        <input
+            .chiffre
+            type="number"
+            placeholder="x"
+            min="0"
+            max="9"
+            step="1"
+            inputmode="numeric"
+            autocomplete="one-time-code"
+            @focus="$focus_champ_clef($node.closest('.champ-clef'), $vars, $event, 4)"
+            @input="$saisie_champ_clef($node.closest('.champ-clef'), $event, 4)"
+            @keydown="$clavier_champ_clef($node.closest('.champ-clef'), $event, 4)"
+            @paste="$coller_champ_clef($node.closest('.champ-clef'), $event, 4)" [! $modifiable] ? readonly
+        >
+        <input
+            .chiffre
+            type="number"
+            placeholder="x"
+            min="0"
+            max="9"
+            step="1"
+            inputmode="numeric"
+            autocomplete="one-time-code"
+            @focus="$focus_champ_clef($node.closest('.champ-clef'), $vars, $event, 5)"
+            @input="$saisie_champ_clef($node.closest('.champ-clef'), $event, 5)"
+            @keydown="$clavier_champ_clef($node.closest('.champ-clef'), $event, 5)"
+            @paste="$coller_champ_clef($node.closest('.champ-clef'), $event, 5)" [! $modifiable] ? readonly
+        >
 
     <div>
-        <input .chiffre type="number" placeholder="x" min="0" max="9" step="1" inputmode="numeric" autocomplete="one-time-code" @focus="$focus_champ_clef($node.closest('.champ-clef'), $vars, $event, 6)" @input="$saisie_champ_clef($node.closest('.champ-clef'), $event, 6)" @keydown="$clavier_champ_clef($node.closest('.champ-clef'), $event, 6)" @paste="$coller_champ_clef($node.closest('.champ-clef'), $event, 6)" [! $modifiable] ? readonly>
-        <input .chiffre type="number" placeholder="x" min="0" max="9" step="1" inputmode="numeric" autocomplete="one-time-code" @focus="$focus_champ_clef($node.closest('.champ-clef'), $vars, $event, 7)" @input="$saisie_champ_clef($node.closest('.champ-clef'), $event, 7)" @keydown="$clavier_champ_clef($node.closest('.champ-clef'), $event, 7)" @paste="$coller_champ_clef($node.closest('.champ-clef'), $event, 7)" [! $modifiable] ? readonly>
-        <input .chiffre type="number" placeholder="x" min="0" max="9" step="1" inputmode="numeric" autocomplete="one-time-code" @focus="$focus_champ_clef($node.closest('.champ-clef'), $vars, $event, 8)" @input="$saisie_champ_clef($node.closest('.champ-clef'), $event, 8)" @keydown="$clavier_champ_clef($node.closest('.champ-clef'), $event, 8)" @paste="$coller_champ_clef($node.closest('.champ-clef'), $event, 8)" [! $modifiable] ? readonly>
+        <input
+            .chiffre
+            type="number"
+            placeholder="x"
+            min="0"
+            max="9"
+            step="1"
+            inputmode="numeric"
+            autocomplete="one-time-code"
+            @focus="$focus_champ_clef($node.closest('.champ-clef'), $vars, $event, 6)"
+            @input="$saisie_champ_clef($node.closest('.champ-clef'), $event, 6)"
+            @keydown="$clavier_champ_clef($node.closest('.champ-clef'), $event, 6)"
+            @paste="$coller_champ_clef($node.closest('.champ-clef'), $event, 6)" [! $modifiable] ? readonly
+        >
+        <input
+            .chiffre
+            type="number"
+            placeholder="x"
+            min="0"
+            max="9"
+            step="1"
+            inputmode="numeric"
+            autocomplete="one-time-code"
+            @focus="$focus_champ_clef($node.closest('.champ-clef'), $vars, $event, 7)"
+            @input="$saisie_champ_clef($node.closest('.champ-clef'), $event, 7)"
+            @keydown="$clavier_champ_clef($node.closest('.champ-clef'), $event, 7)"
+            @paste="$coller_champ_clef($node.closest('.champ-clef'), $event, 7)" [! $modifiable] ? readonly
+        >
+        <input
+            .chiffre
+            type="number"
+            placeholder="x"
+            min="0"
+            max="9"
+            step="1"
+            inputmode="numeric"
+            autocomplete="one-time-code"
+            @focus="$focus_champ_clef($node.closest('.champ-clef'), $vars, $event, 8)"
+            @input="$saisie_champ_clef($node.closest('.champ-clef'), $event, 8)"
+            @keydown="$clavier_champ_clef($node.closest('.champ-clef'), $event, 8)"
+            @paste="$coller_champ_clef($node.closest('.champ-clef'), $event, 8)" [! $modifiable] ? readonly
+        >

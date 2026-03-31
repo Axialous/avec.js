@@ -131,7 +131,23 @@ const construire_contexte_condition = (modele, ligne, now = new Date(), contexte
     for (const champ of modele.fields)
     {
         const presente = Object.prototype.hasOwnProperty.call(ligne, champ.name)
-        contexte[`$${champ.name}`] = presente ? ligne[champ.name] : ERREUR_AUGURE
+        let valeur = presente ? ligne[champ.name] : ERREUR_AUGURE
+
+        // MySQL peut renvoyer date/datetime sous forme de chaîne ;
+        // on normalise en Date pour des comparaisons fiables avec now.
+        if (
+            valeur !== ERREUR_AUGURE
+         && valeur !== null
+         && (champ.type === 'date' || champ.type === 'datetime')
+         && typeof valeur === 'string'
+        )
+        {
+            const date = new Date(valeur)
+            if (!Number.isNaN(date.getTime()))
+                valeur = date
+        }
+
+        contexte[`$${champ.name}`] = valeur
     }
 
     return contexte
@@ -140,6 +156,56 @@ const construire_contexte_condition = (modele, ligne, now = new Date(), contexte
 const respecter_condition = (modele, ligne, condition, now = new Date(), contexte_externe = {}, criteres = {}) =>
 {
     if (!condition) return true
+
+    const extraire_condition_residuelle = (condition_brute) =>
+    {
+        // On ne simplifie que les conjonctions simples (&) sans parenthèses ni OR.
+        // Dans les autres cas, on conserve la condition complète par sécurité.
+        if (/[|()]/.test(condition_brute))
+            return condition_brute
+
+        const regex_egalite_ou_in = /^\s*\$(\w+)\s*(=|-\{)\s*("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:[^`\\]|\\.)*`|[^\s&|()]+)\s*$/
+        const regex_temps   = /^\s*\$(\w+)\s*(>=|>|<=|<)\s*(now(?:\s*[+-]\s*\d+\s*[smhd])?)\s*$/i
+
+        const morceaux = condition_brute
+            .split('&')
+            .map(m => m.trim())
+            .filter(Boolean)
+
+        if (!morceaux.length)
+            return condition_brute
+
+        const residuels = []
+        for (const morceau of morceaux)
+        {
+            const eqin = morceau.match(regex_egalite_ou_in)
+            if (eqin)
+            {
+                const nom_champ = eqin[1]
+                // Ce champ a déjà été injecté dans le WHERE SQL (égalité ou IN).
+                if (Object.prototype.hasOwnProperty.call(criteres, nom_champ))
+                    continue
+            }
+
+            const temps = morceau.match(regex_temps)
+            if (temps)
+            {
+                const nom_champ = temps[1]
+                // Ces comparaisons sont également traduites dans le WHERE SQL.
+                if (modele.fields.some(f => f.name === nom_champ && (f.type === 'date' || f.type === 'datetime') && !f.treatment))
+                    continue
+            }
+
+            residuels.push(morceau)
+        }
+
+        return residuels.join(' & ')
+    }
+
+    const condition_residuelle = extraire_condition_residuelle(condition)
+    if (!condition_residuelle)
+        return true
+
     const contexte = construire_contexte_condition(modele, ligne, now, contexte_externe)
 
     // Quand une égalité a déjà été résolue via les critères (SQL/post-vérification),
@@ -148,7 +214,7 @@ const respecter_condition = (modele, ligne, condition, now = new Date(), context
     for (const [nom, valeur] of Object.entries(criteres))
         contexte[`$${nom}`] = valeur
 
-    return evaluer(condition, contexte)
+    return evaluer(condition_residuelle, contexte)
 }
 
 const normaliser_condition = (condition) =>
@@ -405,29 +471,43 @@ const extraire_criteres_depuis_condition = (modele, condition, contexte_conditio
     const champs_modele = new Set(modele.fields.map(f => f.name))
     const criteres = {}
 
-    const regex_egalite = /(?:^|[&(])\s*\$(\w+)\s*=\s*("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:[^`\\]|\\.)*`|[^\s&|()]+)/g
+    // Support égalité (=) et IN (-{)
+    const regex = /(?:^|[&(])\s*\$(\w+)\s*(=|-\{)\s*("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:[^`\\]|\\.)*`|[^\s&|()]+)/g
     let match
 
-    while ((match = regex_egalite.exec(condition)) !== null)
+    while ((match = regex.exec(condition)) !== null)
     {
         const nom_champ = match[1]
-        const token     = match[2]
+        const operateur = match[2]
+        const token     = match[3]
 
         if (!champs_modele.has(nom_champ))
             continue
         if (!token)
             continue
 
+        let valeur
         if (token.startsWith('$'))
         {
-            const { trouvee, valeur } = lire_variable_contexte(token, contexte_condition)
+            const { trouvee, valeur: v } = lire_variable_contexte(token, contexte_condition)
             if (!trouvee)
                 continue
-            criteres[nom_champ] = valeur
-            continue
+            valeur = v
+        }
+        else
+        {
+            valeur = parser_litteral_condition(token)
         }
 
-        criteres[nom_champ] = parser_litteral_condition(token)
+        if (operateur === '=')
+        {
+            criteres[nom_champ] = valeur
+        }
+        else if (operateur === '-{')
+        {
+            // Toujours tableau pour IN
+            criteres[nom_champ] = Array.isArray(valeur) ? valeur : (valeur instanceof Set ? Array.from(valeur) : [valeur])
+        }
     }
 
     return criteres
@@ -497,9 +577,32 @@ const construire_where = (criteres_sql, clauses_supplementaires = []) =>
 {
     const noms = Object.keys(criteres_sql)
     const morceaux = []
+    const valeurs = []
 
-    if (noms.length)
-        morceaux.push(...noms.map(n => `\`${n}\` = ?`))
+    if (noms.length) {
+        for (const n of noms) {
+            let v = criteres_sql[n]
+            // Déplier les tableaux imbriqués (ex: [[a,b]] => [a,b])
+            if (Array.isArray(v) && v.length === 1 && Array.isArray(v[0])) {
+                v = v[0]
+            }
+            if (Array.isArray(v) || v instanceof Set) {
+                // Support SQL IN
+                const arr = Array.isArray(v) ? v : Array.from(v)
+                if (arr.length === 0) {
+                    // IN () n'est jamais vrai, donc on force une condition fausse
+                    morceaux.push('0')
+                } else {
+                    const placeholders = arr.map(() => '?').join(', ')
+                    morceaux.push(`\`${n}\` IN (${placeholders})`)
+                    valeurs.push(...arr)
+                }
+            } else {
+                morceaux.push(`\`${n}\` = ?`)
+                valeurs.push(v)
+            }
+        }
+    }
 
     if (clauses_supplementaires.length)
         morceaux.push(...clauses_supplementaires)
@@ -508,7 +611,7 @@ const construire_where = (criteres_sql, clauses_supplementaires = []) =>
 
     return {
         clause : 'WHERE ' + morceaux.join(' AND '),
-        valeurs: Object.values(criteres_sql)
+        valeurs
     }
 }
 
@@ -548,6 +651,9 @@ const creer_search_one = (schemas) => async (nom_modele, condition, contexte_con
             continue
 
         const ligne_decryptee = decrypter_ligne(modele, ligne)
+
+
+
         const condition_ok = respecter_condition(modele, ligne_decryptee, condition_norm, now, contexte_norm, criteres)
 
         if (!condition_ok)

@@ -72,12 +72,15 @@
          || !$body.coordonnee
          || !$body.clef
          || !$body.mot_de_passe
+         || !Array.isArray($body.ids)
+         || !$body.ids.length
         )
             return $indicate(400, "Corps incomplet")
 
         const clef = await $search_one('clef',
             `
-            $hachage_coordonnee = $body.coordonnee
+            $id                 -{ $body.ids
+          & $hachage_coordonnee = $body.coordonnee
           & $type               = authentification
           & $clef               = $body.clef
           & $date_validite      > $now
@@ -120,8 +123,12 @@
         if (
             !$body.coordonnee
          || (
-                !$body.clef
-             && !$body.mot_de_passe
+                !$body.mot_de_passe
+             && (
+                    !$body.clef
+                 || !Array.isArray($body.ids)
+                 || !$body.ids.length
+                )
             )
         )
             return $indicate(400, "Corps incomplet")
@@ -136,7 +143,8 @@
         {
             const clef = await $search_one('clef',
             `
-            $hachage_coordonnee = $body.coordonnee
+            $id                 -{ $body.ids
+          & $hachage_coordonnee = $body.coordonnee
           & $type               = authentification
           & $clef               = $body.clef
           & $date_validite      > $now

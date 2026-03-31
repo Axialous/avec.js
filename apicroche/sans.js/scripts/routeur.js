@@ -4,13 +4,29 @@ import { evaluer, ERREUR as ERREUR_AUGURE } from './augure.js'
 
 // ─── $indicate ────────────────────────────────────────────────────────────────
 
-const creer_indicate = (rep) => (statut, message, data) =>
+const est_objet_simple = (valeur) =>
+    valeur !== null && typeof valeur === 'object' && !Array.isArray(valeur)
+
+const creer_add_to_data = (data_reponse) => (clef, valeur) =>
+{
+    if (clef === undefined || clef === null)
+        return
+
+    data_reponse[String(clef)] = valeur
+}
+
+const creer_indicate = (rep, data_reponse) => (statut, message, data) =>
 {
     const succes = statut >= 200 && statut < 300
+    const data_base = data !== undefined ? data : {}
+    const data_finale = est_objet_simple(data_base)
+        ? { ...data_base, ...data_reponse }
+        : data_base
+
     const reponse = {
         code: statut,
         [succes ? 'message' : 'error']: message,
-        data: data !== undefined ? data : {}
+        data: data_finale
     }
 
     rep.writeHead(statut, { 'Content-Type': 'application/json; charset=utf-8' })
@@ -39,8 +55,11 @@ const lire_corps = (req) => new Promise((resolve) =>
 const compiler_script = (code_brut, contexte) =>
 {
     // La syntaxe $nom = async ($args) => { ... } est déjà du JS valide, pas de transformation nécessaire
-    // Il suffit d'extraire les noms pour les exporter
-    const noms = [...code_brut.matchAll(/(\$\w+)\s*=\s*async\s*\(/g)].map(m => m[1])
+    // Il suffit d'extraire les noms pour les exporter.
+    // Supporte les fonctions async ET synchrones :
+    // $nom = async ($args) => { ... }
+    // $nom = ($args) => { ... }
+    const noms = [...code_brut.matchAll(/(\$\w+)\s*=\s*(?:async\s*)?\([^)]*\)\s*=>/g)].map(m => m[1])
     const export_obj = `return { ${noms.join(', ')} }`
 
     const noms_contexte = Object.keys(contexte)
@@ -116,7 +135,9 @@ export const construire_routes = (schemas) =>
             const handler = async (req, rep) =>
             {
                 const $body     = await lire_corps(req)
-                const $indicate = creer_indicate(rep)
+                const data_reponse = {}
+                const $add_to_data = creer_add_to_data(data_reponse)
+                const $indicate = creer_indicate(rep, data_reponse)
                 const $q        = citer_condition
 
                 const contexte_condition = { $body }
@@ -137,6 +158,7 @@ export const construire_routes = (schemas) =>
                     ...fonctions_magasin_requete,
                     ...fonctions_mailer,
                     $indicate,
+                    $add_to_data,
                     $q
                 })
 
@@ -188,7 +210,9 @@ export const construire_routes = (schemas) =>
         const handler = async (req, rep) =>
         {
             const $body     = await lire_corps(req)
-            const $indicate = creer_indicate(rep)
+            const data_reponse = {}
+            const $add_to_data = creer_add_to_data(data_reponse)
+            const $indicate = creer_indicate(rep, data_reponse)
 
             // Construire le contexte augure depuis le corps de la requête
             // (lire avec le nom alt si défini, stocker sous le nom interne)
@@ -218,23 +242,35 @@ export const construire_routes = (schemas) =>
             // Pré-générer les valeurs auto pour les rendre disponibles dans prior_create
             const $values = preparer_donnees(table, donnees)
 
-            // Exécuter les prior_create avant l'insertion (tous les champs, pas seulement can_create)
             const champs_prior_create = table.fields.filter(f => f.prior_create != null)
-            if (champs_prior_create.length && table.script)
+            const champs_post_create  = table.fields.filter(f => f.post_create != null)
+
+            let fonctions = null
+            if ((champs_prior_create.length || champs_post_create.length) && table.script)
             {
                 const $q = citer_condition
-                const fonctions = compiler_script(table.script, {
+                fonctions = compiler_script(table.script, {
                     ...fonctions_magasin,
                     ...fonctions_mailer,
                     $indicate,
+                    $add_to_data,
                     $q
                 })
+            }
+
+            // Exécuter les prior_create avant l'insertion (tous les champs, pas seulement can_create)
+            if (champs_prior_create.length && fonctions)
+            {
                 for (const champ of champs_prior_create)
                 {
                     const action = analyser_action(champ.prior_create)
                     if (!action) continue
                     const fn = fonctions[action.nom]
-                    if (typeof fn !== 'function') continue
+                    if (typeof fn !== 'function')
+                    {
+                        console.log(`/!\ prior_create ignoré : fonction introuvable ${action.nom}`)
+                        continue
+                    }
                     const valeurs_args = action.args.map(arg =>
                     {
                         if (arg === '$body')   return $body
@@ -257,8 +293,44 @@ export const construire_routes = (schemas) =>
 
             try
             {
-                await fonctions_magasin.$create_one(nom_entree, $values)
-                $indicate(201, 'Créé')
+                const valeurs_creees = await fonctions_magasin.$create_one(nom_entree, $values)
+                Object.assign($values, valeurs_creees)
+
+                // Exécuter les post_create après l'insertion SQL
+                if (champs_post_create.length && fonctions)
+                {
+                    for (const champ of champs_post_create)
+                    {
+                        const action = analyser_action(champ.post_create)
+                        if (!action) continue
+                        const fn = fonctions[action.nom]
+                        if (typeof fn !== 'function')
+                        {
+                            console.log(`/!\ post_create ignoré : fonction introuvable ${action.nom}`)
+                            continue
+                        }
+                        const valeurs_args = action.args.map(arg =>
+                        {
+                            if (arg === '$body')   return $body
+                            if (arg === '$values') return $values
+                            return undefined
+                        })
+                        try
+                        {
+                            await fn(...valeurs_args)
+                        }
+                        catch (err)
+                        {
+                            console.log(`/!\ erreur post_create ${champ.post_create} : ${err.message}`)
+                            if (!rep.headersSent) $indicate(500, 'Erreur interne')
+                            return
+                        }
+                        if (rep.headersSent) return
+                    }
+                }
+
+                if (!rep.headersSent)
+                    $indicate(201, 'Créé')
             }
             catch (err)
             {

@@ -1,8 +1,22 @@
 @name [ clefs, clef ]
 
-@primary [ hachage_coordonnee, type, date_emission ]
+@primary [ id ]
+
+@unique [
+    [ hachage_coordonnee, type, date_emission ]
+]
 
 @fields [
+    {
+        name    : id
+        type    : char
+        size    : 21
+        chars   : [A-Z0-9]
+        default : auto
+
+        post_create : $retourner_id($values)
+    }
+
     {
         alt  : coordonnee
         name : hachage_coordonnee
@@ -63,7 +77,7 @@
             `
             $hachage_coordonnee = $values.hachage_coordonnee
           & $type               = $values.type
-          & $date_emission      > now-1m
+          & $date_emission      > now-30s
             `,
             { $values }
         )
@@ -103,20 +117,28 @@
         })
     }
 
+    $retourner_id = ($values) =>
+    {
+        $add_to_data('id', $values.id)
+    }
+
     $authentifier_clef = async ($body) =>
     {
         if (
             !$body.coordonnee
          || !$body.clef
+         || !Array.isArray($body.ids)
+         || !$body.ids.length
         )
             return $indicate(400, "Corps incomplet")
 
         const clef = await $search_one('clef',
             `
-            $hachage_coordonnee = $body.coordonnee
-          & $type               = authentification
-          & $clef               = $body.clef
-          & $date_validite      > now
+            $id                 -{ $body.ids
+          & $hachage_coordonnee =  $body.coordonnee
+          & $type               =  authentification
+          & $clef               =  $body.clef
+          & $date_validite      >  now
             `
         )
 

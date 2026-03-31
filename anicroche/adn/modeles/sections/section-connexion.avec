@@ -7,22 +7,25 @@
 
         if ($mode_formulaire == 'clef')
         {
-            let reponse = $courriels_clefs.has(data.get('courriel'))
+            const deja_envoyee = $courriels_clefs.has(data.get('courriel'))
+            let reponse = null
 
-            if (!reponse)
+            if (!deja_envoyee)
             {
                 reponse = await $create('clef', {type: 'authentification', coordonnee: data.get('courriel')})
             }
 
-            if (!reponse.error)
+            if (deja_envoyee || !reponse.error)
             {
+                if (reponse)
+                    $ids.push(reponse.data.id)
                 $courriel_formulaire = data.get('courriel')
                 $basculer_vers_onglet_suivant($node)
                 $courriels_clefs.add($courriel_formulaire)
             }
             else
             {
-                $erreur_courriel = "Veuillez réessayer dans une minute"
+                $erreur_courriel = "Veuillez réessayer dans trente secondes"
             }
         }
         else if ($mode_formulaire == 'mot_de_passe')
@@ -57,12 +60,13 @@
 
         if (!reponse.error)
         {
+            $ids.push(reponse.data.id)
             $succes_clef   = "Une nouvelle clef a été envoyée"
             $erreur_clef = ":("
         }
         else
         {
-            $erreur_clef = "Veuillez réessayer dans une minute"
+            $erreur_clef = "Veuillez réessayer dans trente secondes"
             $succes_clef   = ":("
         }
     }
@@ -74,7 +78,8 @@
 
         let reponse = await $create('authentification', {
             coordonnee: data.get('courriel'),
-            clef: data.get('clef')
+            clef: data.get('clef'),
+            ids: $ids
         })
 
         if (!reponse.error)
@@ -88,7 +93,8 @@
             {
                 reponse = await $create('connexion', {
                     coordonnee: data.get('courriel'),
-                    clef: data.get('clef')
+                    clef: data.get('clef'),
+                    ids: $ids
                 })
                 if (!reponse.error)
                 {
@@ -121,7 +127,8 @@
             type_coordonnee: 'courriel',
             coordonnee: data.get('courriel'),
             clef: $clef_formulaire,
-            mot_de_passe: data.get('mot_de_passe')
+            mot_de_passe: data.get('mot_de_passe'),
+            ids: $ids
         })
 
         if (!reponse.error)
@@ -210,7 +217,7 @@
                     $modifiable : :(
                 ]
                 champ-clef ["Clef de validation", clef]
-                lien-formulaire [$renvoyer_clef, 60]
+                lien-formulaire [$renvoyer_clef, 30]
                     "Renvoyer la clef"
                 ligne
                     bouton-formulaire [$basculer_vers_section_courriel]

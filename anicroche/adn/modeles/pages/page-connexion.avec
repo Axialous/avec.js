@@ -3,6 +3,7 @@
 
     $courriel_formulaire = ''
     $clef_formulaire     = ''
+    $ids           = []
 
     $courriels_clefs     = new Set()
 

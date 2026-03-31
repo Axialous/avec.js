@@ -165,6 +165,44 @@ Ici, le champ s'appelle `contacts` mais pointe vers la table `coordonnees`. Sans
 
 ---
 
+## Hooks de création
+
+Pour les routes `POST` automatiques générées par sans.js, un champ peut définir des hooks :
+
+| Propriété | Moment d'exécution | Description |
+|---|---|---|
+| `can_create` | avant insertion | Condition augure à valider (`403` si faux) |
+| `prior_create` | juste avant l'`INSERT` SQL | Appel d'une fonction du bloc `@script` |
+| `post_create` | juste après l'`INSERT` SQL | Appel d'une fonction du bloc `@script` |
+
+Exemple :
+
+```
+{
+    name         : code
+    type         : hash
+    can_create   : "$type = authentification"
+    prior_create : $preparer_code($values)
+    post_create  : $notifier_creation($values)
+}
+```
+
+Les fonctions appelées par `prior_create` et `post_create` doivent être déclarées dans `@script`.
+
+Dans ces scripts, le cadriciel injecte aussi `$add_to_data(key, value)` :
+
+- Cela ajoute `value` à la clef `key` de l'objet `data` de la réponse API.
+- Cela fonctionne aussi bien avec une réponse explicite via `$indicate(...)` qu'avec la réponse automatique `201 Créé`.
+
+Les arguments reconnus sont :
+
+| Argument | Valeur |
+|---|---|
+| `$body` | Corps JSON brut de la requête |
+| `$values` | Valeurs prêtes à être insérées (et, en `post_create`, enrichies avec les valeurs auto générées lors de la création, comme l'identifiant primaire) |
+
+---
+
 ## Exemple complet
 
 ```

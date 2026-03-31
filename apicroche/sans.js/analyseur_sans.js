@@ -334,8 +334,9 @@ const transformer_champ = (champ_brut, champs_dans_unique) =>
     const regle_brute = champ_brut.rule ?? null
     const rule = typeof regle_brute === 'string' ? regle_brute : null
 
-    const can_create  = typeof champ_brut.can_create  === 'string' ? champ_brut.can_create.trim()  : null
+    const can_create   = typeof champ_brut.can_create   === 'string' ? champ_brut.can_create.trim()   : null
     const prior_create = typeof champ_brut.prior_create === 'string' ? champ_brut.prior_create.trim() : null
+    const post_create  = typeof champ_brut.post_create  === 'string' ? champ_brut.post_create.trim()  : null
     const alt          = typeof champ_brut.alt          === 'string' ? champ_brut.alt.trim()          : null
 
     const chars_bruts = champ_brut.chars ?? null
@@ -358,6 +359,7 @@ const transformer_champ = (champ_brut, champs_dans_unique) =>
         rule,
         can_create,
         prior_create,
+        post_create,
         alt
     }
     if (type_res.values)

@@ -124,12 +124,12 @@ export const construire_routes = (schemas) =>
                     ...fonctions_magasin,
                     $search_one: (nom_modele, condition, contexte = {}) =>
                         fonctions_magasin.$search_one(nom_modele, condition, { ...contexte_condition, ...contexte }),
-                    $search_all: (nom_modele, condition, contexte = {}) =>
-                        fonctions_magasin.$search_all(nom_modele, condition, { ...contexte_condition, ...contexte }),
+                    $search_all: (nom_modele, condition, contexte = {}, options = undefined) =>
+                        fonctions_magasin.$search_all(nom_modele, condition, { ...contexte_condition, ...contexte }, options),
                     $delete_one: (nom_modele, condition, contexte = {}) =>
                         fonctions_magasin.$delete_one(nom_modele, condition, { ...contexte_condition, ...contexte }),
-                    $delete_all: (nom_modele, condition, contexte = {}) =>
-                        fonctions_magasin.$delete_all(nom_modele, condition, { ...contexte_condition, ...contexte }),
+                    $delete_all: (nom_modele, condition, contexte = {}, options = undefined) =>
+                        fonctions_magasin.$delete_all(nom_modele, condition, { ...contexte_condition, ...contexte }, options),
                 }
 
                 // Compiler le script à chaque requête pour lier $indicate à cette réponse

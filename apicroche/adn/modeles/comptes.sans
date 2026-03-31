@@ -93,7 +93,7 @@
         if (!clef || coordonnee_existante)
             return $indicate(403, "Accès refusé")
 
-        await $delete_one('clef',
+        await $delete_all('clefs',
             `
             $hachage_coordonnee = $body.coordonnee
           & $type               = authentification
@@ -146,7 +146,7 @@
             if (!clef || !coordonnee)
                 return $indicate(403, "Accès refusé")
             
-            await $delete_one('clef',
+            await $delete_all('clefs',
                 `
                 $hachage_coordonnee = $body.coordonnee
               & $type               = authentification

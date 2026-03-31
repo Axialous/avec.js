@@ -1,6 +1,6 @@
 @name [ clefs, clef ]
 
-@primary [ hachage_coordonnee, type ]
+@primary [ hachage_coordonnee, type, date_emission ]
 
 @fields [
     {
@@ -12,7 +12,7 @@
             $type = authentification
           & $hachage_coordonnee ~= /^[^@\s]+@[^@\s]+\.[^@\s]+$/
         "
-        prior_create : $supprimer_clef($values)
+        prior_create : $supprimer_clefs_anciennes($values)
     }
 
     {
@@ -57,7 +57,7 @@
 ]
 
 @script [
-    $supprimer_clef = async ($values) =>
+    $supprimer_clefs_anciennes = async ($values) =>
     {
         const clef_recente = await $search_one('clef',
             `
@@ -76,7 +76,12 @@
             $hachage_coordonnee = $values.hachage_coordonnee
           & $type = $values.type
             `,
-            { $values }
+            { $values },
+            {
+                order  : 'date_emission',
+                dir    : 'desc',
+                offset : 1
+            }
         )
     }
 

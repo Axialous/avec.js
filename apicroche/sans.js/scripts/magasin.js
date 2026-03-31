@@ -173,6 +173,113 @@ const normaliser_contexte_condition = (contexte) =>
     return contexte
 }
 
+const normaliser_options_liste = (modele, options) =>
+{
+    if (options === null || options === undefined)
+        return {
+            order : null,
+            dir   : 'asc',
+            limit : null,
+            offset: 0,
+        }
+
+    if (typeof options !== 'object' || Array.isArray(options))
+        throw new Error('Options invalides : utilisez un objet { order, dir, limit, offset }')
+
+    const champs_modele = new Set(modele.fields.map(f => f.name))
+
+    const order = options.order ?? null
+    if (order !== null)
+    {
+        if (typeof order !== 'string' || !champs_modele.has(order))
+            throw new Error(`Option order invalide : champ inconnu "${order}"`)
+    }
+
+    let dir = options.dir ?? 'asc'
+    if (typeof dir !== 'string')
+        throw new Error('Option dir invalide : utilisez "asc" ou "desc"')
+    dir = dir.toLowerCase()
+    if (dir !== 'asc' && dir !== 'desc')
+        throw new Error('Option dir invalide : utilisez "asc" ou "desc"')
+
+    const limit = options.limit
+    if (limit !== undefined && (!Number.isInteger(limit) || limit < 0))
+        throw new Error('Option limit invalide : utilisez un entier >= 0')
+
+    const offset = options.offset ?? 0
+    if (!Number.isInteger(offset) || offset < 0)
+        throw new Error('Option offset invalide : utilisez un entier >= 0')
+
+    return {
+        order,
+        dir,
+        limit : limit ?? null,
+        offset,
+    }
+}
+
+const normaliser_valeur_tri = (valeur) =>
+{
+    if (valeur === null || valeur === undefined)
+        return null
+
+    if (valeur instanceof Date)
+    {
+        const temps = valeur.getTime()
+        return Number.isNaN(temps) ? null : temps
+    }
+
+    if (typeof valeur === 'number' || typeof valeur === 'bigint')
+        return Number(valeur)
+
+    if (typeof valeur === 'boolean')
+        return valeur ? 1 : 0
+
+    const temps = Date.parse(String(valeur))
+    if (!Number.isNaN(temps))
+        return temps
+
+    return String(valeur)
+}
+
+const comparer_pour_tri = (a, b, direction) =>
+{
+    const va = normaliser_valeur_tri(a)
+    const vb = normaliser_valeur_tri(b)
+
+    if (va === null && vb === null) return 0
+    if (va === null) return direction === 'asc' ? -1 : 1
+    if (vb === null) return direction === 'asc' ? 1 : -1
+
+    if (va < vb) return direction === 'asc' ? -1 : 1
+    if (va > vb) return direction === 'asc' ? 1 : -1
+    return 0
+}
+
+const appliquer_options_liste = (elements, options, lire_valeur) =>
+{
+    let travail = [...elements]
+
+    if (options.order)
+    {
+        travail.sort((a, b) =>
+            comparer_pour_tri(
+                lire_valeur(a, options.order),
+                lire_valeur(b, options.order),
+                options.dir
+            )
+        )
+    }
+
+    if (options.offset > 0)
+        travail = travail.slice(options.offset)
+
+    if (options.limit !== null)
+        travail = travail.slice(0, options.limit)
+
+    return travail
+}
+
 const parser_now_relatif = (token) =>
 {
     const match = /^now\s*([+-])\s*(\d+)\s*([smhd])$/i.exec(token)
@@ -453,12 +560,13 @@ const creer_search_one = (schemas) => async (nom_modele, condition, contexte_con
 
 // ─── $search_all ─────────────────────────────────────────────────────────────
 
-const creer_search_all = (schemas) => async (nom_modele, condition, contexte_condition = {}) =>
+const creer_search_all = (schemas) => async (nom_modele, condition, contexte_condition = {}, options = undefined) =>
 {
     const modele = trouver_modele_table(schemas, nom_modele)
     if (!modele) throw new Error(`Modèle introuvable : ${nom_modele}`)
     const condition_norm = normaliser_condition(condition)
     const contexte_norm  = normaliser_contexte_condition(contexte_condition)
+    const options_norm   = normaliser_options_liste(modele, options)
 
     const criteres = extraire_criteres_depuis_condition(modele, condition_norm, contexte_norm)
     const filtres_temps_sql = extraire_filtres_temps_sql(modele, condition_norm)
@@ -485,7 +593,8 @@ const creer_search_all = (schemas) => async (nom_modele, condition, contexte_con
 
         resultats.push(ligne_decryptee)
     }
-    return resultats
+
+    return appliquer_options_liste(resultats, options_norm, (ligne, nom) => ligne[nom])
 }
 
 // ─── $delete_one ─────────────────────────────────────────────────────────────
@@ -525,12 +634,13 @@ const creer_delete_one = (schemas) => async (nom_modele, condition, contexte_con
 
 // ─── $delete_all ─────────────────────────────────────────────────────────────
 
-const creer_delete_all = (schemas) => async (nom_modele, condition, contexte_condition = {}) =>
+const creer_delete_all = (schemas) => async (nom_modele, condition, contexte_condition = {}, options = undefined) =>
 {
     const modele = trouver_modele_table(schemas, nom_modele)
     if (!modele) throw new Error(`Modèle introuvable : ${nom_modele}`)
     const condition_norm = normaliser_condition(condition)
     const contexte_norm  = normaliser_contexte_condition(contexte_condition)
+    const options_norm   = normaliser_options_liste(modele, options)
 
     const criteres = extraire_criteres_depuis_condition(modele, condition_norm, contexte_norm)
     const filtres_temps_sql = extraire_filtres_temps_sql(modele, condition_norm)
@@ -544,6 +654,7 @@ const creer_delete_all = (schemas) => async (nom_modele, condition, contexte_con
         valeurs
     )
     const now = new Date()
+    const a_supprimer = []
     for (const ligne of lignes)
     {
         if (besoin_post && !await verifier_post(modele, ligne, post))
@@ -553,8 +664,17 @@ const creer_delete_all = (schemas) => async (nom_modele, condition, contexte_con
         if (!respecter_condition(modele, ligne_decryptee, condition_norm, now, contexte_norm, criteres))
             continue
 
-        await supprimer_par_pk(modele, ligne)
+        a_supprimer.push({ brute: ligne, decryptee: ligne_decryptee })
     }
+
+    const cibles = appliquer_options_liste(
+        a_supprimer,
+        options_norm,
+        (element, nom) => element.decryptee[nom]
+    )
+
+    for (const element of cibles)
+        await supprimer_par_pk(modele, element.brute)
 }
 
 // ─── Logique d'insertion (partagée par $create_one et $create_all) ────────────

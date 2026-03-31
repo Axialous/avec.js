@@ -86,7 +86,19 @@
             }
             else if (type == 'connexion')
             {
-                $navigate_to("/")
+                reponse = await $create('connexion', {
+                    coordonnee: data.get('courriel'),
+                    clef: data.get('clef')
+                })
+                if (!reponse.error)
+                {
+                    $navigate_to("/")
+                }
+                else
+                {
+                    $succes_clef = ':('
+                    $erreur_clef = "Erreur serveur"
+                }
             }
             else
             {
@@ -97,7 +109,7 @@
         else
         {
             $succes_clef = ':('
-            $erreur_clef = reponse.error || "La clef de validation est invalide"
+            $erreur_clef = "La clef de validation est invalide"
         }
     }
 

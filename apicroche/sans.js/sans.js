@@ -129,14 +129,19 @@ const composants = {
     }
 }
 
-const origine_cors = process.env.cors_origin || process.env.app_url || "http://localhost:4030"
+const mode = process.env.mode;
+const origine_cors = mode === "dev"
+    ? "*"
+    : process.env.cors_origin || process.env.app_url || "http://localhost:4030";
 
 const appliquer_cors = (rep) =>
 {
     rep.setHeader("Access-Control-Allow-Origin", origine_cors)
     rep.setHeader("Access-Control-Allow-Methods", "GET,POST,PATCH,DELETE,OPTIONS")
     rep.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization")
-    rep.setHeader("Vary", "Origin")
+
+    if (mode !== "dev")
+        rep.setHeader("Vary", "Origin")
 }
 
 const rechercher_fichier = (dossier, nom, recursif) =>

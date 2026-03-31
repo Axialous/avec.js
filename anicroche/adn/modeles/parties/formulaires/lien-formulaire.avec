@@ -73,16 +73,16 @@
         $vars.chronometre = null
     }
 
-    $clic_lien_formulaire = ($node, $vars, $fonction) =>
+    $clic_lien_formulaire = async ($node, $vars, $fonction) =>
     {
         if ($node.disabled) return
+
+        await $fonction($node)
 
         if ($vars.delai > 0)
         {
             demarrer_compte_a_rebours($node, $vars, $vars.delai)
         }
-
-        $fonction($node)
     }
 ]
 

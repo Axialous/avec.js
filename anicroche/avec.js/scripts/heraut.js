@@ -39,7 +39,13 @@ export const initialiser_heraut = async () =>
 
     const construire_url_api = (resource, params) =>
     {
-        const base = api_url.endsWith(`/`) ? api_url : `${api_url}/`
+        let base = api_url.endsWith(`/`) ? api_url : `${api_url}/`
+        
+        // Remplacer localhost par le hostname de la page actuelle
+        if (base.includes('localhost')) {
+            base = base.replace('localhost', window.location.hostname)
+        }
+        
         const url = new URL(String(resource), base)
 
         if (params)

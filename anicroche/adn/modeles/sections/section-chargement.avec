@@ -8,6 +8,11 @@
         --c-fond:  var(--c-vif);
         --c-flux:  var(--c-creme)
     }
+
+    .page.entree .section-chargement,
+    .page.sortie .section-chargement {
+        cursor: default;
+    }
 ]
 
 section [chargement, centree]

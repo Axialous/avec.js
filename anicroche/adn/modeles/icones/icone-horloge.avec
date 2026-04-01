@@ -22,10 +22,6 @@
             ]
         }
 
-        const debut_test = new Date()
-        debut_test.setHours(11, 59, 0, 0)
-        $vars.decalage_test_ms = debut_test.getTime() - Date.now()
-
         actualiser(horloge, $vars)
 
         const maintenant = new Date()
@@ -55,8 +51,7 @@
 
     const actualiser = (horloge, $vars = {}) =>
     {
-        const decalage_test_ms = $vars.decalage_test_ms || 0
-        const maintenant = new Date(Date.now() + decalage_test_ms)
+        const maintenant = new Date()
 
         const heures = maintenant.getHours()
         const minutes = maintenant.getMinutes()

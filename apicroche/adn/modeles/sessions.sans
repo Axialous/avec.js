@@ -1,0 +1,61 @@
+@name [ sessions, session ]
+
+@primary [ id ]
+
+@fields [
+    {
+        name    : id
+        type    : char
+        size    : 21
+        chars   : [A-Z0-9]
+        default : auto
+    }
+
+    {
+        alt     : jeton
+        name    : hachage_jeton
+        type    : hash
+        size    : 1-256
+        chars   : [a-z0-9]
+        length  : 64
+        default : auto
+    }
+
+    {
+        name    : date_emission
+        type    : datetime
+        default : now
+    }
+
+    {
+        name    : date_validite
+        type    : datetime
+        default : now+30d
+    }
+
+    {
+        name  : date_revocation
+        type  : datetime
+        count : 0-1
+    }
+
+    {
+        name  : adresse_ip
+        type  : char
+        size  : 1-45
+        count : 0-1
+    }
+
+    {
+        name  : agent_utilisateur
+        type  : text
+        count : 0-1
+    }
+
+    {
+        name  : nom_appareil
+        type  : char
+        size  : 1-256
+        count : 0-1
+    }
+]

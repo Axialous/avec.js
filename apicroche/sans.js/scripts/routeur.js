@@ -1,6 +1,11 @@
 import { creer_fonctions_magasin, preparer_donnees } from './magasin.js'
 import { creer_fonctions_mailer }  from './mailer.js'
 import { evaluer, ERREUR as ERREUR_AUGURE } from './augure.js'
+import { SignJWT } from 'jose'
+import { randomUUID, webcrypto } from 'crypto'
+
+if (!globalThis.crypto)
+    globalThis.crypto = webcrypto
 
 // ─── $indicate ────────────────────────────────────────────────────────────────
 
@@ -46,6 +51,103 @@ const lire_corps = (req) => new Promise((resolve) =>
     })
     req.on('error', () => resolve({}))
 })
+
+const construire_request = (req) => ({
+    ip: req.headers['x-forwarded-for']?.split(',')[0].trim() ?? req.socket.remoteAddress,
+    user_agent: req.headers['user-agent'] ?? null
+})
+
+// ─── JWT & Cookies ────────────────────────────────────────────────────────────
+
+const UNITES_DUREE_SECONDES = {
+    s: 1,
+    m: 60,
+    h: 3600,
+    d: 86400
+}
+
+const convertir_duree_en_secondes = (duree, valeur_par_defaut) =>
+{
+    const brute = duree ?? valeur_par_defaut
+
+    if (typeof brute === 'number' && Number.isFinite(brute) && brute > 0)
+        return Math.floor(brute)
+
+    if (typeof brute !== 'string')
+        throw new Error('Durée invalide : utilisez un format comme 15m, 30d, 1h')
+
+    const match = /^\s*(\d+)\s*([smhd])\s*$/i.exec(brute)
+    if (!match)
+        throw new Error('Durée invalide : utilisez un format comme 15m, 30d, 1h')
+
+    const valeur = Number(match[1])
+    const unite  = UNITES_DUREE_SECONDES[match[2].toLowerCase()]
+
+    if (!Number.isFinite(valeur) || valeur <= 0 || !unite)
+        throw new Error('Durée invalide : utilisez un format comme 15m, 30d, 1h')
+
+    return valeur * unite
+}
+
+const creer_sign_token = () => async (payload = {}, options = {}) =>
+{
+    if (payload === null || typeof payload !== 'object' || Array.isArray(payload))
+        throw new Error('Payload JWT invalide : objet attendu')
+
+    const secret = process.env.secret_jwt ?? process.env.JWT_SECRET
+    if (!secret)
+        throw new Error('secret_jwt manquant')
+
+    const lifetime_secondes = convertir_duree_en_secondes(options?.lifetime, '15m')
+    const maintenant = Math.floor(Date.now() / 1000)
+
+    const claims = {
+        ...payload,
+        iat: maintenant,
+        exp: maintenant + lifetime_secondes,
+        jti: randomUUID()
+    }
+
+    const cle = new TextEncoder().encode(secret)
+
+    return new SignJWT(claims)
+        .setProtectedHeader({ alg: 'HS256', typ: 'JWT' })
+        .sign(cle)
+}
+
+const creer_set_cookie = (rep) => (name, value, options = {}) =>
+{
+    if (!name)
+        throw new Error('Nom de cookie invalide')
+
+    const max_age = convertir_duree_en_secondes(options?.lifetime, '30d')
+    const http_only = options?.httpOnly ?? true
+    const secure = options?.secure ?? true
+    const same_site = options?.sameSite ?? 'Strict'
+    const path = options?.path ?? '/'
+
+    const morceaux = [
+        `${String(name)}=${encodeURIComponent(String(value ?? ''))}`,
+        `Max-Age=${max_age}`,
+        `Path=${path}`,
+        `SameSite=${same_site}`
+    ]
+
+    if (http_only) morceaux.push('HttpOnly')
+    if (secure) morceaux.push('Secure')
+
+    const cookie = morceaux.join('; ')
+    const entete_existant = rep.getHeader('Set-Cookie')
+
+    if (!entete_existant)
+        rep.setHeader('Set-Cookie', cookie)
+    else if (Array.isArray(entete_existant))
+        rep.setHeader('Set-Cookie', [...entete_existant, cookie])
+    else
+        rep.setHeader('Set-Cookie', [String(entete_existant), cookie])
+
+    return cookie
+}
 
 // ─── Compilation du bloc @script ─────────────────────────────────────────────
 // Transforme les déclarations  async $nom(args) { ... }
@@ -104,7 +206,7 @@ const citer_condition = (valeur) =>
 // ─── Variables injectées dans les handlers ────────────────────────────────────
 // $body → corps JSON de la requête (sera fourni au moment de l'appel)
 
-const VARIABLES_HANDLER = ['$body']
+const VARIABLES_HANDLER = ['$body', '$request']
 
 // ─── Construction des routes ──────────────────────────────────────────────────
 
@@ -135,10 +237,13 @@ export const construire_routes = (schemas) =>
             const handler = async (req, rep) =>
             {
                 const $body     = await lire_corps(req)
+                const $request  = construire_request(req)
                 const data_reponse = {}
                 const $add_to_data = creer_add_to_data(data_reponse)
                 const $indicate = creer_indicate(rep, data_reponse)
                 const $q        = citer_condition
+                const $sign_token = creer_sign_token()
+                const $set_cookie = creer_set_cookie(rep)
 
                 const contexte_condition = { $body }
                 const fonctions_magasin_requete = {
@@ -161,6 +266,9 @@ export const construire_routes = (schemas) =>
                     ...fonctions_mailer,
                     $indicate,
                     $add_to_data,
+                    $request,
+                    $sign_token,
+                    $set_cookie,
                     $q
                 })
 
@@ -174,6 +282,7 @@ export const construire_routes = (schemas) =>
                 const valeurs_args = action.args.map(arg =>
                 {
                     if (arg === '$body') return $body
+                    if (arg === '$request') return $request
                     return undefined
                 })
 
@@ -212,9 +321,12 @@ export const construire_routes = (schemas) =>
         const handler = async (req, rep) =>
         {
             const $body     = await lire_corps(req)
+            const $request  = construire_request(req)
             const data_reponse = {}
             const $add_to_data = creer_add_to_data(data_reponse)
             const $indicate = creer_indicate(rep, data_reponse)
+            const $sign_token = creer_sign_token()
+            const $set_cookie = creer_set_cookie(rep)
 
             // Construire le contexte augure depuis le corps de la requête
             // (lire avec le nom alt si défini, stocker sous le nom interne)
@@ -256,6 +368,9 @@ export const construire_routes = (schemas) =>
                     ...fonctions_mailer,
                     $indicate,
                     $add_to_data,
+                    $request,
+                    $sign_token,
+                    $set_cookie,
                     $q
                 })
             }
@@ -276,6 +391,7 @@ export const construire_routes = (schemas) =>
                     const valeurs_args = action.args.map(arg =>
                     {
                         if (arg === '$body')   return $body
+                        if (arg === '$request') return $request
                         if (arg === '$values') return $values
                         return undefined
                     })
@@ -314,6 +430,7 @@ export const construire_routes = (schemas) =>
                         const valeurs_args = action.args.map(arg =>
                         {
                             if (arg === '$body')   return $body
+                            if (arg === '$request') return $request
                             if (arg === '$values') return $values
                             return undefined
                         })

@@ -36,6 +36,11 @@
         name  : coordonnees
         count : 0-N
     }
+
+    {
+        name  : sessions
+        count : 0-N
+    }
 ]
 
 @routes [
@@ -46,7 +51,7 @@
 
     {
         path   : /connexion
-        action : $connecter_compte($body)
+        action : "$connecter_compte($body, $request)"
 
         # 1. Lire l'identifiant et le mot de passe depuis le corps de la requête
         # 2. Hacher l'identifiant avec HMAC-SHA256
@@ -132,7 +137,7 @@
         return $indicate(201, "Inscription réussie")
     }
 
-    $connecter_compte = async ($body) =>
+    $connecter_compte = async ($body, $request) =>
     {
         if (
             !$body.coordonnee
@@ -197,7 +202,7 @@
                 )
                 return $indicate(403, 'Accès refusé')
             }
-            
+
             await $delete_all('clefs',
                 `
                 $hachage_coordonnee = $body.coordonnee
@@ -206,8 +211,18 @@
             )
         }
 
-        return $indicate(200, "Connexion réussie", {
+        const session = await $create_one('session',
+            {
+                adresse_ip        : $request.ip,
+                agent_utilisateur : $request.user_agent,
+                id_compte         : coordonnee.id_compte
+            }
+        )
 
-        })
+        $set_cookie('jeton', session.jeton, { lifetime: '30d' })
+
+        const jeton_acces = await $sign_token({ id_compte: coordonnee.id_compte })
+
+        return $indicate(200, "Connexion réussie", { jeton_acces })
     }
 ]

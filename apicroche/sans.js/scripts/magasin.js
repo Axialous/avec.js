@@ -986,12 +986,31 @@ const inserer_batch = async (modele, tableau) =>
 {
     if (!tableau.length) return []
 
+    const normaliser_donnees_insertion = (donnees) =>
+    {
+        const normalisees = { ...donnees }
+
+        for (const champ of modele.fields)
+        {
+            if (!champ.alt)
+                continue
+
+            if (normalisees[champ.name] !== undefined)
+                continue
+
+            if (Object.prototype.hasOwnProperty.call(normalisees, champ.alt))
+                normalisees[champ.name] = normalisees[champ.alt]
+        }
+
+        return normalisees
+    }
+
     const dans_contrainte = (nom) =>
         modele.primary.includes(nom) ||
         modele.unique.some(groupe => groupe.includes(nom))
 
     // 1. Copier les données et générer les valeurs auto
-    const insertions = tableau.map(d => ({ ...d }))
+    const insertions = tableau.map(normaliser_donnees_insertion)
 
     for (const champ of modele.fields)
     {
@@ -1127,15 +1146,60 @@ const inserer_batch = async (modele, tableau) =>
         lignes.flat()
     )
 
-    // 5. Retourner les données originales + ids auto-générés
-    return tableau.map((donnees, i) =>
+    // 5. Relire les lignes insérées pour retourner les valeurs stockées en base.
+    const lire_lignes_inserees = async () =>
     {
-        const resultat = { ...donnees }
-        for (const nom_pk of modele.primary)
+        if (!modele.primary.length)
+            return []
+
+        const clauses = []
+        const valeurs = []
+
+        for (const insertion of insertions)
         {
-            if (donnees[nom_pk] === undefined && insertions[i][nom_pk] !== undefined)
-                resultat[nom_pk] = insertions[i][nom_pk]
+            const tous_les_pk_sont_definis = modele.primary.every(nom_pk => insertion[nom_pk] !== undefined)
+            if (!tous_les_pk_sont_definis)
+                continue
+
+            const clause = modele.primary.map(nom_pk =>
+            {
+                valeurs.push(insertion[nom_pk])
+                return `\`${nom_pk}\` = ?`
+            }).join(' AND ')
+
+            clauses.push(`(${clause})`)
         }
+
+        if (!clauses.length)
+            return []
+
+        const [rows] = await pool().query(
+            `SELECT * FROM \`${modele.name}\` WHERE ${clauses.join(' OR ')}`,
+            valeurs
+        )
+
+        return rows
+    }
+
+    const lignes_inserees = await lire_lignes_inserees()
+    const cle_ligne = (ligne) => modele.primary.map(nom_pk => String(ligne[nom_pk])).join('::')
+    const lignes_par_clef = new Map(lignes_inserees.map(ligne => [cle_ligne(ligne), ligne]))
+
+    return insertions.map((insertion) =>
+    {
+        const cle = cle_ligne(insertion)
+        const ligne_base = lignes_par_clef.get(cle) ?? {}
+        const resultat = {}
+
+        for (const champ of modele.fields)
+        {
+            if (Object.prototype.hasOwnProperty.call(ligne_base, champ.name))
+                resultat[champ.name] = ligne_base[champ.name]
+
+            if (champ.alt && insertion[champ.name] !== undefined)
+                resultat[champ.alt] = insertion[champ.name]
+        }
+
         return resultat
     })
 }

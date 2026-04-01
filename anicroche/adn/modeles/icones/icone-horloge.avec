@@ -22,16 +22,20 @@
             ]
         }
 
-        actualiser(horloge)
+        const debut_test = new Date()
+        debut_test.setHours(11, 59, 0, 0)
+        $vars.decalage_test_ms = debut_test.getTime() - Date.now()
+
+        actualiser(horloge, $vars)
 
         const maintenant = new Date()
         const temps_restant = (60 - maintenant.getSeconds()) * 1000 - maintenant.getMilliseconds()
 
         const chrono_timeout = setTimeout(() => {
-            actualiser(horloge)
+            actualiser(horloge, $vars)
 
             const chrono_interval = setInterval(() => {
-                actualiser(horloge)
+                actualiser(horloge, $vars)
             }, 3000)
 
             $vars.chronometre = chrono_interval
@@ -49,9 +53,10 @@
         }
     }
 
-    const actualiser = (horloge) =>
+    const actualiser = (horloge, $vars = {}) =>
     {
-        const maintenant = new Date()
+        const decalage_test_ms = $vars.decalage_test_ms || 0
+        const maintenant = new Date(Date.now() + decalage_test_ms)
 
         const heures = maintenant.getHours()
         const minutes = maintenant.getMinutes()
@@ -62,8 +67,23 @@
         const angle_heures = (heures % 12) * 30 + minutes * 0.5
         const angle_minutes = minutes * 6
 
-        horloge.aiguilles.heures.style.transform = `rotate(${angle_heures + compensation_minutes * 0.5}deg)`
-        horloge.aiguilles.minutes.style.transform = `rotate(${angle_minutes + compensation_minutes * 6}deg)`
+        const angle_heures_cible = angle_heures + compensation_minutes * 0.5
+        const angle_minutes_cible = angle_minutes + compensation_minutes * 6
+
+        const angle_heures_continu = normaliser_angle_continu(
+            angle_heures_cible,
+            $vars.angle_heures_precedent
+        )
+        const angle_minutes_continu = normaliser_angle_continu(
+            angle_minutes_cible,
+            $vars.angle_minutes_precedent
+        )
+
+        $vars.angle_heures_precedent = angle_heures_continu
+        $vars.angle_minutes_precedent = angle_minutes_continu
+
+        horloge.aiguilles.heures.style.transform = `rotate(${angle_heures_continu}deg)`
+        horloge.aiguilles.minutes.style.transform = `rotate(${angle_minutes_continu}deg)`
 
         for (let i in horloge.nombres)
         {
@@ -78,6 +98,22 @@
     const difference_angle = (a, b) => {
         const diff = Math.abs(a - b) % 360
         return diff > 180 ? 360 - diff : diff
+    }
+
+    const normaliser_angle_continu = (angle_cible, angle_precedent) => {
+        if (angle_precedent == null)
+        {
+            return angle_cible
+        }
+
+        let angle = angle_cible
+
+        while (angle <= angle_precedent - 180)
+        {
+            angle += 360
+        }
+
+        return angle
     }
 ]
 

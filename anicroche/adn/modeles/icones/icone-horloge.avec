@@ -56,18 +56,21 @@
         const heures = maintenant.getHours()
         const minutes = maintenant.getMinutes()
 
+        // Compensation du retard visuel induit par la transition de 60s.
+        const compensation_minutes = 1
+
         const angle_heures = (heures % 12) * 30 + minutes * 0.5
         const angle_minutes = minutes * 6
 
-        horloge.aiguilles.heures.style.transform = `rotate(${angle_heures}deg)`
-        horloge.aiguilles.minutes.style.transform = `rotate(${angle_minutes}deg)`
+        horloge.aiguilles.heures.style.transform = `rotate(${angle_heures + compensation_minutes * 0.5}deg)`
+        horloge.aiguilles.minutes.style.transform = `rotate(${angle_minutes + compensation_minutes * 6}deg)`
 
         for (let i in horloge.nombres)
         {
             horloge.nombres[i].classList.toggle(
                 'masque',
-                difference_angle(angle_heures, i * 30) < 15
-             || difference_angle(angle_minutes, i * 30) < 30
+                difference_angle(angle_heures + 1, i * 30) < 16
+             || difference_angle(angle_minutes + 1, i * 30) < 31
             )
         }
     }
@@ -86,14 +89,64 @@
 
     .icone-horloge .aiguille {
         transform-origin: 50% 50%;
+        transition: transform 60s linear;
     }
 
     .icone-horloge .nombre {
-        transition: opacity var(--d-animation);
+        transform-origin: 50% 50%;
+        transition: d var(--d-animation);
     }
 
     .icone-horloge .nombre.masque {
-        opacity: 0;
+        d: path("M12 1C9.99581 1 8.11681 1.536 6.49852 2.47246M12 1C14.0037 1 15.8823 1.53574 17.5003 2.47179M12 1V1.01");
+    }
+
+    .icone-horloge .nombre.i {
+        transform: rotate(30deg);
+    }
+
+    .icone-horloge .nombre.ii {
+        transform: rotate(60deg);
+    }
+
+    .icone-horloge .nombre.iii {
+        transform: rotate(90deg);
+    }
+
+    .icone-horloge .nombre.iv {
+        transform: rotate(120deg);
+    }
+
+    .icone-horloge .nombre.v {
+        transform: rotate(150deg);
+    }
+
+    .icone-horloge .nombre.vi {
+        transform: rotate(180deg);
+    }
+
+    .icone-horloge .nombre.vii {
+        transform: rotate(210deg);
+    }
+
+    .icone-horloge .nombre.viii {
+        transform: rotate(240deg);
+    }
+
+    .icone-horloge .nombre.ix {
+        transform: rotate(270deg);
+    }
+
+    .icone-horloge .nombre.x {
+        transform: rotate(300deg);
+    }
+
+    .icone-horloge .nombre.xi {
+        transform: rotate(330deg);
+    }
+
+    .icone-horloge .nombre.xii {
+        transform: rotate(0deg);
     }
 ]
 
@@ -104,22 +157,20 @@
     @unmount="$demonter_icone_horloge($node, $vars)"
     viewBox="0 0 24 24"
 >
-    # <path d="M12 23C18.0751 23 23 18.0751 23 12C23 5.92487 18.0751 1 12 1C5.92487 1 1 5.92487 1 12C1 18.0751 5.92487 23 12 23Z">
-    <path                    d="M12 1L12 1.01001M1 12L1.00999 12M12 23L12 22.99M23 12L22.99 12M6.50067 21.5238L6.50351 21.5189M17.5007 2.47119L17.4953 2.48046M17.5007 21.5288L17.4953 21.5196M6.50067 2.4762L6.50352 2.48113M21.5288 17.5043L21.518 17.4981M2.47623 6.50433L2.47954 6.50625M2.47622 17.4957L2.47953 17.4938M21.5288 6.49567L21.5179 6.50192">
     <path                    d="M12 14C13.1046 14 14 13.1046 14 12C14 10.8954 13.1046 10 12 10C10.8954 10 10 10.8954 10 12C10 13.1046 10.8954 14 12 14Z">
 
     <path .aiguille .heures  d="M12 10V7">
     <path .aiguille .minutes d="M12 10V5">
 
-    <path .nombre   .i       d="M17.5007 2.47119L16.5007 4.20324">
-    <path .nombre   .ii      d="M21.5288 6.49567L19.7967 7.49567">
-    <path .nombre   .iii     d="M23 12H21">
-    <path .nombre   .iv      d="M21.5288 17.5043L19.7967 16.5043">
-    <path .nombre   .v       d="M17.5007 21.5288L16.5007 19.7968">
-    <path .nombre   .vi      d="M12 23V21">
-    <path .nombre   .vii     d="M6.50067 21.5238L7.50067 19.7917">
-    <path .nombre   .viii    d="M2.47622 17.4957L4.20827 16.4957">
-    <path .nombre   .ix      d="M1 12H3">
-    <path .nombre   .x       d="M2.47623 6.50433L4.20828 7.50433">
-    <path .nombre   .xi      d="M6.50067 2.4762L7.50067 4.20825">
-    <path .nombre   .xii     d="M12 1V3">
+    <path .nombre   .i       d="M12 1.00003C11.99 1.00003 12 1.00003 11.99 1.00004M12 1.00003C12.01 1.00003 12 1 12.01 1M12 1.00003V3.00003">
+    <path .nombre   .ii      d="M12 1.00003C11.99 1.00003 12 1.00003 11.99 1.00004M12 1.00003C12.01 1.00003 12 1 12.01 1M12 1.00003V3.00003">
+    <path .nombre   .iii     d="M12 1.00003C11.99 1.00003 12 1.00003 11.99 1.00004M12 1.00003C12.01 1.00003 12 1 12.01 1M12 1.00003V3.00003">
+    <path .nombre   .iv      d="M12 1.00003C11.99 1.00003 12 1.00003 11.99 1.00004M12 1.00003C12.01 1.00003 12 1 12.01 1M12 1.00003V3.00003">
+    <path .nombre   .v       d="M12 1.00003C11.99 1.00003 12 1.00003 11.99 1.00004M12 1.00003C12.01 1.00003 12 1 12.01 1M12 1.00003V3.00003">
+    <path .nombre   .vi      d="M12 1.00003C11.99 1.00003 12 1.00003 11.99 1.00004M12 1.00003C12.01 1.00003 12 1 12.01 1M12 1.00003V3.00003">
+    <path .nombre   .vii     d="M12 1.00003C11.99 1.00003 12 1.00003 11.99 1.00004M12 1.00003C12.01 1.00003 12 1 12.01 1M12 1.00003V3.00003">
+    <path .nombre   .viii    d="M12 1.00003C11.99 1.00003 12 1.00003 11.99 1.00004M12 1.00003C12.01 1.00003 12 1 12.01 1M12 1.00003V3.00003">
+    <path .nombre   .ix      d="M12 1.00003C11.99 1.00003 12 1.00003 11.99 1.00004M12 1.00003C12.01 1.00003 12 1 12.01 1M12 1.00003V3.00003">
+    <path .nombre   .x       d="M12 1.00003C11.99 1.00003 12 1.00003 11.99 1.00004M12 1.00003C12.01 1.00003 12 1 12.01 1M12 1.00003V3.00003">
+    <path .nombre   .xi      d="M12 1.00003C11.99 1.00003 12 1.00003 11.99 1.00004M12 1.00003C12.01 1.00003 12 1 12.01 1M12 1.00003V3.00003">
+    <path .nombre   .xii     d="M12 1.00003C11.99 1.00003 12 1.00003 11.99 1.00004M12 1.00003C12.01 1.00003 12 1 12.01 1M12 1.00003V3.00003">

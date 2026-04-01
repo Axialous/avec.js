@@ -281,6 +281,9 @@ const resoudre_type_sql = (type_sans, taille, est_deterministe) =>
         case 'int':
             return { type: 'int', min: null, max: null, treatment: null }
 
+        case 'tinyint':
+            return { type: 'tinyint', min: null, max: null, treatment: null }
+
         case 'date':
             return { type: 'date', min: null, max: null, treatment: null }
 

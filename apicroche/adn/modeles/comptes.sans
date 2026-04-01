@@ -80,10 +80,11 @@
         const clef = await $search_one('clef',
             `
             $id                 -{ $body.ids
-          & $hachage_coordonnee = $body.coordonnee
-          & $type               = authentification
-          & $clef               = $body.clef
-          & $date_validite      > $now
+          & $hachage_coordonnee  = $body.coordonnee
+          & $type                = authentification
+          & $clef                = $body.clef
+          & $nombre_tentatives   >  0
+          & $date_validite       > $now
             `
         )
 
@@ -94,7 +95,20 @@
         )
 
         if (!clef || coordonnee_existante)
-            return $indicate(403, "Accès refusé")
+        {
+            await $update_all('clefs',
+                `
+                $id                -{ $body.ids
+              & $hachage_coordonnee  = $body.coordonnee
+              & $type                = authentification
+              & $nombre_tentatives  > 0
+                `,
+                {
+                    nombre_tentatives : 'nombre_tentatives - 1'
+                }
+            )
+            return $indicate(403, 'Accès refusé')
+        }
 
         await $delete_all('clefs',
             `
@@ -139,29 +153,7 @@
             `
         )
 
-        if ($body.clef)
-        {
-            const clef = await $search_one('clef',
-            `
-            $id                 -{ $body.ids
-          & $hachage_coordonnee = $body.coordonnee
-          & $type               = authentification
-          & $clef               = $body.clef
-          & $date_validite      > $now
-            `
-            )
-
-            if (!clef || !coordonnee)
-                return $indicate(403, "Accès refusé")
-            
-            await $delete_all('clefs',
-                `
-                $hachage_coordonnee = $body.coordonnee
-              & $type               = authentification
-                `
-            )
-        }
-        else
+        if ($body.mot_de_passe)
         {
             if (!coordonnee)
                 return $indicate(403, "Accès refusé")
@@ -176,6 +168,42 @@
 
             if (!compte)
                 return $indicate(403, "Accès refusé")
+        }
+        else
+        {
+            const clef = await $search_one('clef',
+            `
+            $id                 -{ $body.ids
+          & $hachage_coordonnee  = $body.coordonnee
+          & $type                = authentification
+          & $clef                = $body.clef
+          & $nombre_tentatives   > 0
+          & $date_validite       > $now
+            `
+            )
+
+            if (!clef || !coordonnee)
+            {
+                await $update_all('clefs',
+                    `
+                    $id                -{ $body.ids
+                  & $hachage_coordonnee  = $body.coordonnee
+                  & $type                = authentification
+                  & $nombre_tentatives  > 0
+                    `,
+                    {
+                        nombre_tentatives : 'nombre_tentatives - 1'
+                    }
+                )
+                return $indicate(403, 'Accès refusé')
+            }
+            
+            await $delete_all('clefs',
+                `
+                $hachage_coordonnee = $body.coordonnee
+              & $type               = authentification
+                `
+            )
         }
 
         return $indicate(200, "Connexion réussie", {

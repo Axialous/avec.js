@@ -151,6 +151,8 @@ export const construire_routes = (schemas) =>
                         fonctions_magasin.$delete_one(nom_modele, condition, { ...contexte_condition, ...contexte }),
                     $delete_all: (nom_modele, condition, contexte = {}, options = undefined) =>
                         fonctions_magasin.$delete_all(nom_modele, condition, { ...contexte_condition, ...contexte }, options),
+                    $update_all: (nom_modele, condition, donnees = {}, contexte = {}) =>
+                        fonctions_magasin.$update_all(nom_modele, condition, donnees, { ...contexte_condition, ...contexte }),
                 }
 
                 // Compiler le script à chaque requête pour lier $indicate à cette réponse

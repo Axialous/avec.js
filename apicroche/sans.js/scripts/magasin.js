@@ -165,7 +165,6 @@ const respecter_condition = (modele, ligne, condition, now = new Date(), context
             return condition_brute
 
         const regex_egalite_ou_in = /^\s*\$(\w+)\s*(=|-\{)\s*("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:[^`\\]|\\.)*`|[^\s&|()]+)\s*$/
-        const regex_temps   = /^\s*\$(\w+)\s*(>=|>|<=|<)\s*(now(?:\s*[+-]\s*\d+\s*[smhd])?)\s*$/i
 
         const morceaux = condition_brute
             .split('&')
@@ -187,14 +186,10 @@ const respecter_condition = (modele, ligne, condition, now = new Date(), context
                     continue
             }
 
-            const temps = morceau.match(regex_temps)
-            if (temps)
-            {
-                const nom_champ = temps[1]
-                // Ces comparaisons sont également traduites dans le WHERE SQL.
-                if (modele.fields.some(f => f.name === nom_champ && (f.type === 'date' || f.type === 'datetime') && !f.treatment))
-                    continue
-            }
+            // Les comparaisons simples (>, <, >=, <=) qui ont une traduction SQL
+            // sont retirées de la condition résiduelle pour éviter un second filtrage JS.
+            if (convertir_comparaison_simple_en_filtre_sql(modele, morceau, contexte_externe))
+                continue
 
             residuels.push(morceau)
         }
@@ -237,6 +232,20 @@ const normaliser_contexte_condition = (contexte) =>
         throw new Error('Contexte invalide : utilisez un objet de variables Augure')
 
     return contexte
+}
+
+const normaliser_donnees_update = (donnees) =>
+{
+    if (donnees === null || donnees === undefined)
+        throw new Error('Données de mise à jour requises : utilisez un objet { champ: valeur }')
+
+    if (typeof donnees !== 'object' || Array.isArray(donnees))
+        throw new Error('Données de mise à jour invalides : utilisez un objet { champ: valeur }')
+
+    if (!Object.keys(donnees).length)
+        throw new Error('Données de mise à jour vides : fournissez au moins un champ')
+
+    return donnees
 }
 
 const normaliser_options_liste = (modele, options) =>
@@ -566,7 +575,73 @@ const extraire_filtres_temps_sql = (modele, condition) =>
         if (!droite_sql)
             continue
 
-        clauses.push(`\`${nom_champ}\` ${operateur} ${droite_sql}`)
+        clauses.push({
+            sql    : `\`${nom_champ}\` ${operateur} ${droite_sql}`,
+            valeurs: []
+        })
+    }
+
+    return clauses
+}
+
+const convertir_comparaison_simple_en_filtre_sql = (modele, morceau, contexte_condition = {}) =>
+{
+    const match = /^\s*\$(\w+)\s*(>=|>|<=|<)\s*("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:[^`\\]|\\.)*`|[^\s&|()]+)\s*$/i.exec(morceau)
+    if (!match)
+        return null
+
+    const nom_champ = match[1]
+    const operateur = match[2]
+    const token     = match[3]
+
+    const champ = modele.fields.find(f => f.name === nom_champ)
+    if (!champ || champ.treatment)
+        return null
+
+    const now_sql = traduire_now_sql(token)
+    if (now_sql)
+    {
+        if (champ.type !== 'date' && champ.type !== 'datetime')
+            return null
+        return {
+            sql    : `\`${nom_champ}\` ${operateur} ${now_sql}`,
+            valeurs: []
+        }
+    }
+
+    let valeur
+    if (token.startsWith('$'))
+    {
+        const { trouvee, valeur: v } = lire_variable_contexte(token, contexte_condition)
+        if (!trouvee)
+            return null
+        valeur = v
+    }
+    else
+    {
+        valeur = parser_litteral_condition(token)
+    }
+
+    if (valeur === undefined || valeur === null)
+        return null
+
+    return {
+        sql    : `\`${nom_champ}\` ${operateur} ?`,
+        valeurs: [valeur]
+    }
+}
+
+const extraire_filtres_comparaison_sql = (modele, condition, contexte_condition = {}) =>
+{
+    const clauses = []
+    const regex = /(?:^|[&(])\s*(\$\w+\s*(?:>=|>|<=|<)\s*("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:[^`\\]|\\.)*`|[^\s&|()]+))/g
+    let match
+
+    while ((match = regex.exec(condition)) !== null)
+    {
+        const filtre = convertir_comparaison_simple_en_filtre_sql(modele, match[1], contexte_condition)
+        if (filtre)
+            clauses.push(filtre)
     }
 
     return clauses
@@ -605,12 +680,70 @@ const construire_where = (criteres_sql, clauses_supplementaires = []) =>
     }
 
     if (clauses_supplementaires.length)
-        morceaux.push(...clauses_supplementaires)
+    {
+        for (const clause of clauses_supplementaires)
+        {
+            if (typeof clause === 'string')
+            {
+                morceaux.push(clause)
+                continue
+            }
+
+            if (!clause || typeof clause.sql !== 'string')
+                continue
+
+            morceaux.push(clause.sql)
+            if (Array.isArray(clause.valeurs) && clause.valeurs.length)
+                valeurs.push(...clause.valeurs)
+        }
+    }
 
     if (!morceaux.length) return { clause: '', valeurs: [] }
 
     return {
         clause : 'WHERE ' + morceaux.join(' AND '),
+        valeurs
+    }
+}
+
+const construire_set_update = async (modele, donnees) =>
+{
+    const morceaux = []
+    const valeurs  = []
+
+    for (const [nom_champ, valeur_brute] of Object.entries(donnees))
+    {
+        const champ = trouver_champ(modele, nom_champ)
+        if (!champ)
+            throw new Error(`Champ de mise à jour inconnu : ${nom_champ}`)
+
+        if (typeof valeur_brute === 'string')
+        {
+            const expression = valeur_brute.match(/^\s*(\w+)\s*([+-])\s*(\d+(?:\.\d+)?)\s*$/)
+            if (expression)
+            {
+                const champ_source_nom = expression[1]
+                const operateur        = expression[2]
+                const delta            = Number(expression[3])
+                const champ_source     = trouver_champ(modele, champ_source_nom)
+
+                if (!champ_source)
+                    throw new Error(`Champ source inconnu dans l'expression de mise à jour : ${champ_source_nom}`)
+                if (champ.treatment || champ_source.treatment)
+                    throw new Error(`Expression arithmétique non autorisée pour un champ traité : ${nom_champ}`)
+
+                morceaux.push(`\`${nom_champ}\` = \`${champ_source_nom}\` ${operateur} ?`)
+                valeurs.push(delta)
+                continue
+            }
+        }
+
+        morceaux.push(`\`${nom_champ}\` = ?`)
+        valeurs.push(await traiter_ecriture(champ, valeur_brute))
+    }
+
+    return {
+        clause : 'SET ' + morceaux.join(', '),
         valeurs
     }
 }
@@ -634,9 +767,10 @@ const creer_search_one = (schemas) => async (nom_modele, condition, contexte_con
 
     const criteres = extraire_criteres_depuis_condition(modele, condition_norm, contexte_norm)
     const filtres_temps_sql = extraire_filtres_temps_sql(modele, condition_norm)
+    const filtres_comparaison_sql = extraire_filtres_comparaison_sql(modele, condition_norm, contexte_norm)
 
     const { sql, post }       = separer_criteres(modele, criteres)
-    const { clause, valeurs } = construire_where(sql, filtres_temps_sql)
+    const { clause, valeurs } = construire_where(sql, [...filtres_temps_sql, ...filtres_comparaison_sql])
     const besoin_post         = Object.keys(post).length > 0
 
     const requete  = `SELECT * FROM \`${modele.name}\` ${clause}`.trim()
@@ -676,9 +810,10 @@ const creer_search_all = (schemas) => async (nom_modele, condition, contexte_con
 
     const criteres = extraire_criteres_depuis_condition(modele, condition_norm, contexte_norm)
     const filtres_temps_sql = extraire_filtres_temps_sql(modele, condition_norm)
+    const filtres_comparaison_sql = extraire_filtres_comparaison_sql(modele, condition_norm, contexte_norm)
 
     const { sql, post }       = separer_criteres(modele, criteres)
-    const { clause, valeurs } = construire_where(sql, filtres_temps_sql)
+    const { clause, valeurs } = construire_where(sql, [...filtres_temps_sql, ...filtres_comparaison_sql])
     const besoin_post         = Object.keys(post).length > 0
 
     const [lignes] = await pool().query(
@@ -714,9 +849,10 @@ const creer_delete_one = (schemas) => async (nom_modele, condition, contexte_con
 
     const criteres = extraire_criteres_depuis_condition(modele, condition_norm, contexte_norm)
     const filtres_temps_sql = extraire_filtres_temps_sql(modele, condition_norm)
+    const filtres_comparaison_sql = extraire_filtres_comparaison_sql(modele, condition_norm, contexte_norm)
 
     const { sql, post }       = separer_criteres(modele, criteres)
-    const { clause, valeurs } = construire_where(sql, filtres_temps_sql)
+    const { clause, valeurs } = construire_where(sql, [...filtres_temps_sql, ...filtres_comparaison_sql])
     const besoin_post         = Object.keys(post).length > 0
 
     const [lignes] = await pool().query(
@@ -750,9 +886,10 @@ const creer_delete_all = (schemas) => async (nom_modele, condition, contexte_con
 
     const criteres = extraire_criteres_depuis_condition(modele, condition_norm, contexte_norm)
     const filtres_temps_sql = extraire_filtres_temps_sql(modele, condition_norm)
+    const filtres_comparaison_sql = extraire_filtres_comparaison_sql(modele, condition_norm, contexte_norm)
 
     const { sql, post }       = separer_criteres(modele, criteres)
-    const { clause, valeurs } = construire_where(sql, filtres_temps_sql)
+    const { clause, valeurs } = construire_where(sql, [...filtres_temps_sql, ...filtres_comparaison_sql])
     const besoin_post         = Object.keys(post).length > 0
 
     const [lignes] = await pool().query(
@@ -781,6 +918,66 @@ const creer_delete_all = (schemas) => async (nom_modele, condition, contexte_con
 
     for (const element of cibles)
         await supprimer_par_pk(modele, element.brute)
+}
+
+// ─── $update_all ─────────────────────────────────────────────────────────────
+
+const creer_update_all = (schemas) => async (nom_modele, condition, donnees, contexte_condition = {}) =>
+{
+    const modele = trouver_modele_table(schemas, nom_modele)
+    if (!modele) throw new Error(`Modèle introuvable : ${nom_modele}`)
+
+    const condition_norm = normaliser_condition(condition)
+    const donnees_norm   = normaliser_donnees_update(donnees)
+    const contexte_norm  = normaliser_contexte_condition(contexte_condition)
+
+    const criteres = extraire_criteres_depuis_condition(modele, condition_norm, contexte_norm)
+    const filtres_temps_sql = extraire_filtres_temps_sql(modele, condition_norm)
+    const filtres_comparaison_sql = extraire_filtres_comparaison_sql(modele, condition_norm, contexte_norm)
+
+    const { sql, post }       = separer_criteres(modele, criteres)
+    const { clause, valeurs } = construire_where(sql, [...filtres_temps_sql, ...filtres_comparaison_sql])
+    const besoin_post         = Object.keys(post).length > 0
+
+    const [lignes] = await pool().query(
+        `SELECT * FROM \`${modele.name}\` ${clause}`.trim(),
+        valeurs
+    )
+
+    const now = new Date()
+    const cibles = []
+    for (const ligne of lignes)
+    {
+        if (besoin_post && !await verifier_post(modele, ligne, post))
+            continue
+
+        const ligne_decryptee = decrypter_ligne(modele, ligne)
+        if (!respecter_condition(modele, ligne_decryptee, condition_norm, now, contexte_norm, criteres))
+            continue
+
+        cibles.push(ligne)
+    }
+
+    if (!cibles.length)
+        return 0
+
+    const { clause: set_clause, valeurs: set_valeurs } = await construire_set_update(modele, donnees_norm)
+    let mises_a_jour = 0
+
+    for (const ligne of cibles)
+    {
+        const clause_pk  = modele.primary.map(c => `\`${c}\` = ?`).join(' AND ')
+        const valeurs_pk = modele.primary.map(c => ligne[c])
+
+        const [resultat] = await pool().query(
+            `UPDATE \`${modele.name}\` ${set_clause} WHERE ${clause_pk}`,
+            [...set_valeurs, ...valeurs_pk]
+        )
+
+        mises_a_jour += Number(resultat?.affectedRows || 0)
+    }
+
+    return mises_a_jour
 }
 
 // ─── Logique d'insertion (partagée par $create_one et $create_all) ────────────
@@ -1005,6 +1202,7 @@ export const creer_fonctions_magasin = (schemas) => ({
     $search_all: creer_search_all(schemas),
     $delete_one: creer_delete_one(schemas),
     $delete_all: creer_delete_all(schemas),
+    $update_all: creer_update_all(schemas),
     $create_one: creer_create_one(schemas),
     $create_all: creer_create_all(schemas),
 })

@@ -51,6 +51,12 @@
     }
 
     {
+        name    : nombre_tentatives
+        type    : tinyint
+        default : 6
+    }
+
+    {
         name    : date_emission
         type    : datetime
         default : now
@@ -135,10 +141,11 @@
         const clef = await $search_one('clef',
             `
             $id                 -{ $body.ids
-          & $hachage_coordonnee =  $body.coordonnee
-          & $type               =  authentification
-          & $clef               =  $body.clef
-          & $date_validite      >  now
+          & $hachage_coordonnee  = $body.coordonnee
+          & $type                = authentification
+          & $clef                = $body.clef
+          & $nombre_tentatives   > 0
+          & $date_validite       > now
             `
         )
 
@@ -149,7 +156,20 @@
         )
 
         if (!clef)
+        {
+            await $update_all('clefs',
+                `
+                $id                -{ $body.ids
+              & $hachage_coordonnee  = $body.coordonnee
+              & $type                = authentification
+              & $nombre_tentatives  > 0
+                `,
+                {
+                    nombre_tentatives : 'nombre_tentatives - 1'
+                }
+            )
             return $indicate(403, 'Accès refusé')
+        }
 
         return $indicate(200, "Authentification réussie", {
             type : coordonnee_existante ? 'connexion' : 'inscription'

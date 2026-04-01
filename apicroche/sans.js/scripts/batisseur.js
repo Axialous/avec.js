@@ -11,6 +11,7 @@ const type_sql = (champ) =>
         case 'varchar':   return max !== null ? `varchar(${max})`   : 'varchar(255)'
         case 'text':      return 'text'
         case 'int':       return 'int'
+        case 'tinyint':   return 'tinyint'
         case 'date':      return 'date'
         case 'datetime':  return 'datetime'
         case 'boolean':   return 'tinyint(1)'

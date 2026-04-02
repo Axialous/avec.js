@@ -6,6 +6,7 @@ export const etat_sculpteur = {
 
 const scripts_actifs = new Map()
 const observateurs   = new Set()
+let nettoyages_script_en_cours = null
 
 // Le nœud en cours de construction (pour tracker ses dépendances)
 let noeud_courant = null
@@ -208,6 +209,25 @@ export const initialiser_sculpteur = () =>
     etat_sculpteur.instance = creer_runtime(etat_sculpteur.racine, {})
 }
 
+export const commencer_collecte_nettoyages = () =>
+{
+    nettoyages_script_en_cours = []
+    return nettoyages_script_en_cours
+}
+
+export const enregistrer_nettoyage = (fn) =>
+{
+    if (nettoyages_script_en_cours && typeof fn === 'function')
+        nettoyages_script_en_cours.push(fn)
+}
+
+export const recuperer_nettoyages_script = () =>
+{
+    const nettoyages = nettoyages_script_en_cours ?? []
+    nettoyages_script_en_cours = null
+    return nettoyages
+}
+
 export const executer_script_async = async (script, evenement, noeud, scope = null, args = null) =>
 {
     if (etat_sculpteur.instance)
@@ -274,6 +294,7 @@ export const activer_script = (modele, js, scope = null, args = {}) =>
     }
     else
     {
+        commencer_collecte_nettoyages()
         const runtime = creer_runtime_contexte(scope_effectif, args)
         const fonction = new Function(
             `runtime`,
@@ -284,12 +305,27 @@ export const activer_script = (modele, js, scope = null, args = {}) =>
             `
         )
 
-        fonction(runtime)
+        try
+        {
+            fonction(runtime)
+            const nettoyages = recuperer_nettoyages_script()
 
-        scripts_actifs.set(clef_script, {
-            code: js,
-            compte: 1
-        })
+            scripts_actifs.set(clef_script, {
+                code: js,
+                compte: 1,
+                nettoyages
+            })
+        }
+        catch (erreur)
+        {
+            const nettoyages = recuperer_nettoyages_script()
+            for (const nettoyage of nettoyages)
+            {
+                try { nettoyage() }
+                catch (nettoyage_erreur) { console.error(`Erreur nettoyage script AVEC :`, nettoyage_erreur) }
+            }
+            console.error(`Erreur script AVEC :`, erreur)
+        }
     }
 }
 
@@ -303,6 +339,11 @@ export const desactiver_script = (modele, scope = null) =>
         entree.compte--
         if (entree.compte <= 0)
         {
+            for (const nettoyage of entree.nettoyages ?? [])
+            {
+                try { nettoyage() }
+                catch (erreur) { console.error(`Erreur nettoyage script AVEC :`, erreur) }
+            }
             scripts_actifs.delete(clef_script)
         }
     }

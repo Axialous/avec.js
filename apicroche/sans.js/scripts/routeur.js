@@ -1,13 +1,70 @@
 import { creer_fonctions_magasin, preparer_donnees } from './magasin.js'
 import { creer_fonctions_mailer }  from './mailer.js'
 import { evaluer, ERREUR as ERREUR_AUGURE } from './augure.js'
-import { SignJWT } from 'jose'
+import { SignJWT, jwtVerify } from 'jose'
 import { randomUUID, webcrypto } from 'crypto'
 
 if (!globalThis.crypto)
     globalThis.crypto = webcrypto
 
+const mode = process.env.mode || 'prod'
+const origines_configurees = [process.env.cors_origin, process.env.app_url]
+    .filter(Boolean)
+    .flatMap(valeur => String(valeur).split(','))
+    .map(valeur => valeur.trim())
+    .filter(Boolean)
+
+const est_origine_http = (origine) =>
+{
+    try
+    {
+        const { protocol } = new URL(origine)
+        return protocol === 'http:' || protocol === 'https:'
+    }
+    catch
+    {
+        return false
+    }
+}
+
+const resoudre_origine_cors = (req) =>
+{
+    const origine = req.headers.origin
+    if (!origine)
+        return origines_configurees[0] ?? null
+
+    if (origines_configurees.includes(origine))
+        return origine
+
+    if (mode === 'dev' && est_origine_http(origine))
+        return origine
+
+    return null
+}
+
+const appliquer_cors = (req, rep) =>
+{
+    const origine = resoudre_origine_cors(req)
+    if (origine)
+        rep.setHeader('Access-Control-Allow-Origin', origine)
+
+    rep.setHeader('Access-Control-Allow-Credentials', 'true')
+    rep.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS')
+    rep.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+    rep.setHeader('Vary', 'Origin')
+}
+
 // ─── $indicate ────────────────────────────────────────────────────────────────
+
+class ReponseDeja extends Error
+{
+    constructor()
+    {
+        super('reponse_deja_envoyee')
+    }
+}
+
+const est_reponse_deja = (erreur) => erreur instanceof ReponseDeja
 
 const est_objet_simple = (valeur) =>
     valeur !== null && typeof valeur === 'object' && !Array.isArray(valeur)
@@ -36,6 +93,7 @@ const creer_indicate = (rep, data_reponse) => (statut, message, data) =>
 
     rep.writeHead(statut, { 'Content-Type': 'application/json; charset=utf-8' })
     rep.end(JSON.stringify(reponse))
+    throw new ReponseDeja()
 }
 
 // ─── Lecture du corps JSON ────────────────────────────────────────────────────
@@ -52,9 +110,44 @@ const lire_corps = (req) => new Promise((resolve) =>
     req.on('error', () => resolve({}))
 })
 
+const parser_cookies = (cookie_header) =>
+{
+    if (!cookie_header || typeof cookie_header !== 'string')
+        return {}
+
+    const cookies = {}
+    for (const morceau of cookie_header.split(';'))
+    {
+        const brut = morceau.trim()
+        if (!brut) continue
+
+        const index_egal = brut.indexOf('=')
+        if (index_egal <= 0) continue
+
+        const nom = brut.slice(0, index_egal).trim()
+        const valeur_brute = brut.slice(index_egal + 1)
+
+        if (!nom) continue
+
+        try
+        {
+            cookies[nom] = decodeURIComponent(valeur_brute)
+        }
+        catch
+        {
+            cookies[nom] = valeur_brute
+        }
+    }
+
+    return cookies
+}
+
 const construire_request = (req) => ({
     ip: req.headers['x-forwarded-for']?.split(',')[0].trim() ?? req.socket.remoteAddress,
-    user_agent: req.headers['user-agent'] ?? null
+    user_agent: req.headers['user-agent'] ?? null,
+    path: new URL(req.url, 'http://localhost').pathname,
+    headers: req.headers,
+    cookies: parser_cookies(req.headers.cookie)
 })
 
 // ─── JWT & Cookies ────────────────────────────────────────────────────────────
@@ -70,7 +163,7 @@ const convertir_duree_en_secondes = (duree, valeur_par_defaut) =>
 {
     const brute = duree ?? valeur_par_defaut
 
-    if (typeof brute === 'number' && Number.isFinite(brute) && brute > 0)
+    if (typeof brute === 'number' && Number.isFinite(brute) && brute >= 0)
         return Math.floor(brute)
 
     if (typeof brute !== 'string')
@@ -83,7 +176,7 @@ const convertir_duree_en_secondes = (duree, valeur_par_defaut) =>
     const valeur = Number(match[1])
     const unite  = UNITES_DUREE_SECONDES[match[2].toLowerCase()]
 
-    if (!Number.isFinite(valeur) || valeur <= 0 || !unite)
+    if (!Number.isFinite(valeur) || valeur < 0 || !unite)
         throw new Error('Durée invalide : utilisez un format comme 15m, 30d, 1h')
 
     return valeur * unite
@@ -115,6 +208,27 @@ const creer_sign_token = () => async (payload = {}, options = {}) =>
         .sign(cle)
 }
 
+const creer_verify_token = () => async (jeton) =>
+{
+    if (!jeton || typeof jeton !== 'string')
+        return null
+
+    const secret = process.env.secret_jwt ?? process.env.JWT_SECRET
+    if (!secret)
+        return null
+
+    try
+    {
+        const cle = new TextEncoder().encode(secret)
+        const { payload } = await jwtVerify(jeton, cle)
+        return payload
+    }
+    catch
+    {
+        return null
+    }
+}
+
 const creer_set_cookie = (rep) => (name, value, options = {}) =>
 {
     if (!name)
@@ -122,8 +236,8 @@ const creer_set_cookie = (rep) => (name, value, options = {}) =>
 
     const max_age = convertir_duree_en_secondes(options?.lifetime, '30d')
     const http_only = options?.httpOnly ?? true
-    const secure = options?.secure ?? true
-    const same_site = options?.sameSite ?? 'Strict'
+    const secure = options?.secure ?? (process.env.NODE_ENV === 'production')
+    const same_site = options?.sameSite ?? (process.env.NODE_ENV === 'production' ? 'None' : 'Lax')
     const path = options?.path ?? '/'
 
     const morceaux = [
@@ -203,6 +317,99 @@ const citer_condition = (valeur) =>
     return json === undefined ? 'null' : json
 }
 
+const construire_fonctions_magasin_requete = (fonctions_magasin, contexte_condition) => ({
+    ...fonctions_magasin,
+    $search_one: (nom_modele, condition, contexte = {}) =>
+        fonctions_magasin.$search_one(nom_modele, condition, { ...contexte_condition, ...contexte }),
+    $search_all: (nom_modele, condition, contexte = {}, options = undefined) =>
+        fonctions_magasin.$search_all(nom_modele, condition, { ...contexte_condition, ...contexte }, options),
+    $delete_one: (nom_modele, condition, contexte = {}) =>
+        fonctions_magasin.$delete_one(nom_modele, condition, { ...contexte_condition, ...contexte }),
+    $delete_all: (nom_modele, condition, contexte = {}, options = undefined) =>
+        fonctions_magasin.$delete_all(nom_modele, condition, { ...contexte_condition, ...contexte }, options),
+    $update_one: (nom_modele, condition, donnees = {}, contexte = {}) =>
+        fonctions_magasin.$update_one(nom_modele, condition, donnees, { ...contexte_condition, ...contexte }),
+    $update_all: (nom_modele, condition, donnees = {}, contexte = {}) =>
+        fonctions_magasin.$update_all(nom_modele, condition, donnees, { ...contexte_condition, ...contexte }),
+})
+
+const executer_prior_respond = async (index, contexte, rep, $body, $request, $context, $indicate) =>
+{
+    if (!index)
+        return { interrompu: false, fonctions: {} }
+
+    const fonctions = compiler_script(index.script ?? '', contexte)
+    if (!index?.actions || !Array.isArray(index.actions) || index.actions.length === 0)
+        return { interrompu: false, fonctions }
+
+    for (const bloc of index.actions)
+    {
+        if (!bloc || typeof bloc !== 'object' || Array.isArray(bloc))
+            continue
+
+        if (typeof bloc.when === 'string' && bloc.when.trim())
+        {
+            try
+            {
+                if (!evaluer(bloc.when, { $request }))
+                    continue
+            }
+            catch (err)
+            {
+                if (est_reponse_deja(err))
+                    return { interrompu: true, fonctions }
+
+                console.log(`/!\ erreur when prior_respond : ${err.message}`)
+                if (!rep.headersSent)
+                    $indicate(500, 'Erreur interne')
+                return { interrompu: rep.headersSent, fonctions }
+            }
+        }
+
+        const action = analyser_action(bloc.prior_respond)
+        if (!action)
+        {
+            console.log('/!\ prior_respond ignoré : action invalide')
+            continue
+        }
+
+        const fn = fonctions[action.nom]
+        if (typeof fn !== 'function')
+        {
+            console.log(`/!\ prior_respond ignoré : fonction introuvable ${action.nom}`)
+            continue
+        }
+
+        const valeurs_args = action.args.map(arg =>
+        {
+            if (arg === '$body') return $body
+            if (arg === '$request') return $request
+            if (arg === '$context') return $context
+            return undefined
+        })
+
+        try
+        {
+            await fn(...valeurs_args)
+        }
+        catch (err)
+        {
+            if (est_reponse_deja(err))
+                return { interrompu: true, fonctions }
+
+            console.log(`/!\ erreur prior_respond ${bloc.prior_respond} : ${err.message}`)
+            if (!rep.headersSent)
+                $indicate(500, 'Erreur interne')
+            return { interrompu: rep.headersSent, fonctions }
+        }
+
+        if (rep.headersSent)
+            return { interrompu: true, fonctions }
+    }
+
+    return { interrompu: rep.headersSent, fonctions }
+}
+
 // ─── Variables injectées dans les handlers ────────────────────────────────────
 // $body → corps JSON de la requête (sera fourni au moment de l'appel)
 
@@ -210,10 +417,11 @@ const VARIABLES_HANDLER = ['$body', '$request']
 
 // ─── Construction des routes ──────────────────────────────────────────────────
 
-export const construire_routes = (schemas) =>
+export const construire_routes = (schemas, index = null) =>
 {
     const fonctions_magasin = creer_fonctions_magasin(schemas)
     const fonctions_mailer  = creer_fonctions_mailer()
+    const index_routes      = index ?? schemas.index ?? null
     const routes            = []
     let premiere_route      = true
 
@@ -236,41 +444,43 @@ export const construire_routes = (schemas) =>
 
             const handler = async (req, rep) =>
             {
+                appliquer_cors(req, rep)
+
                 const $body     = await lire_corps(req)
                 const $request  = construire_request(req)
+                const $context  = {}
                 const data_reponse = {}
                 const $add_to_data = creer_add_to_data(data_reponse)
                 const $indicate = creer_indicate(rep, data_reponse)
                 const $q        = citer_condition
                 const $sign_token = creer_sign_token()
+                const $verify_token = creer_verify_token()
                 const $set_cookie = creer_set_cookie(rep)
 
                 const contexte_condition = { $body }
-                const fonctions_magasin_requete = {
-                    ...fonctions_magasin,
-                    $search_one: (nom_modele, condition, contexte = {}) =>
-                        fonctions_magasin.$search_one(nom_modele, condition, { ...contexte_condition, ...contexte }),
-                    $search_all: (nom_modele, condition, contexte = {}, options = undefined) =>
-                        fonctions_magasin.$search_all(nom_modele, condition, { ...contexte_condition, ...contexte }, options),
-                    $delete_one: (nom_modele, condition, contexte = {}) =>
-                        fonctions_magasin.$delete_one(nom_modele, condition, { ...contexte_condition, ...contexte }),
-                    $delete_all: (nom_modele, condition, contexte = {}, options = undefined) =>
-                        fonctions_magasin.$delete_all(nom_modele, condition, { ...contexte_condition, ...contexte }, options),
-                    $update_all: (nom_modele, condition, donnees = {}, contexte = {}) =>
-                        fonctions_magasin.$update_all(nom_modele, condition, donnees, { ...contexte_condition, ...contexte }),
-                }
-
-                // Compiler le script à chaque requête pour lier $indicate à cette réponse
-                const fonctions = compiler_script(table.script, {
+                const fonctions_magasin_requete = construire_fonctions_magasin_requete(fonctions_magasin, contexte_condition)
+                const contexte_script = {
                     ...fonctions_magasin_requete,
                     ...fonctions_mailer,
                     $indicate,
                     $add_to_data,
+                    $body,
                     $request,
+                    $context,
                     $sign_token,
+                    $verify_token,
                     $set_cookie,
                     $q
-                })
+                }
+
+                const prior_respond = await executer_prior_respond(index_routes, contexte_script, rep, $body, $request, $context, $indicate)
+                if (prior_respond.interrompu)
+                    return
+
+                Object.assign(contexte_script, prior_respond.fonctions)
+
+                // Compiler le script à chaque requête pour lier $indicate à cette réponse
+                const fonctions = compiler_script(table.script, contexte_script)
 
                 const fn = fonctions[action.nom]
                 if (typeof fn !== 'function')
@@ -292,6 +502,9 @@ export const construire_routes = (schemas) =>
                 }
                 catch (err)
                 {
+                    if (est_reponse_deja(err))
+                        return
+
                     console.log(`/!\\ erreur dans ${action.nom} : ${err.message}`)
                     if (!rep.headersSent)
                         $indicate(500, 'Erreur interne')
@@ -320,13 +533,38 @@ export const construire_routes = (schemas) =>
 
         const handler = async (req, rep) =>
         {
+                appliquer_cors(req, rep)
+
             const $body     = await lire_corps(req)
             const $request  = construire_request(req)
+            const $context  = {}
             const data_reponse = {}
             const $add_to_data = creer_add_to_data(data_reponse)
             const $indicate = creer_indicate(rep, data_reponse)
             const $sign_token = creer_sign_token()
+            const $verify_token = creer_verify_token()
             const $set_cookie = creer_set_cookie(rep)
+            const contexte_condition = { $body }
+            const fonctions_magasin_requete = construire_fonctions_magasin_requete(fonctions_magasin, contexte_condition)
+            const contexte_script = {
+                ...fonctions_magasin_requete,
+                ...fonctions_mailer,
+                $indicate,
+                $add_to_data,
+                $body,
+                $request,
+                $context,
+                $sign_token,
+                $verify_token,
+                $set_cookie,
+                $q: citer_condition
+            }
+
+            const prior_respond = await executer_prior_respond(index_routes, contexte_script, rep, $body, $request, $context, $indicate)
+            if (prior_respond.interrompu)
+                return
+
+            Object.assign(contexte_script, prior_respond.fonctions)
 
             // Construire le contexte augure depuis le corps de la requête
             // (lire avec le nom alt si défini, stocker sous le nom interne)
@@ -362,17 +600,7 @@ export const construire_routes = (schemas) =>
             let fonctions = null
             if ((champs_prior_create.length || champs_post_create.length) && table.script)
             {
-                const $q = citer_condition
-                fonctions = compiler_script(table.script, {
-                    ...fonctions_magasin,
-                    ...fonctions_mailer,
-                    $indicate,
-                    $add_to_data,
-                    $request,
-                    $sign_token,
-                    $set_cookie,
-                    $q
-                })
+                fonctions = compiler_script(table.script, contexte_script)
             }
 
             // Exécuter les prior_create avant l'insertion (tous les champs, pas seulement can_create)
@@ -401,11 +629,13 @@ export const construire_routes = (schemas) =>
                     }
                     catch (err)
                     {
+                        if (est_reponse_deja(err))
+                            return
+
                         console.log(`/!\ erreur prior_create ${champ.prior_create} : ${err.message}`)
                         if (!rep.headersSent) $indicate(500, 'Erreur interne')
                         return
                     }
-                    if (rep.headersSent) return
                 }
             }
 
@@ -440,11 +670,13 @@ export const construire_routes = (schemas) =>
                         }
                         catch (err)
                         {
+                            if (est_reponse_deja(err))
+                                return
+
                             console.log(`/!\ erreur post_create ${champ.post_create} : ${err.message}`)
                             if (!rep.headersSent) $indicate(500, 'Erreur interne')
                             return
                         }
-                        if (rep.headersSent) return
                     }
                 }
 
@@ -453,6 +685,9 @@ export const construire_routes = (schemas) =>
             }
             catch (err)
             {
+                if (est_reponse_deja(err))
+                    return
+
                 if (err.code === 'RULE_VIOLATION' || err.code === 'ENUM_VIOLATION')
                 {
                     $indicate(422, err.message)
@@ -471,6 +706,21 @@ export const construire_routes = (schemas) =>
             premiere_route = false
         }
         console.log(`  ${methode.padEnd(6)} ${chemin}  →  can_create [${champs_can_create.map(f => f.name).join(', ')}]`)
+    }
+
+    const chemins_options = [...new Set(routes.map(route => route.chemin))]
+    for (const chemin of chemins_options)
+    {
+        routes.push({
+            methode: 'OPTIONS',
+            chemin,
+            handler: (req, rep) =>
+            {
+                appliquer_cors(req, rep)
+                rep.writeHead(204)
+                rep.end()
+            }
+        })
     }
 
     return routes

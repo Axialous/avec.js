@@ -1,4 +1,4 @@
-import { definir_variable_racine, initialiser_sculpteur } from './sculpteur.js'
+import { definir_variable_racine, initialiser_sculpteur, enregistrer_nettoyage } from './sculpteur.js'
 
 const charger_adn_app = async () =>
 {
@@ -30,9 +30,51 @@ const charger_adn_app = async () =>
     }
 }
 
+const _actions = {
+    prior_requested: [],
+    post_requested: []
+}
+
+const executer_actions_http = async (cas, option, contexte = undefined) =>
+{
+    const actions = _actions[cas]
+    if (!Array.isArray(actions) || actions.length === 0)
+        return option
+
+    for (const action of [...actions])
+    {
+        const retour = await action(option, contexte)
+        if (retour && typeof retour === 'object' && !Array.isArray(retour))
+            Object.assign(option, retour)
+    }
+
+    return option
+}
+
 export const initialiser_heraut = async () =>
 {
     initialiser_sculpteur()
+
+    definir_variable_racine(`$add_action`, (cas, fn) =>
+    {
+        if (!Array.isArray(_actions[cas]))
+            throw new Error(`Cas d'action invalide : ${cas}`)
+        if (typeof fn !== 'function')
+            throw new Error(`Action invalide pour ${cas}`)
+
+        _actions[cas].push(fn)
+
+        const nettoyage = () =>
+        {
+            const actions = _actions[cas]
+            const index = actions.indexOf(fn)
+            if (index !== -1)
+                actions.splice(index, 1)
+        }
+
+        enregistrer_nettoyage(nettoyage)
+        return nettoyage
+    })
 
     const adn = await charger_adn_app()
     const api_url = adn?.api_url || `http://localhost:5030`
@@ -56,37 +98,93 @@ export const initialiser_heraut = async () =>
 
     definir_variable_racine(`$create`, async (resource, genes) => {
         const url = construire_url_api(resource)
-        const reponse = await fetch(url, {
+        const options = {
+            url,
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(genes)
+        }
+
+        await executer_actions_http('prior_requested', options)
+
+        const reponse = await fetch(options.url, {
+            method: options.method,
+            credentials: 'include',
+            headers: options.headers,
+            body: options.body
         })
-        return reponse.json()
+        const data = await reponse.json()
+        await executer_actions_http('post_requested', data, options)
+        return data
     })
 
     definir_variable_racine(`$search`, async (resource, params) => {
         const url = construire_url_api(resource, params)
 
-        const reponse = await fetch(url)
-        return reponse.json()
+        const options = {
+            url,
+            method: 'GET',
+            headers: {},
+            body: undefined
+        }
+
+        await executer_actions_http('prior_requested', options)
+
+        const reponse = await fetch(options.url, {
+            method: options.method,
+            credentials: 'include',
+            headers: options.headers,
+            body: options.body
+        })
+        const data = await reponse.json()
+        await executer_actions_http('post_requested', data, options)
+        return data
     })
 
     definir_variable_racine(`$update`, async (resource, genes, params) => {
         const url = construire_url_api(resource, params)
 
-        const reponse = await fetch(url, {
+        const options = {
+            url,
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(genes)
+        }
+
+        await executer_actions_http('prior_requested', options)
+
+        const reponse = await fetch(options.url, {
+            method: options.method,
+            credentials: 'include',
+            headers: options.headers,
+            body: options.body
         })
-        return reponse.json()
+        const data = await reponse.json()
+        await executer_actions_http('post_requested', data, options)
+        return data
     })
 
     definir_variable_racine(`$delete`, async (resource, params) => {
         const url = construire_url_api(resource, params)
 
-        const reponse = await fetch(url, { method: 'DELETE' })
-        return reponse.json()
+        const options = {
+            url,
+            method: 'DELETE',
+            headers: {},
+            body: undefined
+        }
+
+        await executer_actions_http('prior_requested', options)
+
+        const reponse = await fetch(options.url, {
+            method: options.method,
+            credentials: 'include',
+            headers: options.headers,
+            body: options.body
+        })
+        const data = await reponse.json()
+        await executer_actions_http('post_requested', data, options)
+        return data
     })
 }
 

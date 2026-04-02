@@ -87,7 +87,7 @@ afficher_schemas(schemas)
 
 await construire_base(schemas)
 
-const routes = construire_routes(schemas)
+const routes = construire_routes(schemas, schemas.index)
 
 const types_mime = {
     ".json":  "application/json",
@@ -129,19 +129,51 @@ const composants = {
     }
 }
 
-const mode = process.env.mode;
-const origine_cors = mode === "dev"
-    ? "*"
-    : process.env.cors_origin || process.env.app_url || "http://localhost:4030";
+const mode = process.env.mode || "prod"
+const origines_configurees = [process.env.cors_origin, process.env.app_url]
+    .filter(Boolean)
+    .flatMap(valeur => String(valeur).split(','))
+    .map(valeur => valeur.trim())
+    .filter(Boolean)
 
-const appliquer_cors = (rep) =>
+const est_origine_http = (origine) =>
 {
-    rep.setHeader("Access-Control-Allow-Origin", origine_cors)
+    try
+    {
+        const { protocol } = new URL(origine)
+        return protocol === 'http:' || protocol === 'https:'
+    }
+    catch
+    {
+        return false
+    }
+}
+
+const resoudre_origine_cors = (req) =>
+{
+    const origine = req.headers.origin
+    if (!origine)
+        return origines_configurees[0] ?? null
+
+    if (origines_configurees.includes(origine))
+        return origine
+
+    if (mode === 'dev' && est_origine_http(origine))
+        return origine
+
+    return null
+}
+
+const appliquer_cors = (req, rep) =>
+{
+    const origine = resoudre_origine_cors(req)
+    if (origine)
+        rep.setHeader("Access-Control-Allow-Origin", origine)
+
+    rep.setHeader("Access-Control-Allow-Credentials", "true")
     rep.setHeader("Access-Control-Allow-Methods", "GET,POST,PATCH,DELETE,OPTIONS")
     rep.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization")
-
-    if (mode !== "dev")
-        rep.setHeader("Vary", "Origin")
+    rep.setHeader("Vary", "Origin")
 }
 
 const rechercher_fichier = (dossier, nom, recursif) =>
@@ -175,12 +207,15 @@ const repondre_json = (rep, statut, message, data) =>
     rep.end(JSON.stringify(reponse))
 }
 
+const est_reponse_deja = (erreur) =>
+    erreur && typeof erreur === 'object' && erreur.message === 'reponse_deja_envoyee'
+
 const serveur = http.createServer(async (req, rep) =>
     {
         const url     = req.url.split('?')[0]
         const methode = req.method.toUpperCase()
 
-        appliquer_cors(rep)
+        appliquer_cors(req, rep)
 
         if (methode === "OPTIONS")
         {
@@ -194,7 +229,17 @@ const serveur = http.createServer(async (req, rep) =>
         {
             if (route.methode === methode && route.chemin === url)
             {
-                await route.handler(req, rep)
+                try
+                {
+                    await route.handler(req, rep)
+                }
+                catch (erreur)
+                {
+                    if (est_reponse_deja(erreur))
+                        return
+
+                    throw erreur
+                }
                 return
             }
         }

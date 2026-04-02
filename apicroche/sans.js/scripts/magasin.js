@@ -639,6 +639,9 @@ const extraire_filtres_comparaison_sql = (modele, condition, contexte_condition 
 
     while ((match = regex.exec(condition)) !== null)
     {
+        if (traduire_now_sql(match[2]))
+            continue
+
         const filtre = convertir_comparaison_simple_en_filtre_sql(modele, match[1], contexte_condition)
         if (filtre)
             clauses.push(filtre)
@@ -660,6 +663,10 @@ const construire_where = (criteres_sql, clauses_supplementaires = []) =>
             // Déplier les tableaux imbriqués (ex: [[a,b]] => [a,b])
             if (Array.isArray(v) && v.length === 1 && Array.isArray(v[0])) {
                 v = v[0]
+            }
+            if (v === null) {
+                morceaux.push(`\`${n}\` IS NULL`)
+                continue
             }
             if (Array.isArray(v) || v instanceof Set) {
                 // Support SQL IN
@@ -719,6 +726,21 @@ const construire_set_update = async (modele, donnees) =>
 
         if (typeof valeur_brute === 'string')
         {
+            const valeur_now_sql = traduire_now_sql(valeur_brute)
+            if (valeur_now_sql)
+            {
+                morceaux.push(`\`${nom_champ}\` = ${valeur_now_sql}`)
+                continue
+            }
+
+            const valeur_temps = parser_litteral_condition(valeur_brute)
+            if (valeur_temps instanceof Date && !Number.isNaN(valeur_temps.getTime()))
+            {
+                morceaux.push(`\`${nom_champ}\` = ?`)
+                valeurs.push(valeur_temps)
+                continue
+            }
+
             const expression = valeur_brute.match(/^\s*(\w+)\s*([+-])\s*(\d+(?:\.\d+)?)\s*$/)
             if (expression)
             {
@@ -918,6 +940,61 @@ const creer_delete_all = (schemas) => async (nom_modele, condition, contexte_con
 
     for (const element of cibles)
         await supprimer_par_pk(modele, element.brute)
+}
+
+// ─── $update_all ─────────────────────────────────────────────────────────────
+
+const creer_update_one = (schemas) => async (nom_modele, condition, donnees, contexte_condition = {}) =>
+{
+    const modele = trouver_modele_entree(schemas, nom_modele)
+    if (!modele) throw new Error(`Modèle introuvable : ${nom_modele}`)
+
+    const condition_norm = normaliser_condition(condition)
+    const donnees_norm   = normaliser_donnees_update(donnees)
+    const contexte_norm  = normaliser_contexte_condition(contexte_condition)
+
+    const criteres = extraire_criteres_depuis_condition(modele, condition_norm, contexte_norm)
+    const filtres_temps_sql = extraire_filtres_temps_sql(modele, condition_norm)
+    const filtres_comparaison_sql = extraire_filtres_comparaison_sql(modele, condition_norm, contexte_norm)
+
+    const { sql, post }       = separer_criteres(modele, criteres)
+    const { clause, valeurs } = construire_where(sql, [...filtres_temps_sql, ...filtres_comparaison_sql])
+    const besoin_post         = Object.keys(post).length > 0
+
+    const [lignes] = await pool().query(
+        `SELECT * FROM \`${modele.name}\` ${clause}`.trim(),
+        valeurs
+    )
+
+    const now = new Date()
+    let cible = null
+
+    for (const ligne of lignes)
+    {
+        if (besoin_post && !await verifier_post(modele, ligne, post))
+            continue
+
+        const ligne_decryptee = decrypter_ligne(modele, ligne)
+        if (!respecter_condition(modele, ligne_decryptee, condition_norm, now, contexte_norm, criteres))
+            continue
+
+        cible = ligne
+        break
+    }
+
+    if (!cible)
+        return 0
+
+    const { clause: set_clause, valeurs: set_valeurs } = await construire_set_update(modele, donnees_norm)
+    const clause_pk  = modele.primary.map(c => `\`${c}\` = ?`).join(' AND ')
+    const valeurs_pk = modele.primary.map(c => cible[c])
+
+    const [resultat] = await pool().query(
+        `UPDATE \`${modele.name}\` ${set_clause} WHERE ${clause_pk}`,
+        [...set_valeurs, ...valeurs_pk]
+    )
+
+    return Number(resultat?.affectedRows || 0)
 }
 
 // ─── $update_all ─────────────────────────────────────────────────────────────
@@ -1266,6 +1343,7 @@ export const creer_fonctions_magasin = (schemas) => ({
     $search_all: creer_search_all(schemas),
     $delete_one: creer_delete_one(schemas),
     $delete_all: creer_delete_all(schemas),
+    $update_one: creer_update_one(schemas),
     $update_all: creer_update_all(schemas),
     $create_one: creer_create_one(schemas),
     $create_all: creer_create_all(schemas),

@@ -52,24 +52,30 @@
     {
         path   : /connexion
         action : "$connecter_compte($body, $request)"
+    }
 
-        # 1. Lire l'identifiant et le mot de passe depuis le corps de la requête
-        # 2. Hacher l'identifiant avec HMAC-SHA256
-        # 3. Chercher la coordonnée correspondante en base via ce hash
-        # 4. Si introuvable → répondre 401 (message générique, sans précision)
-        # 5. Récupérer le compte lié à cette coordonnée
-        # 6. Vérifier le mot de passe avec Argon2id
-        # 7. Si invalide → répondre 401 (même message générique)
-        # 8. Générer un access token JWT
-        #      (sub = id du compte, auth_time = maintenant, + claims configurés dans @auth)
-        # 9. Générer un refresh token opaque
-        # 10. Stocker le refresh token en base (lié au compte, prêt pour la rotation)
-        # 11. Poser le refresh token en cookie HttpOnly + Secure + SameSite=Strict
-        # 12. Répondre 200 avec l'access token
+    {
+        path   : /deconnexion
+        action : $deconnecter_compte($request)
+    }
+
+    {
+        path   : /test
+        action : "$tester_compte()"
     }
 ]
 
 @script [
+    $tester_compte = async () =>
+    {
+        await $exiger_compte()
+
+        return $indicate(200, "Compte récupéré", {
+            id               : $context.compte.id,
+            date_inscription : $context.compte.date_inscription
+        })
+    }
+
     $inscrire_compte = async ($body) =>
     {
         if (
@@ -88,8 +94,8 @@
           & $hachage_coordonnee  = $body.coordonnee
           & $type                = authentification
           & $clef                = $body.clef
-          & $nombre_tentatives   >  0
-          & $date_validite       > $now
+          & $nombre_tentatives   > 0
+          & $date_validite       > now
             `
         )
 
@@ -183,7 +189,7 @@
           & $type                = authentification
           & $clef                = $body.clef
           & $nombre_tentatives   > 0
-          & $date_validite       > $now
+          & $date_validite       > now
             `
             )
 
@@ -219,10 +225,43 @@
             }
         )
 
-        $set_cookie('jeton', session.jeton, { lifetime: '30d' })
+        const cookie_session = `${session.id}.${session.jeton}`
+        $set_cookie('jeton', cookie_session, { lifetime: '30d' })
+
 
         const jeton_acces = await $sign_token({ id_compte: coordonnee.id_compte })
 
         return $indicate(200, "Connexion réussie", { jeton_acces })
+    }
+
+    $deconnecter_compte = async ($request) =>
+    {
+        await $exiger_compte()
+
+        const cookie_session = $request.cookies?.jeton ?? null
+
+        if (cookie_session)
+        {
+            const separateur = cookie_session.indexOf('.')
+
+            if (separateur > 0 && separateur < cookie_session.length - 1)
+            {
+                const id_session = cookie_session.slice(0, separateur)
+
+                await $update_one('session',
+                    `
+                    $id              = $id_session
+                    `,
+                    {
+                        date_revocation : 'now'
+                    },
+                    { $id_session: id_session }
+                )
+            }
+        }
+
+        $set_cookie('jeton', '', { lifetime: 0 })
+
+        return $indicate(200, "Déconnexion réussie")
     }
 ]

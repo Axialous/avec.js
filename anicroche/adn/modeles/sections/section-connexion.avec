@@ -133,7 +133,19 @@
 
         if (!reponse.error)
         {
-            $navigate_to("/")
+            reponse = await $create('connexion', {
+                coordonnee: data.get('courriel'),
+                mot_de_passe: data.get('mot_de_passe')
+            })
+
+            if (!reponse.error)
+            {
+                $navigate_to("/")
+            }
+            else
+            {
+                $erreur_inscription = "La connexion a échoué"
+            }
         }
         else
         {

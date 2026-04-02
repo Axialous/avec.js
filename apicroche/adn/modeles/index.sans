@@ -1,0 +1,95 @@
+@actions [
+    {
+        prior_respond : $rafraichir_jeton()
+    }
+]
+
+@script [
+    $rafraichir_jeton = async () =>
+    {
+        const en_tete = $request.headers?.authorization ?? null
+        const jeton_acces = en_tete?.startsWith('Bearer ')
+            ? en_tete.slice(7).trim()
+            : null
+
+        if (jeton_acces)
+        {
+            const payload = await $verify_token(jeton_acces)
+
+            if (payload?.id_compte)
+            {
+                const compte = await $search_one('compte',
+                    `$id = $payload.id_compte`,
+                    { $payload: payload }
+                )
+
+                if (compte)
+                {
+                    $context.compte = compte
+                    return
+                }
+            }
+        }
+
+        const cookie_session = $request.cookies?.jeton ?? null
+
+        if (!cookie_session)
+            return
+
+        const separateur = cookie_session.indexOf('.')
+        if (separateur <= 0 || separateur >= cookie_session.length - 1)
+            return
+
+        const id_session = cookie_session.slice(0, separateur)
+        const jeton_session = cookie_session.slice(separateur + 1)
+
+        const session = await $search_one('session',
+            `
+            $id              = $id_session
+          & $hachage_jeton   = $jeton_session
+          & $date_validite   > now
+          & $date_revocation = null
+            `,
+            {
+                $id_session: id_session,
+                $jeton_session: jeton_session
+            }
+        )
+
+        if (!session)
+            return
+
+        await $update_one('session',
+            `$id = $session.id`,
+            {
+                date_revocation : 'now'
+            },
+            { $session: session }
+        )
+
+        const nouvelle_session = await $create_one('session', {
+            id_compte         : session.id_compte,
+            adresse_ip        : $request.ip,
+            agent_utilisateur : $request.user_agent
+        })
+
+        const cookie_rotation = `${nouvelle_session.id}.${nouvelle_session.jeton}`
+        $set_cookie('jeton', cookie_rotation, { lifetime: '30d' })
+
+        const nouveau_jeton_acces = await $sign_token({ id_compte: session.id_compte })
+        $add_to_data('jeton_acces', nouveau_jeton_acces)
+
+        const compte = await $search_one('compte',
+            `$id = $session.id_compte`,
+            { $session: session }
+        )
+
+        $context.compte = compte
+    }
+
+    $exiger_compte = () =>
+    {
+        if (!$context.compte)
+            return $indicate(401, 'Non authentifié')
+    }
+]

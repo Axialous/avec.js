@@ -385,6 +385,7 @@ const transformer_modele = (annotations, nom_fichier) =>
     const champs_bruts       = Array.isArray(annotations.fields) ? annotations.fields : []
     const routes             = Array.isArray(annotations.routes) ? annotations.routes : []
     const script             = typeof annotations.script === 'string' ? annotations.script : null
+    const actions            = annotations.actions ?? null
 
     const champs    = []
     const relations = []
@@ -419,7 +420,7 @@ const transformer_modele = (annotations, nom_fichier) =>
         champs.push(champ)
     }
 
-    return {
+    const modele = {
         name      : nom_table,
         entry_name: nom_entree,
         primary,
@@ -429,6 +430,11 @@ const transformer_modele = (annotations, nom_fichier) =>
         script,
         _relations: relations
     }
+
+    if (actions !== null)
+        modele.actions = actions
+
+    return modele
 }
 
 // ─── Résolution des relations ─────────────────────────────────────────────────
@@ -556,5 +562,11 @@ export const charger_modeles = (dossier) =>
     const noms_connus = new Set()
     lire_dossier(dossier, tables, noms_connus)
     const relations = resoudre_relations(tables)
-    return { tables, relations, noms_connus }
+
+    let index = null
+    const index_pos = tables.findIndex(table => table.name === 'index')
+    if (index_pos !== -1)
+        index = tables.splice(index_pos, 1)[0]
+
+    return { tables, relations, noms_connus, index }
 }

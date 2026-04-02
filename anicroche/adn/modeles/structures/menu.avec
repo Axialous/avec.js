@@ -1,3 +1,11 @@
+@script [
+    $deconnecter_compte = async () =>
+    {
+        const reponse = await $create('deconnexion')
+        console.log(reponse)
+    }
+]
+
 @style [
     #menu {
         flex: 1;
@@ -58,3 +66,5 @@
             icone-masque
             <span>
                 "Profil"
+    <button @click="$deconnecter_compte()">
+        "DÉCONNEXION"

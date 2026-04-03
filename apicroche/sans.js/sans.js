@@ -6,6 +6,7 @@ import {generer_adn}      from "./analyseur_adn.js"
 import {charger_modeles}  from "./analyseur_sans.js"
 import {construire_base}  from "./scripts/batisseur.js"
 import {construire_routes} from "./scripts/routeur.js"
+import { demarrer_taches_periodiques } from "./scripts/planificateur.js"
 
 console.log(`\
 ╔══════╗
@@ -86,6 +87,8 @@ const afficher_schemas = ({ tables, relations }) =>
 afficher_schemas(schemas)
 
 await construire_base(schemas)
+
+const taches_periodiques = demarrer_taches_periodiques(schemas)
 
 const routes = construire_routes(schemas, schemas.index)
 

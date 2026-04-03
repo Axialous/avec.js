@@ -631,21 +631,102 @@ const convertir_comparaison_simple_en_filtre_sql = (modele, morceau, contexte_co
     }
 }
 
+const convertir_comparaison_null_en_filtre_sql = (modele, morceau, contexte_condition = {}) =>
+{
+    const match = /^\s*\$(\w+)\s*(!=|<>)\s*("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:[^`\\]|\\.)*`|[^\s&|()]+)\s*$/i.exec(morceau)
+    if (!match)
+        return null
+
+    const nom_champ = match[1]
+    const token     = match[3]
+
+    const champ = modele.fields.find(f => f.name === nom_champ)
+    if (!champ)
+        return null
+
+    let valeur
+    if (token.startsWith('$'))
+    {
+        const { trouvee, valeur: v } = lire_variable_contexte(token, contexte_condition)
+        if (!trouvee)
+            return null
+        valeur = v
+    }
+    else
+    {
+        valeur = parser_litteral_condition(token)
+    }
+
+    if (valeur !== null)
+        return null
+
+    return {
+        sql    : `\`${nom_champ}\` IS NOT NULL`,
+        valeurs: []
+    }
+}
+
 const extraire_filtres_comparaison_sql = (modele, condition, contexte_condition = {}) =>
 {
     const clauses = []
-    const regex = /(?:^|[&(])\s*(\$\w+\s*(?:>=|>|<=|<)\s*("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:[^`\\]|\\.)*`|[^\s&|()]+))/g
+    const regex = /(?:^|([&|]))\s*(\$\w+\s*(?:>=|<=|!=|<>|>|<)\s*("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:[^`\\]|\\.)*`|[^\s&|()]+))/g
     let match
+
+    let premier_operateur = 'AND'
+    const morceaux = []
+    const valeurs = []
 
     while ((match = regex.exec(condition)) !== null)
     {
-        if (traduire_now_sql(match[2]))
-            continue
+        const operateur = match[1] === '|' ? 'OR' : 'AND'
+        const morceau = match[2]
 
-        const filtre = convertir_comparaison_simple_en_filtre_sql(modele, match[1], contexte_condition)
+        const filtre_null = convertir_comparaison_null_en_filtre_sql(modele, morceau, contexte_condition)
+        if (filtre_null)
+        {
+            if (!morceaux.length)
+                premier_operateur = operateur
+
+            morceaux.push({ operateur, sql: filtre_null.sql })
+            if (Array.isArray(filtre_null.valeurs) && filtre_null.valeurs.length)
+                valeurs.push(...filtre_null.valeurs)
+            continue
+        }
+
+        const filtre = convertir_comparaison_simple_en_filtre_sql(modele, morceau, contexte_condition)
         if (filtre)
-            clauses.push(filtre)
+        {
+            if (!morceaux.length)
+                premier_operateur = operateur
+
+            morceaux.push({ operateur, sql: filtre.sql })
+            if (Array.isArray(filtre.valeurs) && filtre.valeurs.length)
+                valeurs.push(...filtre.valeurs)
+        }
     }
+
+    if (!morceaux.length)
+        return clauses
+
+    let sql = ''
+    for (let i = 0; i < morceaux.length; i++)
+    {
+        const morceau = morceaux[i]
+        if (i === 0)
+            sql += `(${morceau.sql})`
+        else
+            sql += ` ${morceau.operateur} (${morceau.sql})`
+    }
+
+    if (premier_operateur === 'OR' && morceaux.length > 1)
+        sql = `((${sql}))`
+    else
+        sql = `(${sql})`
+
+    clauses.push({
+        sql,
+        valeurs
+    })
 
     return clauses
 }
@@ -788,11 +869,10 @@ const creer_search_one = (schemas) => async (nom_modele, condition, contexte_con
     const contexte_norm  = normaliser_contexte_condition(contexte_condition)
 
     const criteres = extraire_criteres_depuis_condition(modele, condition_norm, contexte_norm)
-    const filtres_temps_sql = extraire_filtres_temps_sql(modele, condition_norm)
     const filtres_comparaison_sql = extraire_filtres_comparaison_sql(modele, condition_norm, contexte_norm)
 
     const { sql, post }       = separer_criteres(modele, criteres)
-    const { clause, valeurs } = construire_where(sql, [...filtres_temps_sql, ...filtres_comparaison_sql])
+    const { clause, valeurs } = construire_where(sql, filtres_comparaison_sql)
     const besoin_post         = Object.keys(post).length > 0
 
     const requete  = `SELECT * FROM \`${modele.name}\` ${clause}`.trim()
@@ -831,11 +911,10 @@ const creer_search_all = (schemas) => async (nom_modele, condition, contexte_con
     const options_norm   = normaliser_options_liste(modele, options)
 
     const criteres = extraire_criteres_depuis_condition(modele, condition_norm, contexte_norm)
-    const filtres_temps_sql = extraire_filtres_temps_sql(modele, condition_norm)
     const filtres_comparaison_sql = extraire_filtres_comparaison_sql(modele, condition_norm, contexte_norm)
 
     const { sql, post }       = separer_criteres(modele, criteres)
-    const { clause, valeurs } = construire_where(sql, [...filtres_temps_sql, ...filtres_comparaison_sql])
+    const { clause, valeurs } = construire_where(sql, filtres_comparaison_sql)
     const besoin_post         = Object.keys(post).length > 0
 
     const [lignes] = await pool().query(
@@ -870,11 +949,10 @@ const creer_delete_one = (schemas) => async (nom_modele, condition, contexte_con
     const contexte_norm  = normaliser_contexte_condition(contexte_condition)
 
     const criteres = extraire_criteres_depuis_condition(modele, condition_norm, contexte_norm)
-    const filtres_temps_sql = extraire_filtres_temps_sql(modele, condition_norm)
     const filtres_comparaison_sql = extraire_filtres_comparaison_sql(modele, condition_norm, contexte_norm)
 
     const { sql, post }       = separer_criteres(modele, criteres)
-    const { clause, valeurs } = construire_where(sql, [...filtres_temps_sql, ...filtres_comparaison_sql])
+    const { clause, valeurs } = construire_where(sql, filtres_comparaison_sql)
     const besoin_post         = Object.keys(post).length > 0
 
     const [lignes] = await pool().query(
@@ -907,17 +985,18 @@ const creer_delete_all = (schemas) => async (nom_modele, condition, contexte_con
     const options_norm   = normaliser_options_liste(modele, options)
 
     const criteres = extraire_criteres_depuis_condition(modele, condition_norm, contexte_norm)
-    const filtres_temps_sql = extraire_filtres_temps_sql(modele, condition_norm)
     const filtres_comparaison_sql = extraire_filtres_comparaison_sql(modele, condition_norm, contexte_norm)
 
     const { sql, post }       = separer_criteres(modele, criteres)
-    const { clause, valeurs } = construire_where(sql, [...filtres_temps_sql, ...filtres_comparaison_sql])
+    const { clause, valeurs } = construire_where(sql, filtres_comparaison_sql)
     const besoin_post         = Object.keys(post).length > 0
 
     const [lignes] = await pool().query(
         `SELECT * FROM \`${modele.name}\` ${clause}`.trim(),
         valeurs
     )
+    console.log(`SELECT * FROM \`${modele.name}\` ${clause}`)
+    console.log(valeurs)
     const now = new Date()
     const a_supprimer = []
     for (const ligne of lignes)
@@ -954,11 +1033,10 @@ const creer_update_one = (schemas) => async (nom_modele, condition, donnees, con
     const contexte_norm  = normaliser_contexte_condition(contexte_condition)
 
     const criteres = extraire_criteres_depuis_condition(modele, condition_norm, contexte_norm)
-    const filtres_temps_sql = extraire_filtres_temps_sql(modele, condition_norm)
     const filtres_comparaison_sql = extraire_filtres_comparaison_sql(modele, condition_norm, contexte_norm)
 
     const { sql, post }       = separer_criteres(modele, criteres)
-    const { clause, valeurs } = construire_where(sql, [...filtres_temps_sql, ...filtres_comparaison_sql])
+    const { clause, valeurs } = construire_where(sql, filtres_comparaison_sql)
     const besoin_post         = Object.keys(post).length > 0
 
     const [lignes] = await pool().query(
@@ -1009,11 +1087,10 @@ const creer_update_all = (schemas) => async (nom_modele, condition, donnees, con
     const contexte_norm  = normaliser_contexte_condition(contexte_condition)
 
     const criteres = extraire_criteres_depuis_condition(modele, condition_norm, contexte_norm)
-    const filtres_temps_sql = extraire_filtres_temps_sql(modele, condition_norm)
     const filtres_comparaison_sql = extraire_filtres_comparaison_sql(modele, condition_norm, contexte_norm)
 
     const { sql, post }       = separer_criteres(modele, criteres)
-    const { clause, valeurs } = construire_where(sql, [...filtres_temps_sql, ...filtres_comparaison_sql])
+    const { clause, valeurs } = construire_where(sql, filtres_comparaison_sql)
     const besoin_post         = Object.keys(post).length > 0
 
     const [lignes] = await pool().query(

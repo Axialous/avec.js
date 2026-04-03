@@ -1,10 +1,26 @@
 @actions [
     {
+        periodically : $nettoyer_sessions()
+        period : 1d
+    }
+
+    {
         prior_respond : $rafraichir_jeton()
     }
 ]
 
 @script [
+    $nettoyer_sessions = async () =>
+    {
+        console.log('=================\nNETTOYER SESSIONS\n=================')
+        await $delete_all('sessions',
+            `
+            $date_revocation != null
+          | $date_validite   < now
+            `
+        )
+    }
+
     $rafraichir_jeton = async () =>
     {
         const en_tete = $request.headers?.authorization ?? null

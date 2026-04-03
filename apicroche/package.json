@@ -4,12 +4,13 @@
     "main": "sans.js/sans.js",
     "type": "module",
     "scripts": {
-        "start": "node --watch sans.js/sans.js",
+        "start": "node sans.js/sans.js",
         "dev": "nodemon --watch adn --watch sans.js --ext js,sans sans.js/sans.js"
     },
     "dependencies": {
         "argon2": "^0.43.0",
         "jose": "^6.0.11",
+        "node-cron": "^4.2.1",
         "mysql2": "^3.11.5",
         "nodemailer": "^6.10.1",
         "nodemon": "^3.1.9"

@@ -347,6 +347,9 @@ const executer_prior_respond = async (index, contexte, rep, $body, $request, $co
         if (!bloc || typeof bloc !== 'object' || Array.isArray(bloc))
             continue
 
+        if (typeof bloc.prior_respond !== 'string' || !bloc.prior_respond.trim())
+            continue
+
         if (typeof bloc.when === 'string' && bloc.when.trim())
         {
             try

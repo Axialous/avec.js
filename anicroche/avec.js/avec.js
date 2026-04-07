@@ -15,8 +15,8 @@ const adn = generer_adn()
 const delai = 0
 
 const composants = {
-    "/systeme/scripts": {
-        chemin: "avec.js/scripts",
+    "/robots.txt": {
+        chemin: "adn/robots.txt",
     },
     "/systeme/app.adn": {
         chemin: "adn/app.adn",
@@ -24,6 +24,9 @@ const composants = {
         script: analyser_adn,
         ext: ".json",
         env_supp: ['api_url']
+    },
+    "/systeme/scripts": {
+        chemin: "avec.js/scripts",
     },
     "/systeme/modeles": {
         chemin: "adn/modeles",
@@ -39,6 +42,9 @@ const composants = {
     "/systeme/fontes": {
         chemin: "adn/fontes",
         recursif: true
+    },
+    "/systeme/app.webmanifest": {
+        chemin: "adn/app.webmanifest"
     }
 }
 

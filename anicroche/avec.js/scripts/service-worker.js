@@ -19,7 +19,6 @@ const ASSETS_A_CACHER = [
     '/systeme/scripts/scribe.js',
     '/systeme/images/favicon.svg',
     '/systeme/images/favicon.ico',
-    '/systeme/images/apple-touch-icon.png',
     '/systeme/app.webmanifest'
 ]
 

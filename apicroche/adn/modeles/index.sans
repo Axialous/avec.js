@@ -7,6 +7,10 @@
     {
         prior_respond : $rafraichir_jeton()
     }
+
+    {
+        post_respond : $detecter_connexion()
+    }
 ]
 
 @script [
@@ -101,6 +105,11 @@
         )
 
         $context.compte = compte
+    }
+
+    $detecter_connexion = async () =>
+    {
+        $add_to_data('est_connecte', !!$context.compte)
     }
 
     $exiger_compte = () =>

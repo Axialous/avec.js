@@ -1,0 +1,18 @@
+@script [
+    $deconnecter_compte = async () =>
+    {
+        const reponse = await $create('deconnexion')
+
+        if (!reponse.error)
+        {
+            $navigate_to("/")
+        }
+    }
+]
+
+section [compte]
+    titre
+        "Votre compte"
+    carte
+        bouton-formulaire [$deconnecter_compte]
+            "DÉCONNEXION"

@@ -256,10 +256,11 @@ const normaliser_options_liste = (modele, options) =>
             dir   : 'asc',
             limit : null,
             offset: 0,
+            select: null,
         }
 
     if (typeof options !== 'object' || Array.isArray(options))
-        throw new Error('Options invalides : utilisez un objet { order, dir, limit, offset }')
+        throw new Error('Options invalides : utilisez un objet { order, dir, limit, offset, select }')
 
     const champs_modele = new Set(modele.fields.map(f => f.name))
 
@@ -285,11 +286,27 @@ const normaliser_options_liste = (modele, options) =>
     if (!Number.isInteger(offset) || offset < 0)
         throw new Error('Option offset invalide : utilisez un entier >= 0')
 
+    let select = options.select ?? null
+    if (select !== null)
+    {
+        if (!Array.isArray(select))
+            throw new Error('Option select invalide : utilisez un tableau de noms de champs')
+        select = select.filter(s => typeof s === 'string')
+        for (const nom of select)
+        {
+            if (!champs_modele.has(nom))
+                throw new Error(`Option select invalide : champ inconnu "${nom}"`)
+        }
+        if (select.length === 0)
+            select = null
+    }
+
     return {
         order,
         dir,
         limit : limit ?? null,
         offset,
+        select,
     }
 }
 
@@ -331,6 +348,20 @@ const comparer_pour_tri = (a, b, direction) =>
     return 0
 }
 
+const filtrer_champs_select = (objet, champs_select) =>
+{
+    if (!champs_select || champs_select.length === 0)
+        return objet
+
+    const resultat = {}
+    for (const champ of champs_select)
+    {
+        if (Object.prototype.hasOwnProperty.call(objet, champ))
+            resultat[champ] = objet[champ]
+    }
+    return resultat
+}
+
 const appliquer_options_liste = (elements, options, lire_valeur) =>
 {
     let travail = [...elements]
@@ -351,6 +382,11 @@ const appliquer_options_liste = (elements, options, lire_valeur) =>
 
     if (options.limit !== null)
         travail = travail.slice(0, options.limit)
+
+    if (options.select)
+    {
+        travail = travail.map(e => filtrer_champs_select(e, options.select))
+    }
 
     return travail
 }
@@ -861,12 +897,13 @@ const supprimer_par_pk = async (modele, ligne) =>
 
 // ─── $search_one ─────────────────────────────────────────────────────────────
 
-const creer_search_one = (schemas) => async (nom_modele, condition, contexte_condition = {}) =>
+const creer_search_one = (schemas) => async (nom_modele, condition, contexte_condition = {}, options = undefined) =>
 {
     const modele = trouver_modele_entree(schemas, nom_modele)
     if (!modele) throw new Error(`Modèle introuvable : ${nom_modele}`)
     const condition_norm = normaliser_condition(condition)
     const contexte_norm  = normaliser_contexte_condition(contexte_condition)
+    const options_norm   = normaliser_options_liste(modele, options)
 
     const criteres = extraire_criteres_depuis_condition(modele, condition_norm, contexte_norm)
     const filtres_comparaison_sql = extraire_filtres_comparaison_sql(modele, condition_norm, contexte_norm)
@@ -895,7 +932,7 @@ const creer_search_one = (schemas) => async (nom_modele, condition, contexte_con
         if (!condition_ok)
             continue
 
-        return ligne_decryptee
+        return filtrer_champs_select(ligne_decryptee, options_norm.select)
     }
     return null
 }

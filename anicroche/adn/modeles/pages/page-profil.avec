@@ -1,0 +1,23 @@
+@args [$section]
+
+@if [$section = navigation]
+    navigation
+        <div .centre>
+            <span>
+                "Profil"
+
+        <div .droite>
+            ancre-boite [/preferences, Préférences]
+                icone-engrenage
+
+@if [$section = page]
+    page
+        barre-onglets
+            bouton-onglet
+                "Profil"
+            bouton-onglet
+                "Compte"
+        onglet
+            section-profil
+        onglet
+            section-compte

@@ -7,6 +7,14 @@
                 $node.classList.remove('entree')
             )
         )
+
+        obtenir_compte()
+    }
+
+    obtenir_compte = async () =>
+    {
+        const reponse = await $create('moi')
+        console.log(reponse)
     }
 ]
 

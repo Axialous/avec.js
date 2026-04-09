@@ -74,25 +74,64 @@ const creer_add_to_data = (data_reponse) => (clef, valeur) =>
     if (clef === undefined || clef === null)
         return
 
-    data_reponse[String(clef)] = valeur
+    const clef_normale = String(clef)
+    if (Object.prototype.hasOwnProperty.call(data_reponse, clef_normale))
+        return
+
+    data_reponse[clef_normale] = valeur
 }
 
-const creer_indicate = (rep, data_reponse) => (statut, message, data) =>
+const creer_indicate = (rep, data_reponse, executer_post_respond = null) => (statut, message, data) =>
 {
-    const succes = statut >= 200 && statut < 300
-    const data_base = data !== undefined ? data : {}
-    const data_finale = est_objet_simple(data_base)
-        ? { ...data_base, ...data_reponse }
-        : data_base
+    const envoyer_reponse = () =>
+    {
+        if (rep.headersSent)
+            return
 
-    const reponse = {
-        code: statut,
-        [succes ? 'message' : 'error']: message,
-        data: data_finale
+        const succes = statut >= 200 && statut < 300
+        const data_base = data !== undefined ? data : {}
+        const data_finale = est_objet_simple(data_base)
+            ? { ...data_base, ...data_reponse }
+            : data_base
+
+        const reponse = {
+            code: statut,
+            [succes ? 'message' : 'error']: message,
+            data: data_finale
+        }
+
+        rep.writeHead(statut, { 'Content-Type': 'application/json; charset=utf-8' })
+        rep.end(JSON.stringify(reponse))
     }
 
-    rep.writeHead(statut, { 'Content-Type': 'application/json; charset=utf-8' })
-    rep.end(JSON.stringify(reponse))
+    if (typeof executer_post_respond === 'function')
+    {
+        Promise
+            .resolve()
+            .then(() => executer_post_respond())
+            .then(() => envoyer_reponse())
+            .catch((err) =>
+            {
+                if (est_reponse_deja(err) || rep.headersSent)
+                    return
+
+                console.log(`/!\\ erreur post_respond : ${err.message}`)
+
+                const reponse = {
+                    code: 500,
+                    error: 'Erreur interne',
+                    data: data_reponse
+                }
+
+                rep.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' })
+                rep.end(JSON.stringify(reponse))
+            })
+    }
+    else
+    {
+        envoyer_reponse()
+    }
+
     throw new ReponseDeja()
 }
 
@@ -413,6 +452,86 @@ const executer_prior_respond = async (index, contexte, rep, $body, $request, $co
     return { interrompu: rep.headersSent, fonctions }
 }
 
+const executer_post_respond = async (index, contexte, rep, $body, $request, $context, $indicate) =>
+{
+    if (!index)
+        return { interrompu: false, fonctions: {} }
+
+    const fonctions = compiler_script(index.script ?? '', contexte)
+    if (!index?.actions || !Array.isArray(index.actions) || index.actions.length === 0)
+        return { interrompu: false, fonctions }
+
+    for (const bloc of index.actions)
+    {
+        if (!bloc || typeof bloc !== 'object' || Array.isArray(bloc))
+            continue
+
+        if (typeof bloc.post_respond !== 'string' || !bloc.post_respond.trim())
+            continue
+
+        if (typeof bloc.when === 'string' && bloc.when.trim())
+        {
+            try
+            {
+                if (!evaluer(bloc.when, { $request }))
+                    continue
+            }
+            catch (err)
+            {
+                if (est_reponse_deja(err))
+                    return { interrompu: true, fonctions }
+
+                console.log(`/!\\ erreur when post_respond : ${err.message}`)
+                if (!rep.headersSent)
+                    $indicate(500, 'Erreur interne')
+                return { interrompu: rep.headersSent, fonctions }
+            }
+        }
+
+        const action = analyser_action(bloc.post_respond)
+        if (!action)
+        {
+            console.log('/!\\ post_respond ignoré : action invalide')
+            continue
+        }
+
+        const fn = fonctions[action.nom]
+        if (typeof fn !== 'function')
+        {
+            console.log(`/!\\ post_respond ignoré : fonction introuvable ${action.nom}`)
+            continue
+        }
+
+        const valeurs_args = action.args.map(arg =>
+        {
+            if (arg === '$body') return $body
+            if (arg === '$request') return $request
+            if (arg === '$context') return $context
+            return undefined
+        })
+
+        try
+        {
+            await fn(...valeurs_args)
+        }
+        catch (err)
+        {
+            if (est_reponse_deja(err))
+                return { interrompu: true, fonctions }
+
+            console.log(`/!\\ erreur post_respond ${bloc.post_respond} : ${err.message}`)
+            if (!rep.headersSent)
+                $indicate(500, 'Erreur interne')
+            return { interrompu: rep.headersSent, fonctions }
+        }
+
+        if (rep.headersSent)
+            return { interrompu: true, fonctions }
+    }
+
+    return { interrompu: rep.headersSent, fonctions }
+}
+
 // ─── Variables injectées dans les handlers ────────────────────────────────────
 // $body → corps JSON de la requête (sera fourni au moment de l'appel)
 
@@ -454,7 +573,33 @@ export const construire_routes = (schemas, index = null) =>
                 const $context  = {}
                 const data_reponse = {}
                 const $add_to_data = creer_add_to_data(data_reponse)
-                const $indicate = creer_indicate(rep, data_reponse)
+                let contexte_script = null
+                let post_respond_execute = false
+                let post_respond_en_cours = false
+                const executer_post_respond_safe = async () =>
+                {
+                    if (post_respond_execute || post_respond_en_cours || !contexte_script)
+                        return
+
+                    post_respond_en_cours = true
+                    let post_respond = null
+                    try
+                    {
+                        post_respond = await executer_post_respond(index_routes, contexte_script, rep, $body, $request, $context, $indicate_brut)
+                    }
+                    finally
+                    {
+                        post_respond_en_cours = false
+                    }
+
+                    if (post_respond.interrompu)
+                        return
+
+                    Object.assign(contexte_script, post_respond.fonctions)
+                    post_respond_execute = true
+                }
+                const $indicate_brut = creer_indicate(rep, data_reponse)
+                const $indicate = creer_indicate(rep, data_reponse, executer_post_respond_safe)
                 const $q        = citer_condition
                 const $sign_token = creer_sign_token()
                 const $verify_token = creer_verify_token()
@@ -462,7 +607,7 @@ export const construire_routes = (schemas, index = null) =>
 
                 const contexte_condition = { $body }
                 const fonctions_magasin_requete = construire_fonctions_magasin_requete(fonctions_magasin, contexte_condition)
-                const contexte_script = {
+                contexte_script = {
                     ...fonctions_magasin_requete,
                     ...fonctions_mailer,
                     $indicate,
@@ -543,13 +688,39 @@ export const construire_routes = (schemas, index = null) =>
             const $context  = {}
             const data_reponse = {}
             const $add_to_data = creer_add_to_data(data_reponse)
-            const $indicate = creer_indicate(rep, data_reponse)
+            let contexte_script = null
+            let post_respond_execute = false
+            let post_respond_en_cours = false
+            const executer_post_respond_safe = async () =>
+            {
+                if (post_respond_execute || post_respond_en_cours || !contexte_script)
+                    return
+
+                post_respond_en_cours = true
+                let post_respond = null
+                try
+                {
+                    post_respond = await executer_post_respond(index_routes, contexte_script, rep, $body, $request, $context, $indicate_brut)
+                }
+                finally
+                {
+                    post_respond_en_cours = false
+                }
+
+                if (post_respond.interrompu)
+                    return
+
+                Object.assign(contexte_script, post_respond.fonctions)
+                post_respond_execute = true
+            }
+            const $indicate_brut = creer_indicate(rep, data_reponse)
+            const $indicate = creer_indicate(rep, data_reponse, executer_post_respond_safe)
             const $sign_token = creer_sign_token()
             const $verify_token = creer_verify_token()
             const $set_cookie = creer_set_cookie(rep)
             const contexte_condition = { $body }
             const fonctions_magasin_requete = construire_fonctions_magasin_requete(fonctions_magasin, contexte_condition)
-            const contexte_script = {
+            contexte_script = {
                 ...fonctions_magasin_requete,
                 ...fonctions_mailer,
                 $indicate,

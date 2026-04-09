@@ -45,6 +45,11 @@
 
 @routes [
     {
+        path   : /moi
+        action : "$obtenir_compte()"
+    }
+
+    {
         path   : /inscription
         action : $inscrire_compte($body)
     }
@@ -58,21 +63,25 @@
         path   : /deconnexion
         action : $deconnecter_compte($request)
     }
-
-    {
-        path   : /test
-        action : "$tester_compte()"
-    }
 ]
 
 @script [
-    $tester_compte = async () =>
+    $obtenir_compte = async () =>
     {
         await $exiger_compte()
 
+        const coordonnees = await $search_all('coordonnees',
+            `
+            $id_compte = $compte_id
+            `,
+            { $compte_id: $context.compte.id },
+            { select: ['type', 'coordonnee', 'est_principale'] }
+        )
+
         return $indicate(200, "Compte récupéré", {
             id               : $context.compte.id,
-            date_inscription : $context.compte.date_inscription
+            date_inscription : $context.compte.date_inscription,
+            coordonnees      : coordonnees
         })
     }
 
@@ -231,6 +240,8 @@
 
         const jeton_acces = await $sign_token({ id_compte: coordonnee.id_compte })
 
+        $add_to_data('est_connecte', true)
+
         return $indicate(200, "Connexion réussie", { jeton_acces })
     }
 
@@ -261,6 +272,8 @@
         }
 
         $set_cookie('jeton', '', { lifetime: 0 })
+
+        $add_to_data('est_connecte', false)
 
         return $indicate(200, "Déconnexion réussie")
     }

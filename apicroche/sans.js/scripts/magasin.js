@@ -28,11 +28,87 @@ const pool = () =>
 
 // ─── Utilitaires ─────────────────────────────────────────────────────────────
 
-const trouver_modele_entree = (schemas, nom) =>
-    schemas.tables.find(t => (t.entry_name ?? t.name) === nom) ?? null
+const trouver_table = (schemas, nom_table) =>
+    schemas.tables.find(t => t.name === nom_table) ?? null
+
+const trouver_pk = (table) =>
+{
+    if (!table || !Array.isArray(table.primary) || table.primary.length === 0)
+        return null
+
+    const nom_pk = table.primary[0]
+    return table.fields.find(f => f.name === nom_pk) ?? null
+}
+
+const construire_modele_jonction_auto = (schemas, relation) =>
+{
+    if (!relation?.table_jonction)
+        return null
+
+    const table_source = trouver_table(schemas, relation.table_source)
+    const table_cible  = trouver_table(schemas, relation.table_cible)
+
+    if (!table_source || !table_cible)
+        return null
+
+    const pk_source = trouver_pk(table_source)
+    const pk_cible  = trouver_pk(table_cible)
+
+    const nom_id_source = `id_${table_source.entry_name ?? table_source.name}`
+    const nom_id_cible  = `id_${table_cible.entry_name  ?? table_cible.name}`
+
+    return {
+        name   : relation.table_jonction,
+        entry_name: relation.table_jonction_entry ?? null,
+        primary: [nom_id_source, nom_id_cible],
+        unique : [],
+        fields : [
+            {
+                name     : nom_id_source,
+                type     : pk_source?.type ?? 'int',
+                min      : pk_source?.min ?? null,
+                max      : pk_source?.max ?? null,
+                nullable : false,
+                treatment: null
+            },
+            {
+                name     : nom_id_cible,
+                type     : pk_cible?.type ?? 'int',
+                min      : pk_cible?.min ?? null,
+                max      : pk_cible?.max ?? null,
+                nullable : false,
+                treatment: null
+            }
+        ]
+    }
+}
 
 const trouver_modele_table = (schemas, nom) =>
-    schemas.tables.find(t => t.name === nom) ?? null
+{
+    const modele_explicit = schemas.tables.find(t => t.name === nom)
+    if (modele_explicit)
+        return modele_explicit
+
+    const relation = (schemas.relations ?? []).find(r => r.table_jonction === nom)
+    if (!relation)
+        return null
+
+    return construire_modele_jonction_auto(schemas, relation)
+}
+
+const trouver_modele_entree = (schemas, nom) =>
+{
+    const modele_explicit = schemas.tables.find(t => (t.entry_name ?? t.name) === nom)
+    if (modele_explicit)
+        return modele_explicit
+
+    const relation = (schemas.relations ?? []).find(r => r.table_jonction_entry === nom)
+    if (relation)
+        return construire_modele_jonction_auto(schemas, relation)
+
+    // Pour les jonctions auto N-N, on accepte le nom de table comme nom d'entrée.
+    return trouver_modele_table(schemas, nom)
+}
 
 const trouver_champ = (modele, nom) =>
     modele.fields.find(f => f.name === nom) ?? null

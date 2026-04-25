@@ -1,0 +1,44 @@
+@script [
+    $envoyer_formulaire_creation = async ($node, $event) =>
+    {
+        data = new FormData($node)
+
+        const reponse = await $create('profil', {
+            identifiant: data.get('identifiant'),
+            pseudonyme : data.get('pseudonyme')
+        })
+
+        if (!reponse.error)
+        {
+            $navigate_to('/profil')
+        }
+        else
+        {
+            $erreur_creation_profil = reponse.error ?? "La création du profil a échoué"
+        }
+    }
+
+    $retourner_au_profil = () =>
+    {
+        $navigate_to('/profil')
+    }
+]
+
+section [creation-profil, centree]
+    titre [centre]
+        "Créez votre profil"
+    carte
+        formulaire [$envoyer_formulaire_creation]
+            @if [$erreur_creation_profil]
+                erreur-formulaire
+                    "$erreur_creation_profil"
+            champ-texte [
+                "Identifiant", identifiant
+            ]
+            champ-texte [
+                "Pseudonyme", pseudonyme
+            ]
+            bouton-soumission
+                <span>
+                    "Créer le profil"
+                icone-fleche-droite

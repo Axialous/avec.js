@@ -407,6 +407,7 @@ const transformer_modele = (annotations, nom_fichier) =>
             relations.push({
                 champ_source: champ_brut.name,
                 table_cible : champ_brut.ref ?? champ_brut.name,
+                entry       : typeof champ_brut.entry === 'string' ? champ_brut.entry : null,
                 count       : String(champ_brut.count),
                 min         : count.min,
                 max         : count.max
@@ -469,6 +470,7 @@ const resoudre_relations = (tables) =>
                 table_source: table.name,
                 champ_source: rel.champ_source,
                 table_cible : rel.table_cible,
+                entry       : rel.entry,
                 count       : rel.count,
                 min         : rel.min,
                 max         : rel.max
@@ -476,7 +478,9 @@ const resoudre_relations = (tables) =>
 
             if (rel.min === 'N' && rel.max === 'N')
             {
-                relation.table_jonction = `${rel.champ_source}_${table_cible.entry_name ?? table_cible.name}`
+                const nom_source = table.entry_name ?? table.name
+                relation.table_jonction       = `${rel.champ_source}_${table.name}`
+                relation.table_jonction_entry = `${rel.entry ?? table_cible.entry_name ?? table_cible.name}_${nom_source}`
             }
             else if (rel.max === 'N')
             {

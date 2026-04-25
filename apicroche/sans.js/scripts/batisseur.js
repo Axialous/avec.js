@@ -373,6 +373,7 @@ export const construire_base = async (schemas) =>
             index_tables[rel.table_source],
             index_tables[rel.table_cible]
         )
+        desc.entry_name = rel.table_jonction_entry ?? null
         if (!tables_existantes.has(rel.table_jonction))
             await creer_table(connexion, desc)
         else

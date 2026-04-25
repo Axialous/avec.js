@@ -54,6 +54,31 @@ const appliquer_cors = (req, rep) =>
     rep.setHeader('Vary', 'Origin')
 }
 
+const valider_regles_modele = (modele, valeurs) =>
+{
+    const contexte = {}
+    for (const champ of modele.fields)
+        contexte[`$${champ.name}`] = valeurs[champ.name] ?? ERREUR_AUGURE
+
+    for (const champ of modele.fields)
+    {
+        if (typeof champ.rule !== 'string' || !champ.rule.trim())
+            continue
+
+        try
+        {
+            if (!evaluer(champ.rule, contexte))
+                return { ok: false, champ: champ.name }
+        }
+        catch (err)
+        {
+            return { ok: false, champ: champ.name, erreur: err }
+        }
+    }
+
+    return { ok: true }
+}
+
 // ─── $indicate ────────────────────────────────────────────────────────────────
 
 class ReponseDeja extends Error
@@ -767,6 +792,16 @@ export const construire_routes = (schemas, index = null) =>
 
             // Pré-générer les valeurs auto pour les rendre disponibles dans prior_create
             const $values = preparer_donnees(table, donnees)
+
+            // Vérifier les règles avant les hooks de création.
+            const validation_regles = valider_regles_modele(table, $values)
+            if (!validation_regles.ok)
+            {
+                if (validation_regles.erreur)
+                    console.log(`/!\ erreur validation règle ${validation_regles.champ} : ${validation_regles.erreur.message}`)
+                $indicate(422, `Valeur invalide pour le champ "${validation_regles.champ}"`)
+                return
+            }
 
             const champs_prior_create = table.fields.filter(f => f.prior_create != null)
             const champs_post_create  = table.fields.filter(f => f.post_create != null)

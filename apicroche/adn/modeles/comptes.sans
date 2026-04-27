@@ -75,7 +75,7 @@
             $id_compte = $compte_id
             `,
             { $compte_id: $context.compte.id },
-            { select: ['type', 'coordonnee', 'est_principale'] }
+            { select: 'type ; coordonnee ; est_principale' }
         )
 
         return $indicate(200, "Compte récupéré", {

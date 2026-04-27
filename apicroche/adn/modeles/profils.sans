@@ -84,7 +84,7 @@
                 ? await $search_all('profils',
                     `$id -{ $ids_profils_geres`,
                     { $ids_profils_geres: ids_profils_geres },
-                    { select: ['identifiant'] }
+                    { select: 'identifiant' }
                 )
                 : []
 

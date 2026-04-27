@@ -158,6 +158,447 @@ const decrypter_ligne = (modele, ligne) =>
     return res
 }
 
+const construire_aliases_projection_inverse = (schemas, relation) =>
+{
+    const table_source = trouver_table(schemas, relation.table_source)
+    const table_cible  = trouver_table(schemas, relation.table_cible)
+
+    const nom_source_table = table_source?.name ?? relation.table_source
+    const nom_source_entree = table_source?.entry_name ?? table_source?.name ?? relation.table_source
+    const nom_cible_entree = table_cible?.entry_name ?? table_cible?.name ?? relation.table_cible
+    const nom_relation = relation.entry ?? nom_cible_entree
+
+    return new Set([
+        `is_${nom_relation}_of_${nom_source_table}`,
+        `is_${nom_relation}_of_${nom_source_entree}`,
+        `is_${nom_cible_entree}_of_${nom_source_table}`,
+        `is_${nom_cible_entree}_of_${nom_source_entree}`,
+    ])
+}
+
+const resoudre_projection_relation = (schemas, modele, token) =>
+{
+    for (const relation of schemas.relations ?? [])
+    {
+        if (relation.table_source === modele.name && relation.champ_source === token)
+            return { relation, sens: 'direct' }
+
+        if (relation.table_cible === modele.name)
+        {
+            const aliases = construire_aliases_projection_inverse(schemas, relation)
+            if (aliases.has(token))
+                return { relation, sens: 'inverse' }
+        }
+    }
+
+    return null
+}
+
+const lire_ligne_par_pk = async (modele, pk_values) =>
+{
+    if (!modele?.primary?.length)
+        return null
+
+    const clause = modele.primary.map(champ => `\`${champ}\` = ?`).join(' AND ')
+    const valeurs = modele.primary.map(champ => pk_values[champ])
+    const [lignes] = await pool().query(`SELECT * FROM \`${modele.name}\` WHERE ${clause}`, valeurs)
+    return lignes[0] ?? null
+}
+
+const lire_lignes_par_egalite = async (modele, champ, valeur) =>
+{
+    const [lignes] = await pool().query(`SELECT * FROM \`${modele.name}\` WHERE \`${champ}\` = ?`, [valeur])
+    return lignes
+}
+
+const lire_lignes_par_in = async (modele, champ, valeurs) =>
+{
+    if (!Array.isArray(valeurs) || !valeurs.length)
+        return []
+
+    const clauses = valeurs.map(() => '?').join(', ')
+    const [lignes] = await pool().query(`SELECT * FROM \`${modele.name}\` WHERE \`${champ}\` IN (${clauses})`, valeurs)
+    return lignes
+}
+
+const projeter_relation = async (schemas, modele, ligne, relation, sens) =>
+{
+    const table_source = trouver_table(schemas, relation.table_source)
+    const table_cible  = trouver_table(schemas, relation.table_cible)
+
+    if (!table_source || !table_cible)
+        return sens === 'inverse' && relation.max === 'N' && relation.min !== 'N' ? null : []
+
+    const pk_source = table_source.primary?.[0] ?? null
+    const pk_cible  = table_cible.primary?.[0] ?? null
+    if (!pk_source || !pk_cible)
+        return sens === 'inverse' && relation.max === 'N' && relation.min !== 'N' ? null : []
+
+    const valeur_pk_source = ligne[pk_source]
+    const valeur_pk_cible   = ligne[pk_cible]
+    const entree_source     = table_source.entry_name ?? table_source.name
+    const entree_cible      = table_cible.entry_name ?? table_cible.name
+    const modele_source     = relation.table_source
+    const modele_cible      = table_cible.entry_name ?? table_cible.name
+
+    if (relation.table_jonction)
+    {
+        const cle_source = `id_${entree_source}`
+        const cle_cible  = `id_${entree_cible}`
+
+        const cle_lire = sens === 'direct' ? cle_source : cle_cible
+        const cle_recherche = sens === 'direct' ? cle_cible : cle_source
+        const valeur_recherche = sens === 'direct' ? valeur_pk_source : valeur_pk_cible
+
+        if (valeur_recherche === undefined || valeur_recherche === null)
+            return []
+
+        const [jonctions] = await pool().query(
+            `SELECT \`${cle_recherche}\` FROM \`${relation.table_jonction}\` WHERE \`${cle_lire}\` = ?`,
+            [valeur_recherche]
+        )
+
+        const valeurs_ids = [...new Set(
+            jonctions
+                .map(l => l[cle_recherche])
+                .filter(v => v !== undefined && v !== null)
+        )]
+
+        const cible_modele = sens === 'direct' ? table_cible : table_source
+        if (!valeurs_ids.length)
+            return []
+
+        const rows = await lire_lignes_par_in(cible_modele, cible_modele.primary[0], valeurs_ids)
+        return rows.map(ligne_brute => decrypter_ligne(cible_modele, ligne_brute))
+    }
+
+    if (relation.cle_etrangere)
+    {
+        if (sens === 'direct')
+        {
+            if (valeur_pk_source === undefined || valeur_pk_source === null)
+                return []
+
+            const rows = await lire_lignes_par_egalite(table_cible, relation.cle_etrangere, valeur_pk_source)
+            return rows.map(ligne_brute => decrypter_ligne(table_cible, ligne_brute))
+        }
+
+        const valeur_fk = ligne[relation.cle_etrangere]
+        if (valeur_fk === undefined || valeur_fk === null)
+            return null
+
+        const ligne_source = await lire_ligne_par_pk(table_source, { [pk_source]: valeur_fk })
+        return ligne_source ? decrypter_ligne(table_source, ligne_source) : null
+    }
+
+    return sens === 'inverse' && relation.max === 'N' && relation.min !== 'N' ? null : []
+}
+
+const normaliser_projection_select = (select) =>
+{
+    if (typeof select === 'string')
+    {
+        return select
+            .split(';')
+            .map(v => v.trim())
+            .filter(Boolean)
+    }
+
+    if (!Array.isArray(select) || select.length === 0)
+        return []
+
+    return select
+        .filter(v => typeof v === 'string')
+        .map(v => v.trim())
+        .filter(Boolean)
+}
+
+const normaliser_token_projection = (token) =>
+{
+    if (typeof token !== 'string')
+        return []
+
+    return token
+        .split(',')
+        .map(v => v.trim())
+        .filter(Boolean)
+}
+
+const indexer_lignes_par_clef = (lignes, clef) =>
+{
+    const index = new Map()
+    for (const ligne of lignes)
+    {
+        const valeur = ligne[clef]
+        if (valeur === undefined || valeur === null)
+            continue
+
+        if (!index.has(valeur))
+            index.set(valeur, [])
+        index.get(valeur).push(ligne)
+    }
+    return index
+}
+
+const construire_noeud_projection = (schemas, modele, select) =>
+{
+    const champs_physiques = new Set(modele.fields.map(f => f.name))
+    const noeud = {
+        allPhysical: false,
+        fields: new Set(),
+        relations: new Map()
+    }
+
+    if (!Array.isArray(select) || select.length === 0)
+    {
+        noeud.allPhysical = true
+        return noeud
+    }
+
+    const ajouter_relation = (token, relation, sens, select_enfant = null) =>
+    {
+        if (!noeud.relations.has(token))
+        {
+            noeud.relations.set(token, {
+                relation,
+                sens,
+                select: select_enfant
+            })
+            return
+        }
+
+        const courant = noeud.relations.get(token)
+        if (courant.select === null)
+            courant.select = select_enfant
+        else if (select_enfant)
+            courant.select = [...new Set([...courant.select, ...select_enfant])]
+    }
+
+    const analyser_token = (token, select_enfant = null) =>
+    {
+        if (!token)
+            return
+
+        if (token === '*')
+        {
+            noeud.allPhysical = true
+            return
+        }
+
+        if (champs_physiques.has(token))
+        {
+            noeud.fields.add(token)
+            return
+        }
+
+        const projection_relation = resoudre_projection_relation(schemas, modele, token)
+        if (!projection_relation)
+            throw new Error(`Option select invalide : champ ou relation inconnue "${token}"`)
+
+        ajouter_relation(token, projection_relation.relation, projection_relation.sens, select_enfant)
+    }
+
+    for (const brut of normaliser_projection_select(select))
+    {
+        const token = String(brut)
+        
+        if (token.includes('.') && !token.startsWith('*'))
+        {
+            const index_point = token.indexOf('.')
+            const avant_point = token.slice(0, index_point)
+            const suite = token.slice(index_point + 1).trim()
+            
+            const index_derniere_virgule = avant_point.lastIndexOf(',')
+            
+            let avant_virgule = ''
+            let racine = avant_point.trim()
+            
+            if (index_derniere_virgule >= 0)
+            {
+                avant_virgule = avant_point.slice(0, index_derniere_virgule).trim()
+                racine = avant_point.slice(index_derniere_virgule + 1).trim()
+            }
+            
+            if (avant_virgule)
+            {
+                for (const sous_token of normaliser_token_projection(avant_virgule))
+                    analyser_token(sous_token)
+            }
+            
+            const projection_relation = resoudre_projection_relation(schemas, modele, racine)
+            if (!projection_relation)
+                throw new Error(`Option select invalide : champ ou relation inconnue "${racine}"`)
+
+            const modele_enfant = projection_relation.sens === 'direct'
+                ? trouver_table(schemas, projection_relation.relation.table_cible)
+                : trouver_table(schemas, projection_relation.relation.table_source)
+
+            if (!modele_enfant)
+                throw new Error(`Option select invalide : relation introuvable "${racine}"`)
+
+            const select_enfant = suite ? [suite] : []
+            ajouter_relation(racine, projection_relation.relation, projection_relation.sens, select_enfant)
+            continue
+        }
+
+        for (const sous_token of normaliser_token_projection(token))
+            analyser_token(sous_token)
+    }
+
+    return noeud
+}
+
+const projeter_lignes_select = async (schemas, modele, lignes, select) =>
+{
+    const noeud = construire_noeud_projection(schemas, modele, select)
+    const resultats = lignes.map(() => ({}))
+    const champs_physiques = modele.fields.map(f => f.name)
+
+    for (let i = 0; i < lignes.length; i++)
+    {
+        const ligne = lignes[i]
+        if (noeud.allPhysical)
+        {
+            for (const champ of champs_physiques)
+                resultats[i][champ] = ligne[champ]
+        }
+        else
+        {
+            for (const champ of noeud.fields)
+                resultats[i][champ] = ligne[champ]
+        }
+    }
+
+    for (const [token, spec] of noeud.relations.entries())
+    {
+        const relation = spec.relation
+        const sens = spec.sens
+        const table_source = trouver_table(schemas, relation.table_source)
+        const table_cible  = trouver_table(schemas, relation.table_cible)
+
+        if (!table_source || !table_cible)
+        {
+            for (let i = 0; i < lignes.length; i++)
+                resultats[i][token] = relation.table_jonction || relation.max === 'N' ? [] : null
+            continue
+        }
+
+        const modele_enfant = sens === 'direct' ? table_cible : table_source
+        const projection_enfant = (rows) => rows.length ? projeter_lignes_select(schemas, modele_enfant, rows, spec.select) : []
+
+        const pk_source = trouver_pk(table_source)
+        const pk_cible = trouver_pk(table_cible)
+
+        if (relation.table_jonction)
+        {
+            const cle_source = `id_${table_source.entry_name ?? table_source.name}`
+            const cle_cible  = `id_${table_cible.entry_name ?? table_cible.name}`
+            const est_direct = sens === 'direct'
+            const cle_ligne  = est_direct ? pk_source?.name : pk_cible?.name
+            const cle_lire   = est_direct ? cle_source : cle_cible
+            const cle_assoc  = est_direct ? cle_cible : cle_source
+            const ids_lignes = [...new Set(lignes.map(ligne => ligne[cle_ligne]).filter(v => v !== undefined && v !== null))]
+
+            if (!ids_lignes.length)
+            {
+                for (let i = 0; i < lignes.length; i++)
+                    resultats[i][token] = []
+                continue
+            }
+
+            const placeholders = ids_lignes.map(() => '?').join(', ')
+            const [jonctions] = await pool().query(
+                `SELECT \`${cle_lire}\`, \`${cle_assoc}\` FROM \`${relation.table_jonction}\` WHERE \`${cle_lire}\` IN (${placeholders})`,
+                ids_lignes
+            )
+
+            const ids_par_ligne = indexer_lignes_par_clef(jonctions, cle_lire)
+            const ids_relatifs = [...new Set(jonctions.map(ligne => ligne[cle_assoc]).filter(v => v !== undefined && v !== null))]
+
+            const lignes_relatives = ids_relatifs.length
+                ? await lire_lignes_par_in(modele_enfant, modele_enfant.primary[0], ids_relatifs)
+                : []
+            const map_relatives = new Map(lignes_relatives.map(ligne_rel => [ligne_rel[modele_enfant.primary[0]], decrypter_ligne(modele_enfant, ligne_rel)]))
+
+            for (let i = 0; i < lignes.length; i++)
+            {
+                const id_ligne = lignes[i][cle_ligne]
+                const ids = [...new Set((ids_par_ligne.get(id_ligne) ?? []).map(l => l[cle_assoc]).filter(v => v !== undefined && v !== null))]
+                const valeurs = ids.map(id => map_relatives.get(id)).filter(Boolean)
+                resultats[i][token] = spec.select ? await projection_enfant(valeurs) : valeurs.map(v => v)
+            }
+
+            continue
+        }
+
+        if (relation.cle_etrangere)
+        {
+            if (sens === 'direct')
+            {
+                const cle_source = pk_source?.name
+                const ids_lignes = [...new Set(lignes.map(ligne => ligne[cle_source]).filter(v => v !== undefined && v !== null))]
+                if (!ids_lignes.length)
+                {
+                    for (let i = 0; i < lignes.length; i++)
+                        resultats[i][token] = []
+                    continue
+                }
+
+                const rows = await lire_lignes_par_in(table_cible, relation.cle_etrangere, ids_lignes)
+                const index_rows = indexer_lignes_par_clef(rows, relation.cle_etrangere)
+
+                for (let i = 0; i < lignes.length; i++)
+                {
+                    const id_ligne = lignes[i][cle_source]
+                    const lignes_rel = (index_rows.get(id_ligne) ?? []).map(ligne_rel => decrypter_ligne(table_cible, ligne_rel))
+                    resultats[i][token] = spec.select ? await projection_enfant(lignes_rel) : lignes_rel
+                }
+
+                continue
+            }
+
+            const cle_fk = relation.cle_etrangere
+            const valeurs_fk = [...new Set(lignes.map(ligne => ligne[cle_fk]).filter(v => v !== undefined && v !== null))]
+
+            if (!valeurs_fk.length)
+            {
+                for (let i = 0; i < lignes.length; i++)
+                    resultats[i][token] = null
+                continue
+            }
+
+            const rows = await lire_lignes_par_in(table_source, pk_source.name, valeurs_fk)
+            const map_rows = new Map(rows.map(ligne_rel => [ligne_rel[pk_source.name], decrypter_ligne(table_source, ligne_rel)]))
+
+            for (let i = 0; i < lignes.length; i++)
+            {
+                const valeur_fk = lignes[i][cle_fk]
+                const ligne_rel = map_rows.get(valeur_fk) ?? null
+                if (!ligne_rel)
+                {
+                    resultats[i][token] = null
+                    continue
+                }
+
+                resultats[i][token] = spec.select ? (await projection_enfant([ligne_rel]))[0] ?? null : ligne_rel
+            }
+
+            continue
+        }
+
+        for (let i = 0; i < lignes.length; i++)
+            resultats[i][token] = relation.max === 'N' ? [] : null
+    }
+
+    return resultats
+}
+
+const projeter_ligne_select = async (schemas, modele, ligne, select) =>
+{
+    const resultats = await projeter_lignes_select(schemas, modele, [ligne], select)
+    return resultats[0] ?? null
+}
+
 // Séparer les critères en déterministes (SQL) et non-déterministes (vérification JS)
 const separer_criteres = (modele, criteres) =>
 {
@@ -369,14 +810,14 @@ const normaliser_options_liste = (modele, options) =>
     }
     else
     {
-        if (!Array.isArray(select))
-            throw new Error('Option select invalide : utilisez un tableau de noms de champs')
-        select = select.filter(s => typeof s === 'string')
-        for (const nom of select)
-        {
-            if (!champs_modele.has(nom))
-                throw new Error(`Option select invalide : champ inconnu "${nom}"`)
-        }
+        if (typeof select !== 'string')
+            throw new Error('Option select invalide : utilisez une chaîne de noms de champs séparés par des ";"')
+
+        select = select
+            .split(';')
+            .map(s => s.trim())
+            .filter(Boolean)
+
         if (select.length === 0)
             select = [...champs_modele]
     }
@@ -462,11 +903,6 @@ const appliquer_options_liste = (elements, options, lire_valeur) =>
 
     if (options.limit !== null)
         travail = travail.slice(0, options.limit)
-
-    if (options.select)
-    {
-        travail = travail.map(e => filtrer_champs_select(e, options.select))
-    }
 
     return travail
 }
@@ -1012,7 +1448,7 @@ const creer_search_one = (schemas) => async (nom_modele, condition, contexte_con
         if (!condition_ok)
             continue
 
-        return filtrer_champs_select(ligne_decryptee, options_norm.select)
+        return await projeter_ligne_select(schemas, modele, ligne_decryptee, options_norm.select)
     }
     return null
 }
@@ -1053,7 +1489,8 @@ const creer_search_all = (schemas) => async (nom_modele, condition, contexte_con
         resultats.push(ligne_decryptee)
     }
 
-    return appliquer_options_liste(resultats, options_norm, (ligne, nom) => ligne[nom])
+    const resultats_paginees = appliquer_options_liste(resultats, options_norm, (ligne, nom) => ligne[nom])
+    return await projeter_lignes_select(schemas, modele, resultats_paginees, options_norm.select)
 }
 
 // ─── $delete_one ─────────────────────────────────────────────────────────────
@@ -1130,7 +1567,7 @@ const creer_delete_all = (schemas) => async (nom_modele, condition, contexte_con
 
     const cibles = appliquer_options_liste(
         a_supprimer,
-        options_norm,
+        { ...options_norm, select: null },
         (element, nom) => element.decryptee[nom]
     )
 

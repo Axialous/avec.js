@@ -35,6 +35,99 @@ Un modèle est composé d'**annotations** (commençant par `@`) et d'une liste d
 
 ---
 
+## Options de recherche
+
+Les fonctions `$search_all()` et `$search_one()` acceptent un paramètre `options` (quatrième paramètre) permettant de configurer la projection, le tri et la pagination.
+
+### `select` — Projection de champs
+
+Permet de spécifier quels champs et relations retourner pour chaque résultat.
+
+#### Format
+
+`select` doit être **une chaîne de caractères** avec champs séparés par `;`.
+
+#### Syntaxe
+
+- Les **champs physiques** sont nommés directement : `id`, `pseudonyme`, `date_inscription`
+- Les **relations** sont nommées directement : `coordonnees`, `gerants`
+- Les **relations imbriquées** utilisent la notation pointée : `relation.champ`
+- Les **virgules `,` sont utilisées pour rester au même niveau** d'une relation
+- Les **points `.` descendent d'un niveau** d'une relation
+
+#### Exemples
+
+```javascript
+// Champs simples
+{ select: 'id ; pseudonyme ; date_inscription' }
+
+// Relation simple
+{ select: 'id ; coordonnees' }
+
+// Relation imbriquée — comptes avec leurs coordonnées, montrant seulement type et coordonnee
+{ select: 'id ; coordonnees.type ; coordonnees.coordonnee' }
+
+// Relation multi-niveaux — coordonnées avec compte.id et les profils dont il est gérant
+// (pseudonyme et identifiant du profil seulement)
+{ select: 'is_coordonnee_of_compte.id,is_gerant_of_profils.pseudonyme,identifiant' }
+```
+
+#### Algorithme de parsing
+
+Pour un token comme `is_coordonnee_of_compte.id,is_gerant_of_profils.pseudonyme,identifiant` :
+
+1. Détecte le premier `.` (après `is_coordonnee_of_compte`)
+2. Extrait ce qui est avant (`is_coordonnee_of_compte`) → relation à descendre
+3. Extrait ce qui est avant le premier `.` du reste (`id,is_gerant_of_profils`)
+4. Cherche la **dernière virgule** avant ce point → `id` (traité au niveau courant)
+5. Entre virgule et point → `is_gerant_of_profils` (relation à descendre)
+6. Après le point → `pseudonyme,identifiant` (passe au niveau enfant)
+
+### `order` — Tri
+
+Permet de trier les résultats par un champ.
+
+```javascript
+{ order: 'date_inscription' }        // croissant (défaut)
+{ order: 'date_inscription', dir: 'DESC' }  // décroissant
+```
+
+### `dir` — Direction du tri
+
+Peut valoir `'ASC'` (croissant, défaut) ou `'DESC'` (décroissant).
+
+### `limit` — Nombre maximum de résultats
+
+```javascript
+{ limit: 10 }   // retourne au maximum 10 résultats
+{ limit: null } // pas de limite (défaut)
+```
+
+### `offset` — Décalage (pour pagination)
+
+```javascript
+{ offset: 0 }    // début (défaut)
+{ offset: 20 }   // décale de 20 résultats
+```
+
+#### Exemple complet avec pagination
+
+```javascript
+const resultats = await $search_all('profils',
+    `$date_creation > $depuis`,
+    { $depuis: new Date('2025-01-01') },
+    {
+        select: 'id ; pseudonyme ; gerants.id',
+        order: 'date_creation',
+        dir: 'DESC',
+        limit: 50,
+        offset: 100
+    }
+)
+```
+
+---
+
 ## Annotations
 
 ### `@name`

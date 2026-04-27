@@ -41,8 +41,8 @@
 
         if (projection !== undefined && projection !== null)
         {
-            if (!Array.isArray(projection) || projection.some(champ => typeof champ !== 'string'))
-                return $indicate(400, 'Le paramètre projection doit être un tableau de chaînes')
+            if (typeof projection !== 'string')
+                return $indicate(400, 'Le paramètre projection doit être une chaîne (valeurs séparées par des ; )')
         }
 
         let resultats

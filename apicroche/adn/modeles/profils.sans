@@ -64,42 +64,63 @@
         if (profil_existant)
             return $indicate(409, "Identifiant déjà utilisé")
 
-        const profils_geres = await $search_all('gerants_profils',
-            `$id_compte = $id_compte`,
-            { $id_compte: $context.compte.id }
-        )
-
-        if (profils_geres.length >= 5)
-            return $indicate(403, "Limite de profils atteinte")
-
         const separateur = $values.identifiant.indexOf('.')
 
+        // Vérification de la limite uniquement pour les profils racines
         if (separateur <= 0)
-            return
+        {
+            const profils_geres = await $search_all('gerants_profils',
+                `$id_compte = $id_compte`,
+                { $id_compte: $context.compte.id }
+            )
 
-        const identifiant_parent = $values.identifiant.slice(0, separateur)
+            const ids_profils_geres = [...new Set(
+                profils_geres
+                    .map(lien => lien.id_profil)
+                    .filter(Boolean)
+            )]
 
-        const parent = await $search_one('profil',
-            `$identifiant = $identifiant_parent`,
-            { $identifiant_parent: identifiant_parent }
-        )
+            const profils_geres_racines = ids_profils_geres.length
+                ? await $search_all('profils',
+                    `$id -{ $ids_profils_geres`,
+                    { $ids_profils_geres: ids_profils_geres },
+                    { select: ['identifiant'] }
+                )
+                : []
 
-        if (!parent)
-            return $indicate(422, "Profil parent introuvable")
+            const nombre_profils_sans_point = profils_geres_racines
+                .filter(profil => !(profil.identifiant ?? '').includes('.'))
+                .length
 
-        const est_gerant = await $search_one('gerant_profil',
-            `
-            $id_compte = $id_compte
-          & $id_profil = $id_profil
-            `,
-            {
-                $id_compte: $context.compte.id,
-                $id_profil: parent.id
-            }
-        )
+            if (nombre_profils_sans_point >= 5)
+                return $indicate(403, "Limite de profils sans point atteinte")
+        }
+        else
+        {
+            const identifiant_parent = $values.identifiant.slice(0, separateur)
 
-        if (!est_gerant)
-            return $indicate(403, "Accès refusé")
+            const parent = await $search_one('profil',
+                `$identifiant = $identifiant_parent`,
+                { $identifiant_parent: identifiant_parent }
+            )
+
+            if (!parent)
+                return $indicate(422, "Profil parent introuvable")
+
+            const est_gerant = await $search_one('gerant_profil',
+                `
+                $id_compte = $id_compte
+            & $id_profil = $id_profil
+                `,
+                {
+                    $id_compte: $context.compte.id,
+                    $id_profil: parent.id
+                }
+            )
+
+            if (!est_gerant)
+                return $indicate(403, "Accès refusé")
+        }
     }
 
     $lier_createur_au_profil = async ($values) =>

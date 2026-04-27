@@ -13,7 +13,59 @@
     }
 ]
 
+@routes [
+    {
+        path    : /test/search/all
+        action  : $tester_search_all($body)
+        mode    : dev
+    }
+]
+
 @script [
+    $tester_search_all = async ($body) =>
+    {
+        if (typeof $body !== 'object' || !$body)
+            return $indicate(400, 'Corps invalide')
+
+        const name = typeof $body.name === 'string' ? $body.name.trim() : ''
+        const projection  = $body.projection
+        const restriction = ($body.restriction === undefined || $body.restriction === null)
+            ? ':)'
+            : (typeof $body.restriction === 'string' ? $body.restriction.trim() : '')
+
+        if (!name)
+            return $indicate(400, 'Paramètre requis manquant : name')
+
+        if (!restriction)
+            return $indicate(400, 'Le paramètre restriction doit être une chaîne non vide quand il est fourni')
+
+        if (projection !== undefined && projection !== null)
+        {
+            if (!Array.isArray(projection) || projection.some(champ => typeof champ !== 'string'))
+                return $indicate(400, 'Le paramètre projection doit être un tableau de chaînes')
+        }
+
+        let resultats
+        try
+        {
+            resultats = (projection === undefined || projection === null)
+                ? await $search_all(name, restriction)
+                : await $search_all(name, restriction, {}, { select: projection })
+        }
+        catch (err)
+        {
+            const message = typeof err?.message === 'string' && err.message
+                ? err.message
+                : 'Erreur search_all'
+            return $indicate(422, message)
+        }
+
+        return $indicate(200, 'Recherche effectuée', {
+            total    : resultats.length,
+            resultats: resultats
+        })
+    }
+
     $nettoyer_sessions = async () =>
     {
         console.log('=================\nNETTOYER SESSIONS\n=================')

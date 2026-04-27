@@ -54,6 +54,18 @@ const appliquer_cors = (req, rep) =>
     rep.setHeader('Vary', 'Origin')
 }
 
+const route_est_active = (route) =>
+{
+    if (!route || typeof route !== 'object')
+        return false
+
+    const mode_route = typeof route.mode === 'string' ? route.mode.trim().toLowerCase() : ''
+    if (!mode_route || mode_route === 'all')
+        return true
+
+    return mode_route === mode
+}
+
 const valider_regles_modele = (modele, valeurs) =>
 {
     const contexte = {}
@@ -572,13 +584,16 @@ export const construire_routes = (schemas, index = null) =>
     const routes            = []
     let premiere_route      = true
 
-    for (const table of schemas.tables)
+    const ajouter_routes_modele = (table, script_source) =>
     {
-        if (!table.routes?.length || !table.script)
-            continue
+        if (!table.routes?.length || !script_source)
+            return
 
         for (const route of table.routes)
         {
+            if (!route_est_active(route))
+                continue
+
             const action = analyser_action(route.action)
             if (!action)
             {
@@ -653,7 +668,7 @@ export const construire_routes = (schemas, index = null) =>
                 Object.assign(contexte_script, prior_respond.fonctions)
 
                 // Compiler le script à chaque requête pour lier $indicate à cette réponse
-                const fonctions = compiler_script(table.script, contexte_script)
+                const fonctions = compiler_script(script_source, contexte_script)
 
                 const fn = fonctions[action.nom]
                 if (typeof fn !== 'function')
@@ -693,6 +708,14 @@ export const construire_routes = (schemas, index = null) =>
             console.log(`  ${methode.padEnd(6)} ${chemin}  →  ${action.nom}`)
         }
     }
+
+    for (const table of schemas.tables)
+    {
+        ajouter_routes_modele(table, table.script)
+    }
+
+    if (index_routes)
+        ajouter_routes_modele(index_routes, index_routes.script)
 
     for (const table of schemas.tables)
     {

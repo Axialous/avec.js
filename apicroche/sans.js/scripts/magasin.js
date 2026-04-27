@@ -362,8 +362,12 @@ const normaliser_options_liste = (modele, options) =>
     if (!Number.isInteger(offset) || offset < 0)
         throw new Error('Option offset invalide : utilisez un entier >= 0')
 
-    let select = options.select ?? null
-    if (select !== null)
+    let select = options.select
+    if (select === undefined || select === null)
+    {
+        select = [...champs_modele]
+    }
+    else
     {
         if (!Array.isArray(select))
             throw new Error('Option select invalide : utilisez un tableau de noms de champs')
@@ -374,7 +378,7 @@ const normaliser_options_liste = (modele, options) =>
                 throw new Error(`Option select invalide : champ inconnu "${nom}"`)
         }
         if (select.length === 0)
-            select = null
+            select = [...champs_modele]
     }
 
     return {

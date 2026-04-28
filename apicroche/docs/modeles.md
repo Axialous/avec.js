@@ -83,6 +83,28 @@ Pour un token comme `is_coordonnee_of_compte.id,is_gerant_of_profils.pseudonyme,
 5. Entre virgule et point → `is_gerant_of_profils` (relation à descendre)
 6. Après le point → `pseudonyme,identifiant` (passe au niveau enfant)
 
+#### Restrictions sur relations
+
+Les paramètres `condition` de `$search_all()`, `$search_one()`, `$delete_one()`, `$delete_all()`, `$update_one()` et `$update_all()` peuvent cibler des champs de relations imbriquées.
+
+Exemple :
+
+```javascript
+restriction : '$is_coordonnee_of_compte.is_gerant_of_profils.id = 0GWGVSSCJYWJQLP'
+```
+
+Le moteur génère alors les JOINs nécessaires et traduit la comparaison en SQL sur l’alias de la table cible. La même valeur est aussi réutilisée dans le filtrage applicatif final lorsque c’est nécessaire.
+
+#### Log SQL
+
+Les requêtes construites par le moteur sont affichées dans les logs avec leurs valeurs interpolées, afin de faciliter le débogage.
+
+Exemple :
+
+```text
+[search_all] SQL: SELECT DISTINCT `coordonnees`.* FROM `coordonnees` JOIN ... WHERE `profils_2`.`id` = '0GWGVSSCJYWJQLP'
+```
+
 ### `order` — Tri
 
 Permet de trier les résultats par un champ.

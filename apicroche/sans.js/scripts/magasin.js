@@ -708,6 +708,9 @@ const respecter_condition = (modele, ligne, condition, now = new Date(), context
             if (convertir_comparaison_simple_en_filtre_sql(modele, morceau, contexte_externe))
                 continue
 
+            if (est_comparaison_chemin_relation_sqlable(morceau))
+                continue
+
             residuels.push(morceau)
         }
 
@@ -1283,6 +1286,236 @@ const extraire_filtres_comparaison_sql = (modele, condition, contexte_condition 
     return clauses
 }
 
+const est_comparaison_chemin_relation_sqlable = (morceau) =>
+    /^\s*\$\w+(?:\.\w+)+\s*(?:=|!=|<>|>=|<=|>|<)\s*("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:[^`\\]|\\.)*`|[^\s&|()]+)\s*$/.test(morceau)
+
+const extraire_filtres_relation_sql = (condition, contexte_condition = {}) =>
+{
+    const clauses = []
+    const regex = /(?:^|([&|]))\s*((?:`[^`]+`\.`[^`]+`)\s*(?:=|!=|<>|>=|<=|>|<)\s*("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:[^`\\]|\\.)*`|[^\s&|()]+))/g
+    let match
+
+    let premier_operateur = 'AND'
+    const morceaux = []
+    const valeurs = []
+
+    while ((match = regex.exec(condition)) !== null)
+    {
+        const operateur = match[1] === '|' ? 'OR' : 'AND'
+        const morceau = match[2]
+        const detail = /^\s*((?:`[^`]+`\.`[^`]+`))\s*(=|!=|<>|>=|<=|>|<)\s*("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:[^`\\]|\\.)*`|[^\s&|()]+)\s*$/.exec(morceau)
+        if (!detail)
+            continue
+
+        const colonne_sql = detail[1]
+        const operateur_sql = detail[2]
+        const token = detail[3]
+
+        let valeur
+        if (token.startsWith('$'))
+        {
+            const { trouvee, valeur: v } = lire_variable_contexte(token, contexte_condition)
+            if (!trouvee)
+                continue
+            valeur = v
+        }
+        else
+        {
+            valeur = parser_litteral_condition(token)
+        }
+
+        if (valeur === undefined)
+            continue
+
+        if (valeur === null)
+        {
+            if (!morceaux.length)
+                premier_operateur = operateur
+
+            if (operateur_sql === '=')
+                morceaux.push({ operateur, sql: `${colonne_sql} IS NULL` })
+            else if (operateur_sql === '!=' || operateur_sql === '<>')
+                morceaux.push({ operateur, sql: `${colonne_sql} IS NOT NULL` })
+
+            continue
+        }
+
+        if (!morceaux.length)
+            premier_operateur = operateur
+
+        morceaux.push({ operateur, sql: `${colonne_sql} ${operateur_sql} ?` })
+        valeurs.push(valeur)
+    }
+
+    if (!morceaux.length)
+        return clauses
+
+    let sql = ''
+    for (let i = 0; i < morceaux.length; i++)
+    {
+        const morceau = morceaux[i]
+        if (i === 0)
+            sql += `(${morceau.sql})`
+        else
+            sql += ` ${morceau.operateur} (${morceau.sql})`
+    }
+
+    if (premier_operateur === 'OR' && morceaux.length > 1)
+        sql = `((${sql}))`
+    else
+        sql = `(${sql})`
+
+    clauses.push({
+        sql,
+        valeurs
+    })
+
+    return clauses
+}
+
+// ─── JOINs pour conditions sur relations ─────────────────────────────────────
+
+const extraire_chemins_relations_condition = (condition) =>
+{
+    const chemins = new Map()
+    const regex = /\$([a-zA-Z_]\w*(?:\.[a-zA-Z_]\w*)*)/g
+    let match
+
+    while ((match = regex.exec(condition)) !== null)
+    {
+        const chemin_complet = match[1]
+        if (chemin_complet.includes('.'))
+        {
+            chemins.set(chemin_complet, chemin_complet)
+        }
+    }
+
+    return Array.from(chemins.keys())
+}
+
+const generer_joins_sql = (schemas, modele_source, chemin_relation) =>
+{
+    const parties = chemin_relation.split('.')
+    const joins = []
+    let modele_courant = modele_source
+    let alias_courant = modele_source.name
+    let alias_compteur = 0
+
+    for (let i = 0; i < parties.length; i++)
+    {
+        const nom_relation = parties[i]
+        const projection_relation = resoudre_projection_relation(schemas, modele_courant, nom_relation)
+
+        if (!projection_relation)
+            continue
+
+        const relation = projection_relation.relation
+        const sens = projection_relation.sens
+        const table_source = trouver_table(schemas, relation.table_source)
+        const table_cible = trouver_table(schemas, relation.table_cible)
+
+        if (!table_source || !table_cible)
+            continue
+
+        const modele_enfant = sens === 'direct' ? table_cible : table_source
+        const alias_enfant = `${modele_enfant.name}_${++alias_compteur}`
+
+        if (relation.table_jonction)
+        {
+            const cle_source = `id_${table_source.entry_name ?? table_source.name}`
+            const cle_cible = `id_${table_cible.entry_name ?? table_cible.name}`
+            const est_direct = sens === 'direct'
+            const alias_jonction = `${relation.table_jonction}_${alias_compteur}`
+
+            const cle_lire = est_direct ? cle_source : cle_cible
+            const cle_assoc = est_direct ? cle_cible : cle_source
+            const pk_courant = est_direct ? table_source.primary[0] : table_cible.primary[0]
+            const pk_enfant = modele_enfant.primary[0]
+
+            joins.push(
+                `JOIN \`${relation.table_jonction}\` AS \`${alias_jonction}\` ON \`${alias_courant}\`.\`${pk_courant}\` = \`${alias_jonction}\`.\`${cle_lire}\``
+            )
+            joins.push(
+                `JOIN \`${modele_enfant.name}\` AS \`${alias_enfant}\` ON \`${alias_jonction}\`.\`${cle_assoc}\` = \`${alias_enfant}\`.\`${pk_enfant}\``
+            )
+        }
+        else if (relation.cle_etrangere)
+        {
+            if (sens === 'direct')
+            {
+                joins.push(
+                    `JOIN \`${modele_enfant.name}\` AS \`${alias_enfant}\` ON \`${alias_courant}\`.\`${table_source.primary[0]}\` = \`${alias_enfant}\`.\`${relation.cle_etrangere}\``
+                )
+            }
+            else
+            {
+                joins.push(
+                    `JOIN \`${modele_enfant.name}\` AS \`${alias_enfant}\` ON \`${alias_courant}\`.\`${relation.cle_etrangere}\` = \`${alias_enfant}\`.\`${modele_enfant.primary[0]}\``
+                )
+            }
+        }
+
+        alias_courant = alias_enfant
+        modele_courant = modele_enfant
+    }
+
+    return {
+        joins: joins.join(' '),
+        modele_final: modele_courant,
+        alias_final: alias_courant
+    }
+}
+
+const analyser_condition_pour_joins = (schemas, modele, condition, contexte_condition = {}) =>
+{
+    const chemins = extraire_chemins_relations_condition(condition)
+    const joins_generes = new Map()
+    let condition_avec_alias = String(condition)
+
+    for (const chemin of chemins)
+    {
+        const derniere_partie = chemin.lastIndexOf('.')
+        if (derniere_partie === -1)
+            continue
+
+        const chemin_relations = chemin.slice(0, derniere_partie)
+        const champ_final = chemin.slice(derniere_partie + 1)
+        
+        const generation = generer_joins_sql(schemas, modele, chemin_relations)
+        if (generation.joins)
+        {
+            joins_generes.set(chemin_relations, generation)
+            const ancien_prefix = `$${chemin}`
+            const nouveau_prefix = `\`${generation.alias_final}\`.\`${champ_final}\``
+            condition_avec_alias = condition_avec_alias.replace(new RegExp(`\\$${chemin.replace(/\./g, '\\.')}`, 'g'), nouveau_prefix)
+        }
+    }
+
+    return {
+        joins: Array.from(joins_generes.values()),
+        condition_avec_joins: condition_avec_alias
+    }
+}
+
+// Construire la requête SELECT complète avec JOINs
+const construire_requete_recherche = (modele, joins_data, clause_where) =>
+{
+    const select_clause = `SELECT DISTINCT \`${modele.name}\`.* FROM \`${modele.name}\``
+    
+    if (!joins_data || !joins_data.length)
+        return select_clause + (clause_where ? ` ${clause_where}` : '')
+
+    const all_joins = joins_data
+        .map(j => j.joins)
+        .filter(Boolean)
+        .join(' ')
+
+    if (!all_joins)
+        return select_clause + (clause_where ? ` ${clause_where}` : '')
+
+    return select_clause + ' ' + all_joins + (clause_where ? ` ${clause_where}` : '')
+}
+
 // Construire la clause WHERE
 const construire_where = (criteres_sql, clauses_supplementaires = []) =>
 {
@@ -1344,6 +1577,37 @@ const construire_where = (criteres_sql, clauses_supplementaires = []) =>
         clause : 'WHERE ' + morceaux.join(' AND '),
         valeurs
     }
+}
+
+const formater_valeur_sql_debug = (valeur) =>
+{
+    if (valeur === null || valeur === undefined)
+        return 'NULL'
+
+    if (valeur instanceof Date)
+        return `'${valeur.toISOString().replace('T', ' ').replace('Z', '')}'`
+
+    if (Array.isArray(valeur))
+        return `(${valeur.map(formater_valeur_sql_debug).join(', ')})`
+
+    if (typeof valeur === 'number' || typeof valeur === 'bigint')
+        return String(valeur)
+
+    if (typeof valeur === 'boolean')
+        return valeur ? '1' : '0'
+
+    return `'${String(valeur).replace(/\\/g, '\\\\').replace(/'/g, "''")}'`
+}
+
+const rendre_requete_sql_debug = (requete, valeurs = []) =>
+{
+    let index = 0
+    return requete.replace(/\?/g, () => {
+        if (index >= valeurs.length)
+            return '?'
+
+        return formater_valeur_sql_debug(valeurs[index++])
+    })
 }
 
 const construire_set_update = async (modele, donnees) =>
@@ -1421,14 +1685,19 @@ const creer_search_one = (schemas) => async (nom_modele, condition, contexte_con
     const contexte_norm  = normaliser_contexte_condition(contexte_condition)
     const options_norm   = normaliser_options_liste(modele, options)
 
-    const criteres = extraire_criteres_depuis_condition(modele, condition_norm, contexte_norm)
-    const filtres_comparaison_sql = extraire_filtres_comparaison_sql(modele, condition_norm, contexte_norm)
+    const { joins, condition_avec_joins } = analyser_condition_pour_joins(schemas, modele, condition_norm, contexte_norm)
+    
+    const criteres = extraire_criteres_depuis_condition(modele, condition_avec_joins, contexte_norm)
+    const filtres_comparaison_sql = extraire_filtres_comparaison_sql(modele, condition_avec_joins, contexte_norm)
+    const filtres_relation_sql = extraire_filtres_relation_sql(condition_avec_joins, contexte_norm)
 
     const { sql, post }       = separer_criteres(modele, criteres)
-    const { clause, valeurs } = construire_where(sql, filtres_comparaison_sql)
+    const { clause, valeurs } = construire_where(sql, [...filtres_comparaison_sql, ...filtres_relation_sql])
     const besoin_post         = Object.keys(post).length > 0
 
-    const requete  = `SELECT * FROM \`${modele.name}\` ${clause}`.trim()
+    const requete  = construire_requete_recherche(modele, joins, clause)
+    console.log('[search_one] SQL:', rendre_requete_sql_debug(requete, valeurs))
+    if (valeurs.length) console.log('[search_one] Valeurs:', valeurs)
     const [lignes] = await pool().query(requete, valeurs)
 
     const now = new Date()
@@ -1440,9 +1709,6 @@ const creer_search_one = (schemas) => async (nom_modele, condition, contexte_con
             continue
 
         const ligne_decryptee = decrypter_ligne(modele, ligne)
-
-
-
         const condition_ok = respecter_condition(modele, ligne_decryptee, condition_norm, now, contexte_norm, criteres)
 
         if (!condition_ok)
@@ -1463,17 +1729,20 @@ const creer_search_all = (schemas) => async (nom_modele, condition, contexte_con
     const contexte_norm  = normaliser_contexte_condition(contexte_condition)
     const options_norm   = normaliser_options_liste(modele, options)
 
-    const criteres = extraire_criteres_depuis_condition(modele, condition_norm, contexte_norm)
-    const filtres_comparaison_sql = extraire_filtres_comparaison_sql(modele, condition_norm, contexte_norm)
+    const { joins, condition_avec_joins } = analyser_condition_pour_joins(schemas, modele, condition_norm, contexte_norm)
+    
+    const criteres = extraire_criteres_depuis_condition(modele, condition_avec_joins, contexte_norm)
+    const filtres_comparaison_sql = extraire_filtres_comparaison_sql(modele, condition_avec_joins, contexte_norm)
+    const filtres_relation_sql = extraire_filtres_relation_sql(condition_avec_joins, contexte_norm)
 
     const { sql, post }       = separer_criteres(modele, criteres)
-    const { clause, valeurs } = construire_where(sql, filtres_comparaison_sql)
+    const { clause, valeurs } = construire_where(sql, [...filtres_comparaison_sql, ...filtres_relation_sql])
     const besoin_post         = Object.keys(post).length > 0
 
-    const [lignes] = await pool().query(
-        `SELECT * FROM \`${modele.name}\` ${clause}`.trim(),
-        valeurs
-    )
+    const requete = construire_requete_recherche(modele, joins, clause)
+    console.log('[search_all] SQL:', rendre_requete_sql_debug(requete, valeurs))
+    if (valeurs.length) console.log('[search_all] Valeurs:', valeurs)
+    const [lignes] = await pool().query(requete, valeurs)
 
     const now = new Date()
     const resultats = []
@@ -1502,17 +1771,20 @@ const creer_delete_one = (schemas) => async (nom_modele, condition, contexte_con
     const condition_norm = normaliser_condition(condition)
     const contexte_norm  = normaliser_contexte_condition(contexte_condition)
 
-    const criteres = extraire_criteres_depuis_condition(modele, condition_norm, contexte_norm)
-    const filtres_comparaison_sql = extraire_filtres_comparaison_sql(modele, condition_norm, contexte_norm)
+    const { joins, condition_avec_joins } = analyser_condition_pour_joins(schemas, modele, condition_norm, contexte_norm)
+    
+    const criteres = extraire_criteres_depuis_condition(modele, condition_avec_joins, contexte_norm)
+    const filtres_comparaison_sql = extraire_filtres_comparaison_sql(modele, condition_avec_joins, contexte_norm)
+    const filtres_relation_sql = extraire_filtres_relation_sql(condition_avec_joins, contexte_norm)
 
     const { sql, post }       = separer_criteres(modele, criteres)
-    const { clause, valeurs } = construire_where(sql, filtres_comparaison_sql)
+    const { clause, valeurs } = construire_where(sql, [...filtres_comparaison_sql, ...filtres_relation_sql])
     const besoin_post         = Object.keys(post).length > 0
 
-    const [lignes] = await pool().query(
-        `SELECT * FROM \`${modele.name}\` ${clause}`.trim(),
-        valeurs
-    )
+    const requete = construire_requete_recherche(modele, joins, clause)
+    console.log('[delete_one] SQL:', rendre_requete_sql_debug(requete, valeurs))
+    if (valeurs.length) console.log('[delete_one] Valeurs:', valeurs)
+    const [lignes] = await pool().query(requete, valeurs)
     const now = new Date()
     for (const ligne of lignes)
     {
@@ -1538,19 +1810,20 @@ const creer_delete_all = (schemas) => async (nom_modele, condition, contexte_con
     const contexte_norm  = normaliser_contexte_condition(contexte_condition)
     const options_norm   = normaliser_options_liste(modele, options)
 
-    const criteres = extraire_criteres_depuis_condition(modele, condition_norm, contexte_norm)
-    const filtres_comparaison_sql = extraire_filtres_comparaison_sql(modele, condition_norm, contexte_norm)
+    const { joins, condition_avec_joins } = analyser_condition_pour_joins(schemas, modele, condition_norm, contexte_norm)
+    
+    const criteres = extraire_criteres_depuis_condition(modele, condition_avec_joins, contexte_norm)
+    const filtres_comparaison_sql = extraire_filtres_comparaison_sql(modele, condition_avec_joins, contexte_norm)
+    const filtres_relation_sql = extraire_filtres_relation_sql(condition_avec_joins, contexte_norm)
 
     const { sql, post }       = separer_criteres(modele, criteres)
-    const { clause, valeurs } = construire_where(sql, filtres_comparaison_sql)
+    const { clause, valeurs } = construire_where(sql, [...filtres_comparaison_sql, ...filtres_relation_sql])
     const besoin_post         = Object.keys(post).length > 0
 
-    const [lignes] = await pool().query(
-        `SELECT * FROM \`${modele.name}\` ${clause}`.trim(),
-        valeurs
-    )
-    console.log(`SELECT * FROM \`${modele.name}\` ${clause}`)
-    console.log(valeurs)
+    const requete = construire_requete_recherche(modele, joins, clause)
+    console.log('[delete_all] SQL:', rendre_requete_sql_debug(requete, valeurs))
+    if (valeurs.length) console.log('[delete_all] Valeurs:', valeurs)
+    const [lignes] = await pool().query(requete, valeurs)
     const now = new Date()
     const a_supprimer = []
     for (const ligne of lignes)
@@ -1586,17 +1859,20 @@ const creer_update_one = (schemas) => async (nom_modele, condition, donnees, con
     const donnees_norm   = normaliser_donnees_update(donnees)
     const contexte_norm  = normaliser_contexte_condition(contexte_condition)
 
-    const criteres = extraire_criteres_depuis_condition(modele, condition_norm, contexte_norm)
-    const filtres_comparaison_sql = extraire_filtres_comparaison_sql(modele, condition_norm, contexte_norm)
+    const { joins, condition_avec_joins } = analyser_condition_pour_joins(schemas, modele, condition_norm, contexte_norm)
+    
+    const criteres = extraire_criteres_depuis_condition(modele, condition_avec_joins, contexte_norm)
+    const filtres_comparaison_sql = extraire_filtres_comparaison_sql(modele, condition_avec_joins, contexte_norm)
+    const filtres_relation_sql = extraire_filtres_relation_sql(condition_avec_joins, contexte_norm)
 
     const { sql, post }       = separer_criteres(modele, criteres)
-    const { clause, valeurs } = construire_where(sql, filtres_comparaison_sql)
+    const { clause, valeurs } = construire_where(sql, [...filtres_comparaison_sql, ...filtres_relation_sql])
     const besoin_post         = Object.keys(post).length > 0
 
-    const [lignes] = await pool().query(
-        `SELECT * FROM \`${modele.name}\` ${clause}`.trim(),
-        valeurs
-    )
+    const requete = construire_requete_recherche(modele, joins, clause)
+    console.log('[update_one] SQL:', rendre_requete_sql_debug(requete, valeurs))
+    if (valeurs.length) console.log('[update_one] Valeurs:', valeurs)
+    const [lignes] = await pool().query(requete, valeurs)
 
     const now = new Date()
     let cible = null
@@ -1640,17 +1916,20 @@ const creer_update_all = (schemas) => async (nom_modele, condition, donnees, con
     const donnees_norm   = normaliser_donnees_update(donnees)
     const contexte_norm  = normaliser_contexte_condition(contexte_condition)
 
-    const criteres = extraire_criteres_depuis_condition(modele, condition_norm, contexte_norm)
-    const filtres_comparaison_sql = extraire_filtres_comparaison_sql(modele, condition_norm, contexte_norm)
+    const { joins, condition_avec_joins } = analyser_condition_pour_joins(schemas, modele, condition_norm, contexte_norm)
+    
+    const criteres = extraire_criteres_depuis_condition(modele, condition_avec_joins, contexte_norm)
+    const filtres_comparaison_sql = extraire_filtres_comparaison_sql(modele, condition_avec_joins, contexte_norm)
+    const filtres_relation_sql = extraire_filtres_relation_sql(condition_avec_joins, contexte_norm)
 
     const { sql, post }       = separer_criteres(modele, criteres)
-    const { clause, valeurs } = construire_where(sql, filtres_comparaison_sql)
+    const { clause, valeurs } = construire_where(sql, [...filtres_comparaison_sql, ...filtres_relation_sql])
     const besoin_post         = Object.keys(post).length > 0
 
-    const [lignes] = await pool().query(
-        `SELECT * FROM \`${modele.name}\` ${clause}`.trim(),
-        valeurs
-    )
+    const requete = construire_requete_recherche(modele, joins, clause)
+    console.log('[update_all] SQL:', rendre_requete_sql_debug(requete, valeurs))
+    if (valeurs.length) console.log('[update_all] Valeurs:', valeurs)
+    const [lignes] = await pool().query(requete, valeurs)
 
     const now = new Date()
     const cibles = []

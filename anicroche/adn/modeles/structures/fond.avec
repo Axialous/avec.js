@@ -27,12 +27,17 @@
         opacity: 0;
     }
 
-    #fond .tete {
+    #fond .empreinte-tete {
         --f-fond: var(--c-analogue);
         --c-fond: var(--c-analogue);
     }
 
-    #fond .corps {
+    #fond .empreinte-navigation {
+        --f-fond: var(--f-degrade-vif);
+        --c-fond: var(--c-vif);
+    }
+
+    #fond .empreinte-corps {
         --f-fond: var(--c-theme);
         --c-fond: var(--c-theme);
     }
@@ -40,15 +45,42 @@
     .grand #fond,
     .petit.paysage #fond {
         grid-template-columns: var(--l-tete) 1fr;
+        grid-template-rows: var(--h-navigation) 1fr;
+    }
+
+    .grand #fond .empreinte-tete,
+    .petit.paysage #fond .empreinte-tete {
+        grid-column: 1;
+        grid-row: 1 / 3;
+    }
+
+    .grand #fond .empreinte-navigation,
+    .petit.paysage #fond .empreinte-navigation {
+        grid-column: 2;
+        grid-row: 1;
+    }
+
+    .grand #fond .empreinte-corps,
+    .petit.paysage #fond .empreinte-corps {
+        grid-column: 2;
+        grid-row: 2;
     }
 
     .petit.portrait #fond {
-        grid-template-columns: none;
-        grid-template-rows: 1fr 3.5rem;
+        grid-template-columns: 1fr;
+        grid-template-rows: var(--h-navigation) 1fr 3.5rem;
     }
 
-    .petit.portrait #fond .tete {
+    .petit.portrait #fond .empreinte-navigation {
+        grid-row: 1;
+    }
+
+    .petit.portrait #fond .empreinte-corps {
         grid-row: 2;
+    }
+
+    .petit.portrait #fond .empreinte-tete {
+        grid-row: 3;
     }
 ]
 
@@ -56,5 +88,6 @@
     #fond
     @mount="$monter_fond($node)"
 >
-    <div .tete>
-    <div .corps>
+    <div .empreinte-tete>
+    <div .empreinte-navigation>
+    <div .empreinte-corps>

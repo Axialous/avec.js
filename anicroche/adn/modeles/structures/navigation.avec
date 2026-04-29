@@ -1,56 +1,18 @@
-@script [
-    $monter_navigation = ($node) =>
-    {
-        $node.classList.add('entree')
-        requestAnimationFrame(() => 
-            requestAnimationFrame(() => 
-                $node.classList.remove('entree')
-            )
-        )
-    }
-
-    $demonter_navigation = async ($node) =>
-    {
-        const style = getComputedStyle($node)
-
-        const parseTime = (value) =>
-        {
-            return value.split(',')
-                .map(v => v.trim())
-                .map(v => v.endsWith('ms') ? parseFloat(v) : parseFloat(v) * 1000)
-        }
-
-        const durations = parseTime(style.transitionDuration)
-        const delays = parseTime(style.transitionDelay)
-
-        const times = durations.map((d, i) => d + (delays[i] || 0))
-        const maxTime = Math.max(...times, 0)
-
-        $node.classList.add('sortie')
-
-        await new Promise(r => setTimeout(r, maxTime))
-    }
-]
-
 @style [
     .navigation {
-        align-items: center;
+        position: absolute;
+        top: 0;
+        left: var(--l-tete);
+        right: 0;
+
+        height: var(--h-navigation);
+        padding: var(--l-marge);
+
         flex-direction: row;
-        flex: 1;
 
-        transition: opacity var(--d-animation);
-    }
-
-    .navigation.entree {
-        opacity: 0;
-    }
-
-    .navigation.sortie {
-        opacity: 0;
-    }
-
-    .navigation div {
-        flex-direction: row;
+        --f-fond: var(--f-degrade-vif);
+        --c-fond: var(--c-vif);
+        --c-flux: var(--c-creme);
     }
 
     .navigation .gauche {
@@ -65,11 +27,33 @@
     .navigation .droite {
         justify-content: flex-end;
     }
+
+    .navigation span {
+        white-space: nowrap;
+        text-align: center;
+
+        --l-fonte: 1.5rem;
+        --e-fonte: var(--e-titre);
+        --p-fonte: var(--p-titre);
+    }
+
+    .navigation .bouton-onglet span {
+        --l-fonte: 1.25rem;
+    }
+
+    .petit .navigation span {
+        --l-fonte: 1.25rem;
+    }
+
+    .petit .navigation .bouton-onglet span {
+        --l-fonte: 1rem;
+    }
+
+    .petit .navigation .icone {
+        margin: -0.25rem 0;
+    }
+
 ]
 
-<div
-    .navigation
-    @mount="$monter_navigation($node)"
-    @unmount="await $demonter_navigation($node)"
->
+<div .navigation>
     @stud

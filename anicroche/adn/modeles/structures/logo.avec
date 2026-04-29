@@ -18,6 +18,10 @@
     .petit.portrait #logo {
         display: none;
     }
+
+    .petit #logo .icone {
+        margin: -0.25rem 0;
+    }
 ]
 
 <div #logo>

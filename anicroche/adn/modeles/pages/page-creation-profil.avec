@@ -1,10 +1,4 @@
-@script [
-    $erreur_creation_profil = ':('
-]
-
-@args [$section]
-
-@if [$section = navigation]
+page
     navigation
         <div .gauche>
             fleche-retour [/profil]
@@ -16,7 +10,5 @@
         <div .droite>
             icone-horloge
 
-@if [$section = page]
-    page
-        onglet
-            section-creation-profil
+    onglet
+        section-creation-profil

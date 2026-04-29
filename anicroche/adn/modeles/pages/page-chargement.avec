@@ -1,6 +1,4 @@
-@args [$section]
-
-@if [$section = navigation]
+page
     navigation
         <div .gauche>
             fleche-retour
@@ -12,7 +10,5 @@
         <div .droite>
             icone-horloge
 
-@if [$section = page]
-    page
-        onglet
-            section-chargement
+    onglet
+        section-chargement

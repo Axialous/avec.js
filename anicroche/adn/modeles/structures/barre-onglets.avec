@@ -7,36 +7,23 @@
         const indicateur = $node.querySelector(':scope > .indicateur')
         if (!indicateur) return
 
-        indicateur.style.width = `calc((100% - ${boutons.length + 1}rem) / ${boutons.length})`
+        indicateur.style.width = `calc((100% - ${boutons.length - 1}rem) / ${boutons.length})`
     }
 ]
 
 @style [
     .barre-onglets {
-        position: absolute;
-        top: 0;
-        left: var(--l-tete);
-        right: 0;
-
-        height: 2rem;
-        padding: 0 var(--l-marge) var(--l-marge);
-
+        position: relative;
         flex-direction: row;
-
-        --f-fond: var(--f-degrade-vif);
-        --c-fond: var(--c-vif);
-        --c-flux: var(--c-creme);
     }
 
     .barre-onglets > .indicateur {
         position: absolute;
-        bottom: 0.125rem;
-        left: 1rem;
+        bottom: -0.875rem;
+        left: 0rem;
 
         height: 0.125rem;
         border-radius: 0.0625rem;
-
-        transition: left var(--d-animation);
 
         --f-fond: var(--c-creme);
         --c-fond: var(--c-creme);

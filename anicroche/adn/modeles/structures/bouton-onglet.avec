@@ -16,7 +16,18 @@
     .bouton-onglet {
         flex: 1;
 
+        display: flex;
+        justify-content: center;
+
         border-radius: 0.1875rem;
+    }
+
+    .bouton-onglet > * {
+        transition: opacity var(--d-animation);
+    }
+
+    .bouton-onglet:not(.actif) > * {
+        opacity: 75%;
     }
 ]
 

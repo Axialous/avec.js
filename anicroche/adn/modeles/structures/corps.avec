@@ -30,32 +30,11 @@
         grid-area: 1 / 1 / 2 / 2;
     }
 
-    #navigation {
-        height: 3.5rem;
-
-        align-items: center;
-        flex-flow: row nowrap;
-
-        padding: var(--l-marge);
-
-        --f-fond: var(--f-degrade-vif);
-        --c-fond: var(--c-vif);
-        --c-flux: var(--c-creme);
-    }
-
-    #navigation span {
-        white-space: nowrap;
-
-        --l-fonte: 1.5rem;
-        --e-fonte: var(--e-titre);
-        --p-fonte: var(--p-titre);
-    }
-
     #page {
         margin-left: calc(0px - var(--l-tete));
         position: relative;
         flex: 1;
-        height: calc(100% - 3.5rem);
+        height: 100%;
     }
 ]
 
@@ -63,8 +42,5 @@
     #corps
     @mount="$monter_corps($node)"
 >
-    <nav #navigation>
-        routeur [navigation]
-
     <section #page>
-        routeur [page]
+        routeur

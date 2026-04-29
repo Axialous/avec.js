@@ -99,6 +99,7 @@
         --l-marge: 1rem;
         --l-blur: 4rem;
         --l-tete: 10.625rem;
+        --h-navigation: 3.5rem;
 
         --e-fonte:  var(--e-texte);
         --e-titre:  450;
@@ -132,6 +133,10 @@
         --f-fond: var(--c-theme);
         --c-fond: var(--c-theme);
         --c-flux: var(--c-inverse);
+    }
+
+    html.petit {
+        --h-navigation: 3rem;
     }
 
     html.petit.paysage {

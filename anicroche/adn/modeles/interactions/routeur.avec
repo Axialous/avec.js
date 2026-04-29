@@ -1,19 +1,20 @@
-@args [$section]
-
 @if [$path ~= '/']
-    -page-accueil [$section]
+    -page-accueil
 
 @else-if [$path ~= '/connexion']
-    -page-connexion [$section]
+    -page-connexion
 
 @else-if [$path ~= '/profil']
-    -page-profil [$section]
+    -page-profil
 
 @else-if [$path ~= '/profil/creation']
-    -page-creation-profil [$section]
+    -page-creation-profil
+
+@else-if [$path ~= '/chargement']
+    -page-chargement
 
 @else
-    -page-404 [$section]
+    -page-404
 
-?page-chargement [$section]
-!page-404 [$section]
+?page-chargement
+!page-404

@@ -1,6 +1,4 @@
-@args [$section]
-
-@if [$section = navigation]
+page
     navigation
         <div .centre>
             <span>
@@ -9,8 +7,6 @@
         <div .droite>
             icone-horloge
 
-@if [$section = page]
-    page
-        onglet
-            <h1>
-                "Bienvenue sur Anicroche !"
+    onglet
+        <h1>
+            "Bienvenue sur Anicroche !"

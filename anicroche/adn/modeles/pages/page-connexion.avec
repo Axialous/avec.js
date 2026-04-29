@@ -14,9 +14,7 @@
     $erreur_inscription  = ':('
 ]
 
-@args [$section]
-
-@if [$section = navigation]
+page [:(]
     navigation
         <div .gauche>
             fleche-retour
@@ -29,14 +27,14 @@
             ancre-boite [/preferences, Préférences]
                 icone-engrenage
 
-@if [$section = page]
-    page [:(]
-        onglet
-            section-connexion [courriel]
-        onglet
-            @if [$mode_formulaire = clef]
-                section-connexion [clef]
-            @else-if [$mode_formulaire = mot_de_passe]
-                section-connexion [mot_de_passe]
-        onglet
-            section-connexion [inscription]
+    onglet
+        section-connexion [courriel]
+
+    onglet
+        @if [$mode_formulaire = clef]
+            section-connexion [clef]
+        @else-if [$mode_formulaire = mot_de_passe]
+            section-connexion [mot_de_passe]
+
+    onglet
+        section-connexion [inscription]

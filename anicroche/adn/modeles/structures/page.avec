@@ -2,8 +2,8 @@
     $monter_page = ($node) =>
     {
         $node.classList.add('entree')
-        requestAnimationFrame(() => 
-            requestAnimationFrame(() => 
+        requestAnimationFrame(() =>
+            requestAnimationFrame(() =>
                 $node.classList.remove('entree')
             )
         )
@@ -14,7 +14,7 @@
         {
             const ratio = $node.scrollLeft / ($node.scrollWidth - $node.clientWidth)
 
-            const barre = $node.querySelector(':scope > .barre-onglets')
+            const barre = $node.querySelector(':scope .barre-onglets')
             if (barre)
             {
                 const boutons = barre.querySelectorAll(':scope > .bouton-onglet')
@@ -23,8 +23,7 @@
                 if (indicateur)
                 {
                     const nb = boutons.length
-                    indicateur.style.transition = 'none'
-                    indicateur.style.left = `calc((100% - ${nb + 1}rem) / ${nb} * ${ratio * (nb - 1)} + ${ratio * (nb - 1) + 1}rem)`
+                    indicateur.style.left = `calc((100% - ${nb - 1}rem) / ${nb} * ${ratio * (nb - 1)} + ${ratio * (nb - 1)}rem)`
                 }
             }
 
@@ -67,18 +66,6 @@
 
         cible.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' })
 
-        const barre = page.querySelector(':scope > .barre-onglets')
-        if (!barre) return
-
-        const boutons = barre.querySelectorAll(':scope > .bouton-onglet')
-        const bouton = boutons[n - 1]
-        if (!bouton) return
-
-        const indicateur = barre.querySelector(':scope > .indicateur')
-        if (!indicateur) return
-
-        indicateur.style.left = `calc((100% - ${boutons.length + 1}rem) / ${boutons.length} * ${n - 1} + ${n}rem)`
-
         marquer_onglet_actif(page, n)
     }
 
@@ -108,6 +95,12 @@
 
     const marquer_onglet_actif = (page, n) =>
     {
+        const boutons_onglets = page.querySelectorAll(':scope .bouton-onglet')
+        boutons_onglets.forEach((bouton_onglet, i) =>
+        {
+            const actif = i === n - 1
+            bouton_onglet.classList.toggle('actif', actif)
+        })
         const onglets = page.querySelectorAll(':scope > .onglet')
         onglets.forEach((onglet, i) =>
         {
@@ -134,10 +127,6 @@
 
     .page.defilable {
         overflow-x: auto;
-    }
-
-    .page:has(> .barre-onglets) {
-        padding-top: 2rem;
     }
 
     .page::-webkit-scrollbar {

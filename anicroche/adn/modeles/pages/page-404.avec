@@ -1,6 +1,4 @@
-@args [$section]
-
-@if [$section = navigation]
+page
     navigation
         <div .gauche>
             fleche-retour
@@ -12,8 +10,6 @@
         <div .droite>
             icone-horloge
 
-@if [$section = page]
-    page
-        onglet
-            <h1>
-                "Contenu introuvable !"
+    onglet
+        <h1>
+            "Contenu introuvable !"

@@ -15,4 +15,4 @@ section [compte]
         "Votre compte"
     carte
         bouton-formulaire [$deconnecter_compte]
-            "DÉCONNEXION"
+            "Déconnexion"

@@ -86,6 +86,36 @@ const decapsuler = (str) =>
     return texte
 }
 
+const extraire_modele_et_classes = (str) =>
+{
+    const brut = str.trim()
+    const parties = brut.split('.')
+    const nom = parties.shift()
+    const classes = parties
+
+    if (nom.length === 0)
+        throw new Error(`Nom de modèle invalide : nom manquant`)
+    if (classes.some(classe => classe.length === 0))
+        throw new Error(`Nom de modèle invalide : classe manquante après '.'`)
+
+    return {
+        nom,
+        classes
+    }
+}
+
+const appliquer_classes_racine = (noeuds, classes) =>
+{
+    if (!classes || classes.length === 0)
+        return
+
+    for (const noeud of noeuds)
+    {
+        if (noeud.nodeType === 1)
+            classes.forEach(classe => noeud.classList.add(classe))
+    }
+}
+
 const est_entoure_par_bloc = (str) =>
 {
     const texte = str.trim()
@@ -951,7 +981,9 @@ const construire_modele = (bloc, donnees) =>
     const est_attente  = nom_complet[0] === '?'
     const est_repli    = nom_complet[0] === '!'
     const differe      = nom_complet[0] === '-'
-    const nom = (differe || est_attente || est_repli) ? nom_complet.slice(1) : nom_complet
+    const info_modele  = extraire_modele_et_classes((differe || est_attente || est_repli) ? nom_complet.slice(1) : nom_complet)
+    const nom          = info_modele.nom
+    const classes      = bloc.classes ?? info_modele.classes
 
     // Modèle d'attente ou de repli : déjà pris en compte par le pré-scan, on ne construit rien
     if (est_attente || est_repli)
@@ -968,6 +1000,7 @@ const construire_modele = (bloc, donnees) =>
                 donnees
               )
             : []
+                appliquer_classes_racine(noeuds_attente, classes)
 
         const ancre = document.createComment(`-${nom}`)
 
@@ -1011,6 +1044,7 @@ const construire_modele = (bloc, donnees) =>
                         donnees
                       )
                     : []
+                appliquer_classes_racine(noeuds_repli, classes)
                 ancre.after(...noeuds_repli)
                 ancre.remove()
                 queueMicrotask(() => noeuds_repli.forEach(n => {
@@ -1020,6 +1054,7 @@ const construire_modele = (bloc, donnees) =>
             }
 
             const noeuds = construire_modele({ ...bloc, args: [nom, ...bloc.args.slice(1)] }, donnees)
+            appliquer_classes_racine(noeuds, classes)
             ancre.after(...noeuds)
             ancre.remove()
 
@@ -1138,6 +1173,7 @@ const construire_modele = (bloc, donnees) =>
     }
 
     const noeuds = construire_bloc(modele, donnees_modele)
+    appliquer_classes_racine(noeuds, classes)
     noeuds.forEach(noeud => { if (!noeud._avec_modele) noeud._avec_modele = nom })
 
     return noeuds

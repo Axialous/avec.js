@@ -202,6 +202,24 @@ const valider_bloc_avec = (bloc, str, pos, fichier) =>
         erreur("Syntaxe incorrecte", fichier, str, pos)
 }
 
+const extraire_modele_et_classes = (str) =>
+{
+    const brut = str.trim()
+    const parties = brut.split('.')
+    const nom = parties.shift()
+    const classes = parties
+
+    if (nom.length === 0)
+        throw new Error(`Analyseur .avec : nom de modèle invalide : nom manquant`)
+    if (classes.some(classe => classe.length === 0))
+        throw new Error(`Analyseur .avec : nom de modèle invalide : classe manquante après '.'`)
+
+    return {
+        nom,
+        classes
+    }
+}
+
 const analyser_bloc_avec = (str, deb, fin, fichier, json) =>
 {
     debug("Bloc", str, deb, fin, json)
@@ -255,12 +273,18 @@ const analyser_bloc_avec = (str, deb, fin, fichier, json) =>
     else if (bloc.args[0][0] == '-' && /^[a-zA-Z]$/.test(bloc.args[0][1]))
     {
         bloc.type = 'modele'
+        const { nom, classes } = extraire_modele_et_classes(bloc.args[0].slice(1))
+        if (classes.length > 0)
+            bloc.classes = classes
+
         // Modèle différé : pas de chargement au moment du parsing
     }
     else if (bloc.args[0][0] == '?' && /^[a-zA-Z]$/.test(bloc.args[0][1]))
     {
         bloc.type = 'modele'
-        const nom = bloc.args[0].slice(1)
+        const { nom, classes } = extraire_modele_et_classes(bloc.args[0].slice(1))
+        if (classes.length > 0)
+            bloc.classes = classes
         if (!json.dependances[nom])
         {
             if (analyser_dependance(nom, json) != 0)
@@ -272,7 +296,9 @@ const analyser_bloc_avec = (str, deb, fin, fichier, json) =>
     else if (bloc.args[0][0] == '!' && /^[a-zA-Z]$/.test(bloc.args[0][1]))
     {
         bloc.type = 'modele'
-        const nom = bloc.args[0].slice(1)
+        const { nom, classes } = extraire_modele_et_classes(bloc.args[0].slice(1))
+        if (classes.length > 0)
+            bloc.classes = classes
         if (!json.dependances[nom])
         {
             if (analyser_dependance(nom, json) != 0)
@@ -284,9 +310,14 @@ const analyser_bloc_avec = (str, deb, fin, fichier, json) =>
     else if (/^[a-zA-Z]$/.test(bloc.args[0][0]))
     {
         bloc.type = 'modele'
-        if (!json.dependances[bloc.args[0]])
+        const { nom, classes } = extraire_modele_et_classes(bloc.args[0])
+        bloc.args[0] = nom
+        if (classes.length > 0)
+            bloc.classes = classes
+
+        if (!json.dependances[nom])
         {
-            if (analyser_dependance(bloc.args[0], json) != 0)
+            if (analyser_dependance(nom, json) != 0)
             {
                 return erreur("Chargement du modèle impossible", fichier, str, deb + indentation)
             }

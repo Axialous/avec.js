@@ -2,6 +2,7 @@
     $monter_page = ($node) =>
     {
         $node.classList.add('entree')
+        void $node.offsetWidth
         requestAnimationFrame(() =>
             requestAnimationFrame(() =>
                 $node.classList.remove('entree')

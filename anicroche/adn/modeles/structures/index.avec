@@ -1,7 +1,8 @@
 @script [
-    $theme = `clair`
-    $format = `petit`
+    $format      = `petit`
     $orientation = `paysage`
+    $pointeur    = `precis`
+    $theme       = `clair`
 
     const actualiser_format = () =>
     {
@@ -15,21 +16,32 @@
         document.documentElement.classList.add($format, $orientation)
     }
 
-    const actualiser_theme = (media_query) =>
+    const actualiser_pointeur = (media_query) =>
     {
-        $theme = media_query.matches ? `sombre` : `clair`
+        $pointeur = media_query.matches ? `grossier` : `precis`
+
+        document.documentElement.classList.remove(`grossier`, `precis`)
+        document.documentElement.classList.add($pointeur)
+    }
+
+    const actualiser_theme = (media_query_theme) =>
+    {
+        $theme = media_query_theme.matches ? `sombre` : `clair`
 
         document.documentElement.classList.remove(`clair`, `sombre`)
         document.documentElement.classList.add($theme)
     }
 
-    const media_query = window.matchMedia(`(prefers-color-scheme: dark)`)
+    const media_query_pointeur = window.matchMedia(`(pointer: coarse)`)
+    const media_query_theme = window.matchMedia(`(prefers-color-scheme: dark)`)
 
     actualiser_format()
-    actualiser_theme(media_query)
+    actualiser_pointeur(media_query_pointeur)
+    actualiser_theme(media_query_theme)
 
     window.addEventListener(`resize`, actualiser_format)
-    media_query.addEventListener(`change`, actualiser_theme)
+    media_query_pointeur.addEventListener(`change`, actualiser_pointeur)
+    media_query_theme.addEventListener(`change`, actualiser_theme)
 ]
 
 @style [
@@ -130,6 +142,10 @@
         --c-vif:    oklch(0.65 var(--s-theme) var(--t-theme));
         --c-clair:  oklch(0.85 var(--s-theme) var(--t-theme));
 
+        --c-sombre-trans: oklch(0.45 var(--s-theme) var(--t-theme) / var(--p-trans));
+        --c-vif-trans:    oklch(0.65 var(--s-theme) var(--t-theme) / var(--p-trans));
+        --c-clair-trans:  oklch(0.85 var(--s-theme) var(--t-theme) / var(--p-trans));
+
         --f-fond: var(--c-theme);
         --c-fond: var(--c-theme);
         --c-flux: var(--c-inverse);
@@ -161,7 +177,11 @@
         --c-plus:     var(--c-clair);
         --c-moins:    var(--c-sombre);
 
+        --c-plus-trans:     var(--c-clair-trans);
+        --c-moins-trans:    var(--c-sombre-trans);
+
         --f-degrade-vif: linear-gradient(90deg, var(--c-vif), var(--c-clair));
+        --f-degrade-vif-trans: linear-gradient(90deg, var(--c-vif-trans), var(--c-clair-trans));
     }
 
     .sombre {
@@ -178,7 +198,11 @@
         --c-plus:     var(--c-sombre);
         --c-moins:    var(--c-clair);
 
+        --c-plus-trans:     var(--c-sombre-trans);
+        --c-moins-trans:    var(--c-clair-trans);
+
         --f-degrade-vif: linear-gradient(90deg, var(--c-sombre), var(--c-vif));
+        --f-degrade-vif-trans: linear-gradient(90deg, var(--c-sombre-trans), var(--c-vif-trans));
     }
 
     body {

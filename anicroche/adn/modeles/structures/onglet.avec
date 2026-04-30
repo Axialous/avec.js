@@ -6,7 +6,6 @@
         padding-top: var(--h-navigation);
         display: block;
 
-        overflow-y: auto;
         scroll-snap-align: end;
     }
 
@@ -24,6 +23,6 @@
     }
 ]
 
-<div .onglet>
+defilement-vertical.onglet
     <div .contenu>
         @stud

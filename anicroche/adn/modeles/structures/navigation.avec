@@ -4,13 +4,16 @@
         top: 0;
         left: var(--l-tete);
         right: 0;
+        z-index: 5;
 
         height: var(--h-navigation);
         padding: var(--l-marge);
 
         flex-direction: row;
 
-        --f-fond: var(--f-degrade-vif);
+        backdrop-filter: blur(var(--l-blur));
+
+        --f-fond: var(--f-degrade-vif-trans);
         --c-fond: var(--c-vif);
         --c-flux: var(--c-creme);
     }

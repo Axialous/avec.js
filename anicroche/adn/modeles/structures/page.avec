@@ -171,18 +171,10 @@
 
 @args [$defilable : :)]
 
-@if [$defilable]
-    <div
-        .page
-        .defilable
-        @mount="$monter_page($node, $vars)"
-        @unmount="await $demonter_page($node, $vars)"
-    >
-        @stud
-@else
-    <div
-        .page
-        @mount="$monter_page($node, $vars)"
-        @unmount="await $demonter_page($node, $vars)"
-    >
-        @stud
+<div
+    .page
+    [$defilable] ? .defilable
+    @mount="$monter_page($node, $vars)"
+    @unmount="await $demonter_page($node, $vars)"
+>
+    @stud

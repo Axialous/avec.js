@@ -121,10 +121,18 @@
 
         width: 0.75rem;
         pointer-events: none;
+
+        transition: opacity var(--d-animation);
     }
 
-    .defilement-vertical .piste.cachee {
-        display: none;
+    .defilement-vertical .piste.cachee,
+    .grossier .defilement-vertical .piste {
+        opacity: 0%;
+    }
+
+    .defilement-vertical .piste.cachee .poignee,
+    .grossier .defilement-vertical .piste .poignee {
+        pointer-events: none;
     }
 
     .defilement-vertical .poignee {
@@ -139,11 +147,12 @@
         transition: opacity var(--d-animation);
     }
 
-    .defilement-vertical .poignee:hover {
+    .precis .defilement-vertical .poignee:hover {
         opacity: 100%;
     }
 
-    .defilement-vertical .poignee:active {
+    .precis .defilement-vertical .poignee:active {
+        opacity: 100%;
         cursor: grabbing;
     }
 

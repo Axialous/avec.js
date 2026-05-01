@@ -3,6 +3,7 @@
     $orientation = `paysage`
     $pointeur    = `precis`
     $theme       = `clair`
+    $defilement  = `sommet`
 
     const actualiser_format = () =>
     {
@@ -32,12 +33,29 @@
         document.documentElement.classList.add($theme)
     }
 
+    $actualiser_defilement = (defilement) =>
+    {
+        if (defilement == `interieur`)
+        {
+            $defilement = `interieur`
+            document.documentElement.classList.remove(`sommet`)
+            document.documentElement.classList.add(`interieur`)
+        }
+        else if (defilement == `sommet`)
+        {
+            $defilement = `sommet`
+            document.documentElement.classList.remove(`interieur`)
+            document.documentElement.classList.add(`sommet`)
+        }
+    }
+
     const media_query_pointeur = window.matchMedia(`(pointer: coarse)`)
     const media_query_theme = window.matchMedia(`(prefers-color-scheme: dark)`)
 
     actualiser_format()
     actualiser_pointeur(media_query_pointeur)
     actualiser_theme(media_query_theme)
+    $actualiser_defilement(`sommet`)
 
     window.addEventListener(`resize`, actualiser_format)
     media_query_pointeur.addEventListener(`change`, actualiser_pointeur)
@@ -128,6 +146,7 @@
 
         --c-noir:  oklch(0.00 0.00 0);
         --c-blanc: oklch(1.00 0.00 0);
+        --c-trans: oklch(1.00 0.00 0 / 0%);
 
         --c-noir-trans:  oklch(0.00 0.00 0 / var(--p-trans));
         --c-blanc-trans: oklch(1.00 0.00 0 / var(--p-trans));

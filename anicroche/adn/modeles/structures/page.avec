@@ -1,5 +1,5 @@
 @script [
-    $monter_page = ($node) =>
+    $monter_page = ($node, $vars) =>
     {
         $node.classList.add('entree')
         void $node.offsetWidth
@@ -8,8 +8,8 @@
                 $node.classList.remove('entree')
             )
         )
-        
-        marquer_onglet_actif($node, 1)
+
+        marquer_onglet_actif($node, 1, $vars)
 
         $node.addEventListener('scroll', () =>
         {
@@ -30,12 +30,15 @@
 
             const onglets = $node.querySelectorAll(':scope > .onglet')
             const n = Math.round(ratio * (onglets.length - 1)) + 1
-            marquer_onglet_actif($node, n)
+            marquer_onglet_actif($node, n, $vars)
         })
     }
 
-    $demonter_page = async ($node) =>
+    $demonter_page = async ($node, $vars) =>
     {
+        if ($vars.onglet_actif && $vars.sur_scroll_onglet)
+            $vars.onglet_actif.removeEventListener('scroll', $vars.sur_scroll_onglet)
+
         const style = getComputedStyle($node)
 
         const parseTime = (value) =>
@@ -94,7 +97,7 @@
         $basculer_vers_onglet(actif, $node)
     }
 
-    const marquer_onglet_actif = (page, n) =>
+    const marquer_onglet_actif = (page, n, $vars) =>
     {
         const boutons_onglets = page.querySelectorAll(':scope .bouton-onglet')
         boutons_onglets.forEach((bouton_onglet, i) =>
@@ -102,12 +105,30 @@
             const actif = i === n - 1
             bouton_onglet.classList.toggle('actif', actif)
         })
+
         const onglets = page.querySelectorAll(':scope > .onglet')
         onglets.forEach((onglet, i) =>
         {
             const actif = i === n - 1
             onglet.classList.toggle('actif', actif)
             onglet.inert = !actif
+
+            if (actif && $vars)
+            {
+                if ($vars.onglet_actif && $vars.onglet_actif !== onglet)
+                    $vars.onglet_actif.removeEventListener('scroll', $vars.sur_scroll_onglet)
+
+                $vars.onglet_actif = onglet
+
+                $vars.sur_scroll_onglet = () =>
+                {
+                    $actualiser_defilement(onglet.scrollTop > 0 ? `interieur` : `sommet`)
+                }
+
+                onglet.addEventListener('scroll', $vars.sur_scroll_onglet)
+
+                $actualiser_defilement(onglet.scrollTop > 0 ? `interieur` : `sommet`)
+            }
         })
     }
 ]
@@ -154,14 +175,14 @@
     <div
         .page
         .defilable
-        @mount="$monter_page($node)"
-        @unmount="await $demonter_page($node)"
+        @mount="$monter_page($node, $vars)"
+        @unmount="await $demonter_page($node, $vars)"
     >
         @stud
 @else
     <div
         .page
-        @mount="$monter_page($node)"
-        @unmount="await $demonter_page($node)"
+        @mount="$monter_page($node, $vars)"
+        @unmount="await $demonter_page($node, $vars)"
     >
         @stud

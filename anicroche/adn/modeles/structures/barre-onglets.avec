@@ -25,8 +25,8 @@
         height: 0.25rem;
         border-radius: 0.125rem;
 
-        --f-fond: var(--c-creme);
-        --c-fond: var(--c-creme);
+        --f-fond: var(--c-flux);
+        --c-fond: var(--c-flux);
     }
 ]
 

@@ -172,6 +172,6 @@
     @mount="$monter_defilement_vertical($node, $vars)"
     @unmount="$demonter_defilement_vertical($node, $vars)"
 >
-    <div .piste aria-hidden="true" role="presentation">
+    <div .piste>
         <div .poignee>
     @stud

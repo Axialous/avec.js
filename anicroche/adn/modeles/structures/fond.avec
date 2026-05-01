@@ -21,6 +21,9 @@
         gap: 0;
 
         transition: opacity var(--d-animation);
+
+        --f-fond: var(--c-analogue);
+        --c-fond: var(--c-analogue);
     }
 
     #fond.entree {
@@ -33,8 +36,14 @@
     }
 
     #fond .empreinte-navigation {
+        transition: opacity var(--d-animation);
+
         --f-fond: var(--f-degrade-vif);
         --c-fond: var(--c-vif);
+    }
+
+    .interieur #fond .empreinte-navigation {
+        opacity: 0%;
     }
 
     #fond .empreinte-corps {

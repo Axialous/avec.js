@@ -19,7 +19,7 @@ Un modèle est composé d'**annotations** (commençant par `@`) et d'une liste d
 
 @fields [
     {
-        name : id
+        name : zid
         type : char
         size : 12
     }

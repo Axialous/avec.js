@@ -66,27 +66,13 @@
 
         const separateur = $values.identifiant.indexOf('.')
 
-        // Vérification de la limite uniquement pour les profils racines
         if (separateur <= 0)
         {
-            const profils_geres = await $search_all('gerants_profils',
-                `$id_compte = $id_compte`,
-                { $id_compte: $context.compte.id }
+            const profils_geres_racines = await $search_all('profils',
+                `$gerants.id = $id_compte`,
+                { $id_compte: $context.compte.id },
+                { select: 'identifiant' }
             )
-
-            const ids_profils_geres = [...new Set(
-                profils_geres
-                    .map(lien => lien.id_profil)
-                    .filter(Boolean)
-            )]
-
-            const profils_geres_racines = ids_profils_geres.length
-                ? await $search_all('profils',
-                    `$id -{ $ids_profils_geres`,
-                    { $ids_profils_geres: ids_profils_geres },
-                    { select: 'identifiant' }
-                )
-                : []
 
             const nombre_profils_sans_point = profils_geres_racines
                 .filter(profil => !(profil.identifiant ?? '').includes('.'))

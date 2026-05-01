@@ -237,9 +237,7 @@
                         alt
                             "Retour"
                     bouton-soumission
-                        <span>
-                            "Continuer"
-                        icone-fleche-droite
+                        "Me connecter"
 
 @else-if [$etape = inscription]
     section [connexion, centree]
@@ -266,6 +264,4 @@
                         alt
                             "Retour"
                     bouton-soumission
-                        <span>
-                            "Créer le compte"
-                        icone-fleche-droite
+                        "Créer le compte"

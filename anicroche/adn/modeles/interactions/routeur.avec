@@ -10,6 +10,9 @@
 @else-if [$path ~= '/profil/creation']
     -page-creation-profil
 
+@else-if [$path ~= '/profil/edition']
+    -page-edition-profil
+
 @else-if [$path ~= '/chargement']
     -page-chargement
 

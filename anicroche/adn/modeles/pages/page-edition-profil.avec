@@ -1,0 +1,14 @@
+page
+    navigation
+        <div .gauche>
+            fleche-retour [/profil]
+
+        <div .centre>
+            <span>
+                "Édition de profil"
+
+        <div .droite>
+            icone-horloge
+
+    onglet
+        section-edition-profil

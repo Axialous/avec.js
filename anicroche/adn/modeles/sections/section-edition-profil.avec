@@ -1,7 +1,7 @@
 @script [
-    $erreur_creation_profil = ':('
+    $erreur_edition_profil = ':('
 
-    $envoyer_formulaire_creation = async ($node, $event) =>
+    $envoyer_formulaire_edition = async ($node, $event) =>
     {
         data = new FormData($node)
 
@@ -16,19 +16,19 @@
         }
         else
         {
-            $erreur_creation_profil = reponse.error ?? "La création du profil a échoué"
+            $erreur_edition_profil = reponse.error ?? "La création du profil a échoué"
         }
     }
 ]
 
 section [creation-profil, centree]
     titre [centre]
-        "Créez votre profil"
+        "Éditez votre profil"
     carte
-        formulaire [$envoyer_formulaire_creation]
-            @if [$erreur_creation_profil]
+        formulaire [$envoyer_formulaire_edition]
+            @if [$erreur_edition_profil]
                 erreur-formulaire
-                    "$erreur_creation_profil"
+                    "$erreur_edition_profil"
             champ-texte [
                 "Identifiant", identifiant
             ]

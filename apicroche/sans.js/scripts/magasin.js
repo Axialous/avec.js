@@ -467,6 +467,12 @@ const projeter_lignes_select = async (schemas, modele, lignes, select) =>
             for (const champ of noeud.fields)
                 resultats[i][champ] = ligne[champ]
         }
+
+        for (const [clef, valeur] of Object.entries(ligne))
+        {
+            if (typeof clef === 'string' && clef.startsWith('_can_'))
+                resultats[i][clef] = valeur
+        }
     }
 
     for (const [token, spec] of noeud.relations.entries())
@@ -777,10 +783,11 @@ const normaliser_options_liste = (modele, options) =>
             limit : null,
             offset: 0,
             select: null,
+            aux_conditions: {},
         }
 
     if (typeof options !== 'object' || Array.isArray(options))
-        throw new Error('Options invalides : utilisez un objet { order, dir, limit, offset, select }')
+        throw new Error('Options invalides : utilisez un objet { order, dir, limit, offset, select, aux_conditions }')
 
     const champs_modele = new Set(modele.fields.map(f => f.name))
 
@@ -822,7 +829,23 @@ const normaliser_options_liste = (modele, options) =>
             .filter(Boolean)
 
         if (select.length === 0)
-            select = [...champs_modele]
+            select = []
+    }
+
+    let aux_conditions = options.aux_conditions ?? {}
+    if (aux_conditions === null)
+        aux_conditions = {}
+    if (typeof aux_conditions !== 'object' || Array.isArray(aux_conditions))
+        throw new Error('Option aux_conditions invalide : utilisez un objet { cle: condition }')
+
+    const aux_conditions_norm = {}
+    for (const [cle, valeur] of Object.entries(aux_conditions))
+    {
+        if (typeof cle !== 'string' || !cle.trim())
+            continue
+        if (typeof valeur !== 'string' || !valeur.trim())
+            continue
+        aux_conditions_norm[cle.trim()] = valeur.trim()
     }
 
     return {
@@ -831,6 +854,7 @@ const normaliser_options_liste = (modele, options) =>
         limit : limit ?? null,
         offset,
         select,
+        aux_conditions: aux_conditions_norm
     }
 }
 
@@ -883,6 +907,24 @@ const filtrer_champs_select = (objet, champs_select) =>
         if (Object.prototype.hasOwnProperty.call(objet, champ))
             resultat[champ] = objet[champ]
     }
+    return resultat
+}
+
+const dedoublonner_joins_recherche = (joins) =>
+{
+    const vus = new Set()
+    const resultat = []
+
+    for (const join of joins)
+    {
+        const cle = join && typeof join.joins === 'string' ? join.joins : null
+        if (!cle || vus.has(cle))
+            continue
+
+        vus.add(cle)
+        resultat.push(join)
+    }
+
     return resultat
 }
 
@@ -1373,6 +1415,66 @@ const extraire_filtres_relation_sql = (condition, contexte_condition = {}) =>
     return clauses
 }
 
+const preparer_condition_recherche = (schemas, modele, condition, contexte_condition = {}) =>
+{
+    const condition_norm = normaliser_condition(condition)
+    const { joins, condition_avec_joins } = analyser_condition_pour_joins(schemas, modele, condition_norm, contexte_condition)
+
+    const criteres = extraire_criteres_depuis_condition(modele, condition_avec_joins, contexte_condition)
+    const filtres_comparaison_sql = extraire_filtres_comparaison_sql(modele, condition_avec_joins, contexte_condition)
+    const filtres_relation_sql = extraire_filtres_relation_sql(condition_avec_joins, contexte_condition)
+
+    const { sql, post }       = separer_criteres(modele, criteres)
+    const { clause, valeurs } = construire_where(sql, [...filtres_comparaison_sql, ...filtres_relation_sql])
+
+    return {
+        joins,
+        condition_avec_joins,
+        criteres,
+        post,
+        clause,
+        valeurs
+    }
+}
+
+const preparer_aux_conditions_recherche = (schemas, modele, aux_conditions = {}, contexte_condition = {}) =>
+{
+    const clauses_select = []
+    const joins = []
+    const valeurs = []
+    const joins_vus = new Set()
+
+    for (const [nom_colonne, condition] of Object.entries(aux_conditions))
+    {
+        if (typeof condition !== 'string' || !condition.trim())
+            continue
+
+        const preparation = preparer_condition_recherche(schemas, modele, condition, contexte_condition)
+
+        for (const join of preparation.joins)
+        {
+            const cle_join = join && typeof join.joins === 'string' ? join.joins : null
+            if (!cle_join || joins_vus.has(cle_join))
+                continue
+
+            joins_vus.add(cle_join)
+            joins.push(join)
+        }
+
+        const clause_sql = preparation.clause ? preparation.clause.replace(/^WHERE\s+/i, '') : '1'
+        clauses_select.push(`CASE WHEN ${clause_sql} THEN TRUE ELSE FALSE END AS \`${nom_colonne}\``)
+
+        if (preparation.valeurs.length)
+            valeurs.push(...preparation.valeurs)
+    }
+
+    return {
+        joins,
+        clauses_select,
+        valeurs
+    }
+}
+
 // ─── JOINs pour conditions sur relations ─────────────────────────────────────
 
 const extraire_chemins_relations_condition = (condition) =>
@@ -1498,9 +1600,11 @@ const analyser_condition_pour_joins = (schemas, modele, condition, contexte_cond
 }
 
 // Construire la requête SELECT complète avec JOINs
-const construire_requete_recherche = (modele, joins_data, clause_where) =>
+const construire_requete_recherche = (modele, joins_data, clause_where, select_supplementaire = []) =>
 {
-    const select_clause = `SELECT DISTINCT \`${modele.name}\`.* FROM \`${modele.name}\``
+    const select_clause = select_supplementaire.length
+        ? `SELECT DISTINCT \`${modele.name}\`.* , ${select_supplementaire.join(', ')} FROM \`${modele.name}\``
+        : `SELECT DISTINCT \`${modele.name}\`.* FROM \`${modele.name}\``
     
     if (!joins_data || !joins_data.length)
         return select_clause + (clause_where ? ` ${clause_where}` : '')
@@ -1685,17 +1789,15 @@ const creer_search_one = (schemas) => async (nom_modele, condition, contexte_con
     const contexte_norm  = normaliser_contexte_condition(contexte_condition)
     const options_norm   = normaliser_options_liste(modele, options)
 
-    const { joins, condition_avec_joins } = analyser_condition_pour_joins(schemas, modele, condition_norm, contexte_norm)
-    
-    const criteres = extraire_criteres_depuis_condition(modele, condition_avec_joins, contexte_norm)
-    const filtres_comparaison_sql = extraire_filtres_comparaison_sql(modele, condition_avec_joins, contexte_norm)
-    const filtres_relation_sql = extraire_filtres_relation_sql(condition_avec_joins, contexte_norm)
+    const preparation = preparer_condition_recherche(schemas, modele, condition_norm, contexte_norm)
+    const preparation_aux = preparer_aux_conditions_recherche(schemas, modele, options_norm.aux_conditions, contexte_norm)
 
-    const { sql, post }       = separer_criteres(modele, criteres)
-    const { clause, valeurs } = construire_where(sql, [...filtres_comparaison_sql, ...filtres_relation_sql])
-    const besoin_post         = Object.keys(post).length > 0
+    const joins = dedoublonner_joins_recherche([...preparation.joins, ...preparation_aux.joins])
+    const clauses_select = preparation_aux.clauses_select
+    const valeurs = [...preparation_aux.valeurs, ...preparation.valeurs]
+    const besoin_post = Object.keys(preparation.post).length > 0
 
-    const requete  = construire_requete_recherche(modele, joins, clause)
+    const requete  = construire_requete_recherche(modele, joins, preparation.clause, clauses_select)
     console.log('[search_one] SQL:', rendre_requete_sql_debug(requete, valeurs))
     if (valeurs.length) console.log('[search_one] Valeurs:', valeurs)
     const [lignes] = await pool().query(requete, valeurs)
@@ -1704,12 +1806,12 @@ const creer_search_one = (schemas) => async (nom_modele, condition, contexte_con
 
     for (const ligne of lignes)
     {
-        const post_ok = besoin_post ? await verifier_post(modele, ligne, post) : true
+        const post_ok = besoin_post ? await verifier_post(modele, ligne, preparation.post) : true
         if (!post_ok)
             continue
 
         const ligne_decryptee = decrypter_ligne(modele, ligne)
-        const condition_ok = respecter_condition(modele, ligne_decryptee, condition_norm, now, contexte_norm, criteres)
+        const condition_ok = respecter_condition(modele, ligne_decryptee, condition_norm, now, contexte_norm, preparation.criteres)
 
         if (!condition_ok)
             continue
@@ -1729,17 +1831,15 @@ const creer_search_all = (schemas) => async (nom_modele, condition, contexte_con
     const contexte_norm  = normaliser_contexte_condition(contexte_condition)
     const options_norm   = normaliser_options_liste(modele, options)
 
-    const { joins, condition_avec_joins } = analyser_condition_pour_joins(schemas, modele, condition_norm, contexte_norm)
-    
-    const criteres = extraire_criteres_depuis_condition(modele, condition_avec_joins, contexte_norm)
-    const filtres_comparaison_sql = extraire_filtres_comparaison_sql(modele, condition_avec_joins, contexte_norm)
-    const filtres_relation_sql = extraire_filtres_relation_sql(condition_avec_joins, contexte_norm)
+    const preparation = preparer_condition_recherche(schemas, modele, condition_norm, contexte_norm)
+    const preparation_aux = preparer_aux_conditions_recherche(schemas, modele, options_norm.aux_conditions, contexte_norm)
 
-    const { sql, post }       = separer_criteres(modele, criteres)
-    const { clause, valeurs } = construire_where(sql, [...filtres_comparaison_sql, ...filtres_relation_sql])
-    const besoin_post         = Object.keys(post).length > 0
+    const joins = dedoublonner_joins_recherche([...preparation.joins, ...preparation_aux.joins])
+    const clauses_select = preparation_aux.clauses_select
+    const valeurs = [...preparation_aux.valeurs, ...preparation.valeurs]
+    const besoin_post = Object.keys(preparation.post).length > 0
 
-    const requete = construire_requete_recherche(modele, joins, clause)
+    const requete = construire_requete_recherche(modele, joins, preparation.clause, clauses_select)
     console.log('[search_all] SQL:', rendre_requete_sql_debug(requete, valeurs))
     if (valeurs.length) console.log('[search_all] Valeurs:', valeurs)
     const [lignes] = await pool().query(requete, valeurs)
@@ -1748,11 +1848,11 @@ const creer_search_all = (schemas) => async (nom_modele, condition, contexte_con
     const resultats = []
     for (const ligne of lignes)
     {
-        if (besoin_post && !await verifier_post(modele, ligne, post))
+        if (besoin_post && !await verifier_post(modele, ligne, preparation.post))
             continue
 
         const ligne_decryptee = decrypter_ligne(modele, ligne)
-        if (!respecter_condition(modele, ligne_decryptee, condition_norm, now, contexte_norm, criteres))
+        if (!respecter_condition(modele, ligne_decryptee, condition_norm, now, contexte_norm, preparation.criteres))
             continue
 
         resultats.push(ligne_decryptee)

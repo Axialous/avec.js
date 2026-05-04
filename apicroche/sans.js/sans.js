@@ -213,6 +213,36 @@ const repondre_json = (rep, statut, message, data) =>
 const est_reponse_deja = (erreur) =>
     erreur && typeof erreur === 'object' && erreur.message === 'reponse_deja_envoyee'
 
+const extraire_params_route = (chemin_route, url) =>
+{
+    const parties_route = String(chemin_route).split('/').filter(Boolean)
+    const parties_url = String(url).split('/').filter(Boolean)
+
+    if (parties_route.length !== parties_url.length)
+        return null
+
+    const params = {}
+    for (let i = 0; i < parties_route.length; i++)
+    {
+        const segment_route = parties_route[i]
+        const segment_url = parties_url[i]
+
+        if (segment_route.startsWith(':'))
+        {
+            const nom_param = segment_route.slice(1)
+            if (!nom_param)
+                return null
+            params[nom_param] = decodeURIComponent(segment_url)
+            continue
+        }
+
+        if (segment_route !== segment_url)
+            return null
+    }
+
+    return params
+}
+
 const serveur = http.createServer(async (req, rep) =>
     {
         const url     = req.url.split('?')[0]
@@ -230,10 +260,12 @@ const serveur = http.createServer(async (req, rep) =>
         // Routes des modèles
         for (const route of routes)
         {
-            if (route.methode === methode && route.chemin === url)
+            const params = route.methode === methode ? extraire_params_route(route.chemin, url) : null
+            if (params)
             {
                 try
                 {
+                    req.params = params
                     await route.handler(req, rep)
                 }
                 catch (erreur)

@@ -201,6 +201,10 @@ Déclare la liste des champs de la table. Chaque champ est un bloc `{ }` contena
 | `size` | non | Taille ou longueur maximale |
 | `count` | non | Cardinalité — défaut : `1-1` |
 | `ref` | non | Nom de la table liée (si différent de `name`) |
+| `can_search` | non | Condition augure pour autoriser le champ dans les routes de recherche |
+| `restrict_search` | non | Condition relationnelle utilisée pour filtrer l'accès à la valeur du champ |
+| `prior_search` | non | Appel de fonction du bloc `@script` avant la recherche |
+| `post_search` | non | Appel de fonction du bloc `@script` après la recherche |
 
 ### `type`
 
@@ -278,6 +282,37 @@ Dans le cas d'une relation, permet de nommer le champ différemment de la table 
 
 Ici, le champ s'appelle `contacts` mais pointe vers la table `coordonnees`. Sans `ref`, le `name` est utilisé directement pour résoudre la table liée.
 
+### `@rules`
+
+Déclare les règles de recherche du modèle. Le bloc est optionnel.
+
+```
+@rules [
+    can_search      : "$est_connecte"
+    restrict_search : "$gerants.id = $context.compte.id"
+    prior_search    : $verifier_acces_recherche()
+    post_search     : $journaliser_recherche()
+]
+```
+
+| Propriété | Moment d'exécution | Description |
+|---|---|---|
+| `can_search` | avant la recherche | Condition augure à valider (`403` si faux). Si elle est absente, la route de recherche reste accessible. |
+| `restrict_search` | dans la requête SQL | Condition relationnelle transmise à `$search_all()` / `$search_one()` |
+| `prior_search` | juste avant la requête SQL | Appel d'une fonction du bloc `@script` |
+| `post_search` | juste après le filtrage des résultats | Appel d'une fonction du bloc `@script` |
+
+Les fonctions appelées par `prior_search` et `post_search` doivent être déclarées dans `@script`.
+
+Les arguments reconnus sont les mêmes qu'en création pour `prior_search` et diffèrent pour `post_search` :
+
+| Argument | Valeur |
+|---|---|
+| `$body` | Corps JSON brut de la requête |
+| `$request` | Objet requête construit par le cadriciel |
+| `$context` | Contexte applicatif fourni à la requête |
+| `$results` | Résultats de recherche après filtrage des champs et des restrictions |
+
 ---
 
 ## Hooks de création
@@ -316,11 +351,37 @@ Les arguments reconnus sont :
 | `$body` | Corps JSON brut de la requête |
 | `$values` | Valeurs prêtes à être insérées (et, en `post_create`, enrichies avec les valeurs auto générées lors de la création, comme l'identifiant primaire) |
 
+## Hooks de recherche
+
+Pour les routes `GET` automatiques générées par sans.js, les mêmes hooks peuvent être définis au niveau d'un champ :
+
+| Propriété | Moment d'exécution | Description |
+|---|---|---|
+| `can_search` | avant projection | Condition augure à valider. Si elle est absente, le champ n'est pas exposé par la route de recherche. |
+| `restrict_search` | après lecture SQL | Condition relationnelle traduite en colonne auxiliaire `_can_<champ>` pour autoriser ou retirer le champ ligne par ligne |
+| `prior_search` | juste avant la requête SQL | Appel d'une fonction du bloc `@script` |
+| `post_search` | après filtrage des résultats | Appel d'une fonction du bloc `@script` |
+
+Les fonctions appelées par `prior_search` et `post_search` doivent être déclarées dans `@script`.
+
+Les arguments reconnus sont :
+
+| Argument | Valeur |
+|---|---|
+| `$body` | Corps JSON brut de la requête |
+| `$request` | Objet requête construit par le cadriciel |
+| `$context` | Contexte applicatif fourni à la requête |
+| `$results` | Résultats de recherche après filtrage des champs et des restrictions |
+
 ---
 
 ## Exemple complet
 
+Exemple basé sur `profils.sans`, avec les règles et hooks de recherche ajoutés :
+
 ```
+@name [ profils, profil ]
+
 @primary [ id ]
 
 @unique [
@@ -332,28 +393,59 @@ Les arguments reconnus sont :
         name : id
         type : char
         size : 15
+        can_search : ":)"
     }
 
     {
         name : type
         type : courriel/telephone
         size : 0-16
+        can_search : ":)"
     }
 
     {
         name : coordonnee
         type : crypt
         size : 0-512
+        can_search : ":)"
     }
 
     {
         name : hachage_coordonnee
         type : hash
+        can_search : ":)"
     }
 
     {
         name : est_principale
         type : boolean
+        can_search : ":)"
+    }
+
+    {
+        name  : gerants
+        entry : gerant
+        ref   : comptes
+        count : N-N
+    }
+]
+
+@rules [
+    can_search      : "$est_connecte"
+    restrict_search : "$gerants.id = $context.compte.id"
+    prior_search    : $preparer_recherche_profils($body, $request, $context)
+    post_search     : $journaliser_recherche_profils($results)
+]
+
+@script [
+    $preparer_recherche_profils = async ($body, $request, $context) =>
+    {
+        // Exemple de préparation avant recherche
+    }
+
+    $journaliser_recherche_profils = async ($results) =>
+    {
+        // Exemple de journalisation après recherche
     }
 ]
 ```

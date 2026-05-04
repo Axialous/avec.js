@@ -253,6 +253,9 @@ const analyser_count = (count) =>
     }
 }
 
+const lire_chaine_optionnelle = (objet, cle) =>
+    objet && typeof objet[cle] === 'string' ? objet[cle].trim() : null
+
 const resoudre_type_sql = (type_sans, taille, est_deterministe) =>
 {
     const { min, max } = analyser_taille(taille)
@@ -337,10 +340,14 @@ const transformer_champ = (champ_brut, champs_dans_unique) =>
     const regle_brute = champ_brut.rule ?? null
     const rule = typeof regle_brute === 'string' ? regle_brute : null
 
-    const can_create   = typeof champ_brut.can_create   === 'string' ? champ_brut.can_create.trim()   : null
-    const prior_create = typeof champ_brut.prior_create === 'string' ? champ_brut.prior_create.trim() : null
-    const post_create  = typeof champ_brut.post_create  === 'string' ? champ_brut.post_create.trim()  : null
-    const alt          = typeof champ_brut.alt          === 'string' ? champ_brut.alt.trim()          : null
+    const can_create    = lire_chaine_optionnelle(champ_brut, 'can_create')
+    const can_search    = lire_chaine_optionnelle(champ_brut, 'can_search')
+    const restrict_search = lire_chaine_optionnelle(champ_brut, 'restrict_search')
+    const prior_create  = lire_chaine_optionnelle(champ_brut, 'prior_create')
+    const post_create   = lire_chaine_optionnelle(champ_brut, 'post_create')
+    const prior_search  = lire_chaine_optionnelle(champ_brut, 'prior_search')
+    const post_search   = lire_chaine_optionnelle(champ_brut, 'post_search')
+    const alt           = lire_chaine_optionnelle(champ_brut, 'alt')
 
     const chars_bruts = champ_brut.chars ?? null
     const chars_str   = Array.isArray(chars_bruts) ? chars_bruts[0] : (chars_bruts ?? null)
@@ -361,8 +368,12 @@ const transformer_champ = (champ_brut, champs_dans_unique) =>
         treatment: type_res.treatment,
         rule,
         can_create,
+        can_search,
+        restrict_search,
         prior_create,
         post_create,
+        prior_search,
+        post_search,
         alt
     }
     if (type_res.values)
@@ -383,12 +394,21 @@ const transformer_modele = (annotations, nom_fichier) =>
     const unique             = (Array.isArray(annotations.unique) ? annotations.unique : []).filter(Array.isArray)
     const champs_dans_unique = [...primary, ...unique.flat()]
     const champs_bruts       = Array.isArray(annotations.fields) ? annotations.fields : []
+    const rules_brutes       = annotations.rules ?? null
     const routes             = Array.isArray(annotations.routes) ? annotations.routes : []
     const script             = typeof annotations.script === 'string' ? annotations.script : null
     const actions            = annotations.actions ?? null
 
     const champs    = []
     const relations = []
+    const rules     = rules_brutes && typeof rules_brutes === 'object' && !Array.isArray(rules_brutes)
+        ? {
+            can_search    : lire_chaine_optionnelle(rules_brutes, 'can_search'),
+            restrict_search: lire_chaine_optionnelle(rules_brutes, 'restrict_search'),
+            prior_search   : lire_chaine_optionnelle(rules_brutes, 'prior_search'),
+            post_search    : lire_chaine_optionnelle(rules_brutes, 'post_search')
+        }
+        : null
 
     for (const champ_brut of champs_bruts)
     {
@@ -426,6 +446,7 @@ const transformer_modele = (annotations, nom_fichier) =>
         entry_name: nom_entree,
         primary,
         unique,
+        rules,
         fields    : champs,
         routes,
         script,

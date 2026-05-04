@@ -96,7 +96,7 @@
             const est_gerant = await $search_one('gerant_profil',
                 `
                 $id_compte = $id_compte
-            & $id_profil = $id_profil
+              & $id_profil = $id_profil
                 `,
                 {
                     $id_compte: $context.compte.id,

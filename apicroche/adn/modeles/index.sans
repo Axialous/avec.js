@@ -131,25 +131,32 @@
         if (!session)
             return
 
-        await $update_one('session',
-            `$id = $session.id`,
-            {
-                date_revocation : 'now'
-            },
-            { $session: session }
-        )
+        const maintenant = new Date()
+        const emission = new Date(session.date_emission)
+        const validite = new Date(session.date_validite)
+        const duree_totale = validite - emission
+        const duree_restante = validite - maintenant
 
-        const nouvelle_session = await $create_one('session', {
-            id_compte         : session.id_compte,
-            adresse_ip        : $request.ip,
-            agent_utilisateur : $request.user_agent
-        })
+        if (duree_restante < duree_totale / 2)
+        {
+            await $update_one('session',
+                `$id = $session.id`,
+                { date_revocation: 'now' },
+                { $session: session }
+            )
 
-        const cookie_rotation = `${nouvelle_session.id}.${nouvelle_session.jeton}`
-        $set_cookie('jeton', cookie_rotation, { lifetime: '30d' })
+            const nouvelle_session = await $create_one('session', {
+                id_compte         : session.id_compte,
+                adresse_ip        : $request.ip,
+                agent_utilisateur : $request.user_agent
+            })
 
-        const nouveau_jeton_acces = await $sign_token({ id_compte: session.id_compte })
-        $add_to_data('jeton_acces', nouveau_jeton_acces)
+            const cookie_rotation = `${nouvelle_session.id}.${nouvelle_session.jeton}`
+            $set_cookie('jeton', cookie_rotation, { lifetime: '30d' })
+
+            const nouveau_jeton_acces = await $sign_token({ id_compte: session.id_compte })
+            $add_to_data('jeton_acces', nouveau_jeton_acces)
+        }
 
         const compte = await $search_one('compte',
             `$id = $session.id_compte`,

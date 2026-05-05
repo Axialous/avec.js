@@ -224,7 +224,7 @@ const synchro_contraintes = async (connexion, table) =>
 
 // ─── Mise à jour de table ─────────────────────────────────────────────────────
 
-const mettre_a_jour_table = async (connexion, table, mode_dev) =>
+const mettre_a_jour_table = async (connexion, table, mode_dev, suppression_schema_activee) =>
 {
     const [rows] = await connexion.query(
         `SELECT COLUMN_NAME, COLUMN_TYPE, IS_NULLABLE, COLUMN_DEFAULT
@@ -278,7 +278,7 @@ const mettre_a_jour_table = async (connexion, table, mode_dev) =>
         }
     }
 
-    if (mode_dev)
+    if (mode_dev && suppression_schema_activee)
     {
         const noms_schema = new Set(table.fields.map(f => f.name))
         for (const [nom] of colonnes_existantes)
@@ -345,6 +345,7 @@ const descripteur_jonction = (nom, table_source, table_cible) =>
 export const construire_base = async (schemas) =>
 {
     const mode_dev  = (process.env.mode || 'prod') === 'dev'
+    const suppression_schema_activee = (process.env.schema_destructive || 'false') === 'true'
     const connexion = await creer_connexion()
     if (!connexion)
         return
@@ -362,7 +363,7 @@ export const construire_base = async (schemas) =>
         if (!tables_existantes.has(table.name))
             await creer_table(connexion, table)
         else
-            await mettre_a_jour_table(connexion, table, mode_dev)
+            await mettre_a_jour_table(connexion, table, mode_dev, suppression_schema_activee)
     }
 
     const jonctions = relations.filter(r => r.table_jonction)
@@ -377,10 +378,10 @@ export const construire_base = async (schemas) =>
         if (!tables_existantes.has(rel.table_jonction))
             await creer_table(connexion, desc)
         else
-            await mettre_a_jour_table(connexion, desc, mode_dev)
+            await mettre_a_jour_table(connexion, desc, mode_dev, suppression_schema_activee)
     }
 
-    if (mode_dev)
+    if (mode_dev && suppression_schema_activee)
     {
         const noms_schema = new Set([
             ...tables.map(t => t.name),

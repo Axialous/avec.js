@@ -42,6 +42,7 @@ Les paramètres de connexion à la base de données et le mode d'exécution sont
 | `database_user` | — | Utilisateur MySQL (**obligatoire**) |
 | `database_pass` | *(vide)* | Mot de passe MySQL |
 | `mode` | `prod` | Mode d'exécution : `dev` ou `prod` |
+| `schema_destructive` | `false` | Active la suppression automatique des colonnes et tables disparues du schéma en mode `dev` |
 | `PORT` | `5030` | Port d'écoute HTTP |
 
 > **Important :** la base de données doit exister avant le démarrage. sans.js ne la crée pas — il affiche une erreur si la connexion échoue.
@@ -52,8 +53,8 @@ Les paramètres de connexion à la base de données et le mode d'exécution sont
 |---|---|---|
 | Créer les tables absentes | ✓ | ✓ |
 | Ajouter / modifier des colonnes | ✓ | ✓ |
-| Supprimer les colonnes disparues du schéma | ✓ | — |
-| Supprimer les tables disparues du schéma | ✓ | — |
+| Supprimer les colonnes disparues du schéma | si `schema_destructive=true` | — |
+| Supprimer les tables disparues du schéma | si `schema_destructive=true` | — |
 
 ## Fichiers statiques — route `/depot/`
 

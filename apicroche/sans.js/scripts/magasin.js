@@ -349,11 +349,14 @@ const construire_noeud_projection = (schemas, modele, select) =>
         relations: new Map()
     }
 
-    if (!Array.isArray(select) || select.length === 0)
+    if (!Array.isArray(select))
     {
         noeud.allPhysical = true
         return noeud
     }
+
+    if (select.length === 0)
+        return noeud
 
     const ajouter_relation = (token, relation, sens, select_enfant = null) =>
     {

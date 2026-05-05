@@ -1155,6 +1155,12 @@ export const construire_routes = (schemas, index = null) =>
                         aux_conditions[`_can_${champ.name}`] = champ.restrict_search
                 }
 
+                if (champs_retenus.length === 0)
+                {
+                    $indicate(403, 'Accès refusé')
+                    return
+                }
+
                 const options_recherche = {
                     select: champs_retenus.join(';'),
                     aux_conditions
@@ -1238,6 +1244,8 @@ export const construire_routes = (schemas, index = null) =>
                         delete ligne[cle_aux]
                     }
                 }
+
+                resultats = resultats.filter(ligne => Object.keys(ligne).length > 0)
 
                 for (const champ of table.fields)
                 {

@@ -57,7 +57,7 @@
             return $indicate(400, "Corps incomplet")
 
         const profil_existant = await $search_one('profil',
-            `$identifiant = $values.identifiant`,
+            `#identifiant = $values.identifiant`,
             { $values }
         )
 
@@ -69,7 +69,7 @@
         if (separateur <= 0)
         {
             const profils_geres_racines = await $search_all('profils',
-                `$gerants.id = $id_compte`,
+                `#gerants.id = $id_compte`,
                 { $id_compte: $context.compte.id },
                 { select: 'identifiant' }
             )
@@ -79,24 +79,24 @@
                 .length
 
             if (nombre_profils_sans_point >= 5)
-                return $indicate(403, "Limite de profils sans point atteinte")
+                return $indicate(403, "Limite de profils racines atteinte")
         }
         else
         {
             const identifiant_parent = $values.identifiant.slice(0, separateur)
 
             const parent = await $search_one('profil',
-                `$identifiant = $identifiant_parent`,
+                `#identifiant = $identifiant_parent`,
                 { $identifiant_parent: identifiant_parent }
             )
 
             if (!parent)
-                return $indicate(422, "Profil parent introuvable")
+                return $indicate(422, "Profil racine introuvable")
 
             const est_gerant = await $search_one('gerant_profil',
                 `
-                $id_compte = $id_compte
-              & $id_profil = $id_profil
+                #id_compte = $id_compte
+              & #id_profil = $id_profil
                 `,
                 {
                     $id_compte: $context.compte.id,
@@ -105,7 +105,7 @@
             )
 
             if (!est_gerant)
-                return $indicate(403, "Accès refusé")
+                return $indicate(403, "Profil racine inaccessible")
         }
     }
 

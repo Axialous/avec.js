@@ -690,7 +690,7 @@ const respecter_condition = (modele, ligne, condition, now = new Date(), context
         if (/[|()]/.test(condition_brute))
             return condition_brute
 
-        const regex_egalite_ou_in = /^\s*\$(\w+)\s*(=|-\{)\s*("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:[^`\\]|\\.)*`|[^\s&|()]+)\s*$/
+        const regex_egalite_ou_in = /^\s*#(\w+)\s*(=|-\{)\s*("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:[^`\\]|\\.)*`|[^\s&|()]+)\s*$/
 
         const morceaux = condition_brute
             .split('&')
@@ -1081,7 +1081,7 @@ const extraire_criteres_depuis_condition = (modele, condition, contexte_conditio
     const criteres = {}
 
     // Support égalité (=) et IN (-{)
-    const regex = /(?:^|[&(])\s*\$(\w+)\s*(=|-\{)\s*("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:[^`\\]|\\.)*`|[^\s&|()]+)/g
+    const regex = /(?:^|[&(])\s*#(\w+)\s*(=|-\{)\s*("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:[^`\\]|\\.)*`|[^\s&|()]+)/g
     let match
 
     while ((match = regex.exec(condition)) !== null)
@@ -1186,7 +1186,7 @@ const extraire_filtres_temps_sql = (modele, condition) =>
 
 const convertir_comparaison_simple_en_filtre_sql = (modele, morceau, contexte_condition = {}) =>
 {
-    const match = /^\s*\$(\w+)\s*(>=|>|<=|<)\s*("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:[^`\\]|\\.)*`|[^\s&|()]+)\s*$/i.exec(morceau)
+    const match = /^\s*#(\w+)\s*(>=|>|<=|<)\s*("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:[^`\\]|\\.)*`|[^\s&|()]+)\s*$/i.exec(morceau)
     if (!match)
         return null
 
@@ -1233,7 +1233,7 @@ const convertir_comparaison_simple_en_filtre_sql = (modele, morceau, contexte_co
 
 const convertir_comparaison_null_en_filtre_sql = (modele, morceau, contexte_condition = {}) =>
 {
-    const match = /^\s*\$(\w+)\s*(!=|<>)\s*("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:[^`\\]|\\.)*`|[^\s&|()]+)\s*$/i.exec(morceau)
+    const match = /^\s*#(\w+)\s*(!=|<>)\s*("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:[^`\\]|\\.)*`|[^\s&|()]+)\s*$/i.exec(morceau)
     if (!match)
         return null
 
@@ -1269,7 +1269,7 @@ const convertir_comparaison_null_en_filtre_sql = (modele, morceau, contexte_cond
 const extraire_filtres_comparaison_sql = (modele, condition, contexte_condition = {}) =>
 {
     const clauses = []
-    const regex = /(?:^|([&|]))\s*(\$\w+\s*(?:>=|<=|!=|<>|>|<)\s*("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:[^`\\]|\\.)*`|[^\s&|()]+))/g
+    const regex = /(?:^|([&|]))\s*(#\w+\s*(?:>=|<=|!=|<>|>|<)\s*("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:[^`\\]|\\.)*`|[^\s&|()]+))/g
     let match
 
     let premier_operateur = 'AND'
@@ -1332,7 +1332,7 @@ const extraire_filtres_comparaison_sql = (modele, condition, contexte_condition 
 }
 
 const est_comparaison_chemin_relation_sqlable = (morceau) =>
-    /^\s*\$\w+(?:\.\w+)+\s*(?:=|!=|<>|>=|<=|>|<)\s*("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:[^`\\]|\\.)*`|[^\s&|()]+)\s*$/.test(morceau)
+    /^\s*#\w+(?:\.\w+)+\s*(?:=|!=|<>|>=|<=|>|<)\s*("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:[^`\\]|\\.)*`|[^\s&|()]+)\s*$/.test(morceau)
 
 const extraire_filtres_relation_sql = (condition, contexte_condition = {}) =>
 {
@@ -1483,7 +1483,7 @@ const preparer_aux_conditions_recherche = (schemas, modele, aux_conditions = {},
 const extraire_chemins_relations_condition = (condition) =>
 {
     const chemins = new Map()
-    const regex = /\$([a-zA-Z_]\w*(?:\.[a-zA-Z_]\w*)*)/g
+    const regex = /#([a-zA-Z_]\w*(?:\.[a-zA-Z_]\w*)*)/g
     let match
 
     while ((match = regex.exec(condition)) !== null)
@@ -1592,7 +1592,7 @@ const analyser_condition_pour_joins = (schemas, modele, condition, contexte_cond
             joins_generes.set(chemin_relations, generation)
             const ancien_prefix = `$${chemin}`
             const nouveau_prefix = `\`${generation.alias_final}\`.\`${champ_final}\``
-            condition_avec_alias = condition_avec_alias.replace(new RegExp(`\\$${chemin.replace(/\./g, '\\.')}`, 'g'), nouveau_prefix)
+            condition_avec_alias = condition_avec_alias.replace(new RegExp(`#${chemin.replace(/\./g, '\\.')}`, 'g'), nouveau_prefix)
         }
     }
 

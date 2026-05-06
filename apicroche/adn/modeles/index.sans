@@ -71,8 +71,8 @@
         console.log('=================\nNETTOYER SESSIONS\n=================')
         await $delete_all('sessions',
             `
-            $date_revocation != null
-          | $date_validite   < now
+            #date_revocation != null
+          | #date_validite   < now
             `
         )
     }
@@ -91,7 +91,7 @@
             if (payload?.id_compte)
             {
                 const compte = await $search_one('compte',
-                    `$id = $payload.id_compte`,
+                    `#id = $payload.id_compte`,
                     { $payload: payload }
                 )
 
@@ -117,10 +117,10 @@
 
         const session = await $search_one('session',
             `
-            $id              = $id_session
-          & $hachage_jeton   = $jeton_session
-          & $date_validite   > now
-          & $date_revocation = null
+            #id              = $id_session
+          & #hachage_jeton   = $jeton_session
+          & #date_validite   > now
+          & #date_revocation = null
             `,
             {
                 $id_session: id_session,
@@ -140,7 +140,7 @@
         if (duree_restante < duree_totale / 2)
         {
             await $update_one('session',
-                `$id = $session.id`,
+                `#id = $session.id`,
                 { date_revocation: 'now' },
                 { $session: session }
             )
@@ -159,7 +159,7 @@
         }
 
         const compte = await $search_one('compte',
-            `$id = $session.id_compte`,
+            `#id = $session.id_compte`,
             { $session: session }
         )
 

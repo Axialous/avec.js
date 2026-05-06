@@ -207,9 +207,7 @@
                         alt
                             "Retour"
                     bouton-soumission
-                        <span>
-                            "Continuer"
-                        icone-fleche-droite
+                        "Me connecter"
 
 @else-if [$etape = clef]
     section [connexion, centree]
@@ -237,7 +235,9 @@
                         alt
                             "Retour"
                     bouton-soumission
-                        "Me connecter"
+                        <span>
+                            "Continuer"
+                        icone-fleche-droite
 
 @else-if [$etape = inscription]
     section [connexion, centree]

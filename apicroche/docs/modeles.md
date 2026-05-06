@@ -90,7 +90,7 @@ Les paramètres `condition` de `$search_all()`, `$search_one()`, `$delete_one()`
 Exemple :
 
 ```javascript
-restriction : '$is_coordonnee_of_compte.is_gerant_of_profils.id = 0GWGVSSCJYWJQLP'
+restriction : '#is_coordonnee_of_compte.is_gerant_of_profils.id = 0GWGVSSCJYWJQLP'
 ```
 
 Le moteur génère alors les JOINs nécessaires et traduit la comparaison en SQL sur l’alias de la table cible. La même valeur est aussi réutilisée dans le filtrage applicatif final lorsque c’est nécessaire.
@@ -104,6 +104,41 @@ Exemple :
 ```text
 [search_all] SQL: SELECT DISTINCT `coordonnees`.* FROM `coordonnees` JOIN ... WHERE `profils_2`.`id` = '0GWGVSSCJYWJQLP'
 ```
+
+### Syntaxe des conditions
+
+Les conditions passées aux fonctions du magasin (`$search_all()`, `$search_one()`, `$delete_one()`, `$delete_all()`, `$update_one()`, `$update_all()`) et à la propriété `restrict_search` distinguent trois types de termes :
+
+| Syntaxe | Signification | Traitement |
+|---|---|---|
+| `#champ` | Champ physique du modèle | Traduit en colonne SQL |
+| `#relation.champ` | Champ d'une relation imbriquée | Génère les JOINs nécessaires et traduit en colonne SQL |
+| `$variable` | Variable du contexte | Évaluée en JS au moment de la requête |
+| `$variable.attribut` | Attribut d'une variable du contexte | Évaluée en JS au moment de la requête |
+| `"valeur"` / `'valeur'` | Valeur brute littérale | Injectée directement dans la requête |
+
+#### Exemples
+
+```javascript
+// Champ du modèle comparé à une variable du contexte
+await $search_one('session',
+    `#id = $id_session & #date_validite > now`,
+    { $id_session: id_session }
+)
+
+// Champ d'une relation imbriquée
+await $search_all('profils',
+    `#gerants.id = $context.compte.id`,
+    { $context: $context }
+)
+
+// Valeur brute littérale
+await $search_all('comptes',
+    `#actif = true`
+)
+```
+
+> **Note :** cette syntaxe `#` / `$` s'applique uniquement dans les conditions des fonctions du magasin et dans `restrict_search`. Les expressions `can_search`, `can_create` et `rule` n'acceptent que des variables `$`, car elles sont évaluées hors du contexte d'une ligne de base de données.
 
 ### `order` — Tri
 
@@ -136,7 +171,7 @@ Peut valoir `'ASC'` (croissant, défaut) ou `'DESC'` (décroissant).
 
 ```javascript
 const resultats = await $search_all('profils',
-    `$date_creation > $depuis`,
+    `#date_creation > $depuis`,
     { $depuis: new Date('2025-01-01') },
     {
         select: 'id ; pseudonyme ; gerants.id',
@@ -289,7 +324,7 @@ Déclare les règles de recherche du modèle. Le bloc est optionnel.
 ```
 @rules [
     can_search      : "$est_connecte"
-    restrict_search : "$gerants.id = $context.compte.id"
+    restrict_search : "#gerants.id = $context.compte.id"
     prior_search    : $verifier_acces_recherche()
     post_search     : $journaliser_recherche()
 ]
@@ -432,7 +467,7 @@ Exemple basé sur `profils.sans`, avec les règles et hooks de recherche ajouté
 
 @rules [
     can_search      : "$est_connecte"
-    restrict_search : "$gerants.id = $context.compte.id"
+    restrict_search : "#gerants.id = $context.compte.id"
     prior_search    : $preparer_recherche_profils($body, $request, $context)
     post_search     : $journaliser_recherche_profils($results)
 ]

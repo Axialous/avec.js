@@ -46,6 +46,7 @@
 @routes [
     {
         path   : /moi
+        method : get
         action : "$obtenir_compte()"
     }
 

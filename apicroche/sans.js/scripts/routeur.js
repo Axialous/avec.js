@@ -703,7 +703,7 @@ export const construire_routes = (schemas, index = null) =>
             }
 
             const chemin  = route.path
-            const methode = (route.methode ?? 'POST').toUpperCase()
+            const methode = (route.method ?? 'POST').toUpperCase()
 
             const handler = async (req, rep) =>
             {

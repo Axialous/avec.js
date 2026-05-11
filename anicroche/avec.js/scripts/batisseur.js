@@ -1346,6 +1346,11 @@ const monter_noeud = (noeud) =>
 {
     if (noeud.nodeType === 1)
     {
+        if (noeud._avec_monte)
+            return
+
+        noeud._avec_monte = true
+
         if (noeud._avec_actions?.mount)
         {
             executer_script(noeud._avec_actions.mount, null, noeud, noeud._avec_scope, noeud._avec_args)
@@ -1357,10 +1362,12 @@ const demonter_noeud = async (noeud) =>
 {
     if (noeud.nodeType === 1)
     {
-        if (noeud._avec_actions?.unmount)
+        if (noeud._avec_monte && noeud._avec_actions?.unmount)
         {
             await executer_script_async(noeud._avec_actions.unmount, null, noeud, noeud._avec_scope, noeud._avec_args)
         }
+
+        noeud._avec_monte = false
 
         await Promise.all([...noeud.children].map(enfant => demonter_noeud(enfant)))
     }

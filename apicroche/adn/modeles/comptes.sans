@@ -237,7 +237,7 @@
 
         const jeton_acces = await $sign_token({ id_compte: coordonnee.id_compte })
 
-        $add_to_data('est_connecte', true)
+        $add_to_respond('est_connecte', true)
 
         return $indicate(200, "Connexion réussie", { jeton_acces })
     }
@@ -270,7 +270,7 @@
 
         $set_cookie('jeton', '', { lifetime: 0 })
 
-        $add_to_data('est_connecte', false)
+        $add_to_respond('est_connecte', false)
 
         return $indicate(200, "Déconnexion réussie")
     }

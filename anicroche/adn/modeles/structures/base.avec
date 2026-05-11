@@ -21,8 +21,10 @@
             $jeton_acces = null
         }
         
-        if (Object.prototype.hasOwnProperty.call(data ?? {}, 'est_connecte'))
+        if (data && data.est_connecte !== undefined)
+        {
             $connecte = data.est_connecte ? ':)' : ':('
+        }
     })
 ]
 

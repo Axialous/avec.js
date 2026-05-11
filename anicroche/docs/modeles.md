@@ -280,7 +280,7 @@ Les balises SVG sont supportées nativement. Le cadriciel applique automatiqueme
 
 ## Textes
 
-Un texte est une chaîne entre guillemets (`"`, `'` ou `` ` ``). Les variables `$var` sont interpolées :
+Un texte est une chaîne entre guillemets (`"`, `'` ou `` ` ``). Les variables `$var` sont interpolées, y compris leurs accès directs (`$var.attr`, `$var['clef']`, `$var[$autre_var]`) :
 
 ```
 "Bonjour, $nom !"

@@ -4,4 +4,4 @@ Liste de tâches
 - Faire correspondre correctement :) avec true et :( avec false dans le cadriciel
 - Ajouter :o pour représenter null ou undefined dans le cadriciel
 - Rendre possible $var[1] et $var.attr dans une chaîne de caractère
-- Vérifier l'état de $connecte sur la lupart des pages
+- Vérifier l'état de $connecte sur la plupart des pages

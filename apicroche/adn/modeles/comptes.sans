@@ -71,19 +71,15 @@
     {
         await $exiger_compte()
 
-        const coordonnees = await $search_all('coordonnees',
+        const compte = await $search_all('comptes',
             `
-            #id_compte = $compte_id
+            #id = $id_compte
             `,
-            { $compte_id: $context.compte.id },
-            { select: 'type ; coordonnee ; est_principale' }
+            { $id_compte: $context.compte.id },
+            { select: 'id ; date_inscription ; coordonnees.type,coordonnee,est_principale ; is_gerant_of_profils.id,identifiant,pseudonyme,date_creation' }
         )
 
-        return $indicate(200, "Compte récupéré", {
-            id               : $context.compte.id,
-            date_inscription : $context.compte.date_inscription,
-            coordonnees      : coordonnees
-        })
+        return $indicate(200, "Compte récupéré", compte)
     }
 
     $inscrire_compte = async ($body) =>

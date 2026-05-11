@@ -118,7 +118,24 @@ const creer_add_to_data = (data_reponse) => (clef, valeur) =>
     data_reponse[clef_normale] = valeur
 }
 
-const creer_indicate = (rep, data_reponse, executer_post_respond = null) => (statut, message, data) =>
+const CLES_REPONSE_RESERVEES = new Set(['code', 'message', 'error', 'data'])
+
+const creer_add_to_respond = (reponse_extra) => (clef, valeur) =>
+{
+    if (clef === undefined || clef === null)
+        return
+
+    const clef_normale = String(clef)
+    if (CLES_REPONSE_RESERVEES.has(clef_normale))
+        return
+
+    if (Object.prototype.hasOwnProperty.call(reponse_extra, clef_normale))
+        return
+
+    reponse_extra[clef_normale] = valeur
+}
+
+const creer_indicate = (rep, data_reponse, reponse_extra, executer_post_respond = null) => (statut, message, data) =>
 {
     const envoyer_reponse = () =>
     {
@@ -134,7 +151,8 @@ const creer_indicate = (rep, data_reponse, executer_post_respond = null) => (sta
         const reponse = {
             code: statut,
             [succes ? 'message' : 'error']: message,
-            data: data_finale
+            data: data_finale,
+            ...reponse_extra
         }
 
         rep.writeHead(statut, { 'Content-Type': 'application/json; charset=utf-8' })
@@ -157,7 +175,8 @@ const creer_indicate = (rep, data_reponse, executer_post_respond = null) => (sta
                 const reponse = {
                     code: 500,
                     error: 'Erreur interne',
-                    data: data_reponse
+                    data: data_reponse,
+                    ...reponse_extra
                 }
 
                 rep.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' })
@@ -396,8 +415,8 @@ const citer_condition = (valeur) =>
 
 const construire_fonctions_magasin_requete = (fonctions_magasin, contexte_condition) => ({
     ...fonctions_magasin,
-    $search_one: (nom_modele, condition, contexte = {}) =>
-        fonctions_magasin.$search_one(nom_modele, condition, { ...contexte_condition, ...contexte }),
+    $search_one: (nom_modele, condition, contexte = {}, options = undefined) =>
+        fonctions_magasin.$search_one(nom_modele, condition, { ...contexte_condition, ...contexte }, options),
     $search_all: (nom_modele, condition, contexte = {}, options = undefined) =>
         fonctions_magasin.$search_all(nom_modele, condition, { ...contexte_condition, ...contexte }, options),
     $delete_one: (nom_modele, condition, contexte = {}) =>
@@ -713,7 +732,9 @@ export const construire_routes = (schemas, index = null) =>
                 const $request  = construire_request(req)
                 const $context  = {}
                 const data_reponse = {}
+                const reponse_extra = {}
                 const $add_to_data = creer_add_to_data(data_reponse)
+                const $add_to_respond = creer_add_to_respond(reponse_extra)
                 let contexte_script = null
                 let post_respond_execute = false
                 let post_respond_en_cours = false
@@ -739,8 +760,8 @@ export const construire_routes = (schemas, index = null) =>
                     Object.assign(contexte_script, post_respond.fonctions)
                     post_respond_execute = true
                 }
-                const $indicate_brut = creer_indicate(rep, data_reponse)
-                const $indicate = creer_indicate(rep, data_reponse, executer_post_respond_safe)
+                const $indicate_brut = creer_indicate(rep, data_reponse, reponse_extra)
+                const $indicate = creer_indicate(rep, data_reponse, reponse_extra, executer_post_respond_safe)
                 const $q        = citer_condition
                 const $sign_token = creer_sign_token()
                 const $verify_token = creer_verify_token()
@@ -753,6 +774,7 @@ export const construire_routes = (schemas, index = null) =>
                     ...fonctions_mailer,
                     $indicate,
                     $add_to_data,
+                    $add_to_respond,
                     $body,
                     $request,
                     $context,
@@ -836,7 +858,9 @@ export const construire_routes = (schemas, index = null) =>
             const $request  = construire_request(req)
             const $context  = {}
             const data_reponse = {}
+            const reponse_extra = {}
             const $add_to_data = creer_add_to_data(data_reponse)
+            const $add_to_respond = creer_add_to_respond(reponse_extra)
             let contexte_script = null
             let post_respond_execute = false
             let post_respond_en_cours = false
@@ -862,8 +886,8 @@ export const construire_routes = (schemas, index = null) =>
                 Object.assign(contexte_script, post_respond.fonctions)
                 post_respond_execute = true
             }
-            const $indicate_brut = creer_indicate(rep, data_reponse)
-            const $indicate = creer_indicate(rep, data_reponse, executer_post_respond_safe)
+            const $indicate_brut = creer_indicate(rep, data_reponse, reponse_extra)
+            const $indicate = creer_indicate(rep, data_reponse, reponse_extra, executer_post_respond_safe)
             const $sign_token = creer_sign_token()
             const $verify_token = creer_verify_token()
             const $set_cookie = creer_set_cookie(rep)
@@ -874,6 +898,7 @@ export const construire_routes = (schemas, index = null) =>
                 ...fonctions_mailer,
                 $indicate,
                 $add_to_data,
+                $add_to_respond,
                 $body,
                 $request,
                 $context,
@@ -1073,7 +1098,9 @@ export const construire_routes = (schemas, index = null) =>
                 const $request  = construire_request(req)
                 const $context  = {}
                 const data_reponse = {}
+                const reponse_extra = {}
                 const $add_to_data = creer_add_to_data(data_reponse)
+                const $add_to_respond = creer_add_to_respond(reponse_extra)
                 let contexte_script = null
                 let post_respond_execute = false
                 let post_respond_en_cours = false
@@ -1099,8 +1126,8 @@ export const construire_routes = (schemas, index = null) =>
                     Object.assign(contexte_script, post_respond.fonctions)
                     post_respond_execute = true
                 }
-                const $indicate_brut = creer_indicate(rep, data_reponse)
-                const $indicate = creer_indicate(rep, data_reponse, executer_post_respond_safe)
+                const $indicate_brut = creer_indicate(rep, data_reponse, reponse_extra)
+                const $indicate = creer_indicate(rep, data_reponse, reponse_extra, executer_post_respond_safe)
                 const $sign_token = creer_sign_token()
                 const $verify_token = creer_verify_token()
                 const $set_cookie = creer_set_cookie(rep)
@@ -1112,6 +1139,7 @@ export const construire_routes = (schemas, index = null) =>
                     ...fonctions_mailer,
                     $indicate,
                     $add_to_data,
+                    $add_to_respond,
                     $body,
                     $request,
                     $context,

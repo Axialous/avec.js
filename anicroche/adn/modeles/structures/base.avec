@@ -18,8 +18,8 @@
             $jeton_acces = null
         }
         
-        if (Object.prototype.hasOwnProperty.call(data?.data ?? {}, 'est_connecte'))
-            $connecte = data.data.est_connecte ? ':)' : ':('
+        if (Object.prototype.hasOwnProperty.call(data ?? {}, 'est_connecte'))
+            $connecte = data.est_connecte ? ':)' : ':('
     })
 ]
 

@@ -168,7 +168,7 @@
 
     $detecter_connexion = async () =>
     {
-        $add_to_data('est_connecte', !!$context.compte)
+        $add_to_respond('est_connecte', !!$context.compte)
     }
 
     $exiger_compte = () =>

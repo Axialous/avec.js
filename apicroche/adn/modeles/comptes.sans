@@ -71,7 +71,7 @@
     {
         await $exiger_compte()
 
-        const compte = await $search_all('comptes',
+        const compte = await $search_one('comptes',
             `
             #id = $id_compte
             `,

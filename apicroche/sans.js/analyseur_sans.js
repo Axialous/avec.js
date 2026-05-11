@@ -341,8 +341,10 @@ const transformer_champ = (champ_brut, champs_dans_unique) =>
     const rule = typeof regle_brute === 'string' ? regle_brute : null
 
     const can_create    = lire_chaine_optionnelle(champ_brut, 'can_create')
-    const can_search    = lire_chaine_optionnelle(champ_brut, 'can_search')
-    const restrict_search = lire_chaine_optionnelle(champ_brut, 'restrict_search')
+    const can_search          = lire_chaine_optionnelle(champ_brut, 'can_search')
+    const restrict_search     = lire_chaine_optionnelle(champ_brut, 'restrict_search')
+    const rev_can_search      = lire_chaine_optionnelle(champ_brut, 'rev_can_search')
+    const rev_restrict_search = lire_chaine_optionnelle(champ_brut, 'rev_restrict_search')
     const prior_create  = lire_chaine_optionnelle(champ_brut, 'prior_create')
     const post_create   = lire_chaine_optionnelle(champ_brut, 'post_create')
     const prior_search  = lire_chaine_optionnelle(champ_brut, 'prior_search')
@@ -370,6 +372,8 @@ const transformer_champ = (champ_brut, champs_dans_unique) =>
         can_create,
         can_search,
         restrict_search,
+        rev_can_search,
+        rev_restrict_search,
         prior_create,
         post_create,
         prior_search,
@@ -425,12 +429,16 @@ const transformer_modele = (annotations, nom_fichier) =>
             if (!count)
                 return "invalide"
             relations.push({
-                champ_source: champ_brut.name,
-                table_cible : champ_brut.ref ?? champ_brut.name,
-                entry       : typeof champ_brut.entry === 'string' ? champ_brut.entry : null,
-                count       : String(champ_brut.count),
-                min         : count.min,
-                max         : count.max
+                champ_source        : champ_brut.name,
+                table_cible         : champ_brut.ref ?? champ_brut.name,
+                entry               : typeof champ_brut.entry === 'string' ? champ_brut.entry : null,
+                count               : String(champ_brut.count),
+                min                 : count.min,
+                max                 : count.max,
+                can_search          : lire_chaine_optionnelle(champ_brut, 'can_search'),
+                restrict_search     : lire_chaine_optionnelle(champ_brut, 'restrict_search'),
+                rev_can_search      : lire_chaine_optionnelle(champ_brut, 'rev_can_search'),
+                rev_restrict_search : lire_chaine_optionnelle(champ_brut, 'rev_restrict_search')
             })
             continue
         }
@@ -488,13 +496,17 @@ const resoudre_relations = (tables) =>
             }
 
             const relation = {
-                table_source: table.name,
-                champ_source: rel.champ_source,
-                table_cible : rel.table_cible,
-                entry       : rel.entry,
-                count       : rel.count,
-                min         : rel.min,
-                max         : rel.max
+                table_source        : table.name,
+                champ_source        : rel.champ_source,
+                table_cible         : rel.table_cible,
+                entry               : rel.entry,
+                count               : rel.count,
+                min                 : rel.min,
+                max                 : rel.max,
+                can_search          : rel.can_search ?? null,
+                restrict_search     : rel.restrict_search ?? null,
+                rev_can_search      : rel.rev_can_search ?? null,
+                rev_restrict_search : rel.rev_restrict_search ?? null
             }
 
             if (rel.min === 'N' && rel.max === 'N')

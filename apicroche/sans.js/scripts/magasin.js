@@ -451,7 +451,7 @@ const construire_noeud_projection = (schemas, modele, select) =>
     return noeud
 }
 
-const projeter_lignes_select = async (schemas, modele, lignes, select) =>
+const projeter_lignes_select = async (schemas, modele, lignes, select, contexte_enforce = null) =>
 {
     const noeud = construire_noeud_projection(schemas, modele, select)
     const resultats = lignes.map(() => ({}))
@@ -493,7 +493,59 @@ const projeter_lignes_select = async (schemas, modele, lignes, select) =>
         }
 
         const modele_enfant = sens === 'direct' ? table_cible : table_source
-        const projection_enfant = (rows) => rows.length ? projeter_lignes_select(schemas, modele_enfant, rows, spec.select) : []
+
+        if (contexte_enforce !== null)
+        {
+            const relation_meta = schemas.relations.find(r =>
+                r.table_source === modele.name && r.champ_source === token
+            ) ?? null
+            const est_direct = spec.sens === 'direct'
+
+            let can
+            let restrict
+
+            if (est_direct)
+            {
+                can      = relation_meta?.can_search ?? null
+                restrict = relation_meta?.restrict_search ?? null
+            }
+            else
+            {
+                can      = relation_meta?.rev_can_search ?? relation_meta?.can_search ?? null
+                restrict = relation_meta?.rev_restrict_search ?? relation_meta?.restrict_search ?? null
+            }
+
+            if (can === null)
+                throw Object.assign(
+                    new Error(`Relation "${token}" non autorisée`),
+                    { code: 'RELATION_FORBIDDEN' }
+                )
+
+            if (!evaluer(can, { $request: contexte_enforce.request, $context: contexte_enforce.context }))
+                throw Object.assign(
+                    new Error(`Relation "${token}" non autorisée`),
+                    { code: 'RELATION_FORBIDDEN' }
+                )
+
+            if (modele_enfant.rules?.can_search != null)
+            {
+                if (!evaluer(modele_enfant.rules.can_search, { $request: contexte_enforce.request, $context: contexte_enforce.context }))
+                    throw Object.assign(
+                        new Error(`Accès refusé au modèle "${modele_enfant.name}"`),
+                        { code: 'RELATION_FORBIDDEN' }
+                    )
+            }
+
+            const restrictions = [
+                restrict,
+                modele_enfant.rules?.restrict_search ?? null
+            ].filter(Boolean)
+
+            if (restrictions.length)
+                spec.restrict_conditions = restrictions
+        }
+
+        const projection_enfant = (rows) => rows.length ? projeter_lignes_select(schemas, modele_enfant, rows, spec.select, contexte_enforce) : []
 
         const pk_source = trouver_pk(table_source)
         const pk_cible = trouver_pk(table_cible)
@@ -524,9 +576,24 @@ const projeter_lignes_select = async (schemas, modele, lignes, select) =>
             const ids_par_ligne = indexer_lignes_par_clef(jonctions, cle_lire)
             const ids_relatifs = [...new Set(jonctions.map(ligne => ligne[cle_assoc]).filter(v => v !== undefined && v !== null))]
 
-            const lignes_relatives = ids_relatifs.length
-                ? await lire_lignes_par_in(modele_enfant, modele_enfant.primary[0], ids_relatifs)
-                : []
+            let lignes_relatives = []
+            if (ids_relatifs.length)
+            {
+                if (spec.restrict_conditions?.length)
+                {
+                    const condition = [`#${modele_enfant.primary[0]} -{ $__ids__`, ...spec.restrict_conditions].join(' & ')
+                    lignes_relatives = await creer_search_all(schemas)(
+                        modele_enfant.name,
+                        condition,
+                        { $__ids__: ids_relatifs, $context: contexte_enforce.context, $request: contexte_enforce.request },
+                        { enforce_rules: true }
+                    )
+                }
+                else
+                {
+                    lignes_relatives = await lire_lignes_par_in(modele_enfant, modele_enfant.primary[0], ids_relatifs)
+                }
+            }
             const map_relatives = new Map(lignes_relatives.map(ligne_rel => [ligne_rel[modele_enfant.primary[0]], decrypter_ligne(modele_enfant, ligne_rel)]))
 
             for (let i = 0; i < lignes.length; i++)
@@ -553,8 +620,22 @@ const projeter_lignes_select = async (schemas, modele, lignes, select) =>
                     continue
                 }
 
-                const rows = await lire_lignes_par_in(table_cible, relation.cle_etrangere, ids_lignes)
-                const index_rows = indexer_lignes_par_clef(rows, relation.cle_etrangere)
+                let rows_directe
+                if (spec.restrict_conditions?.length)
+                {
+                    const condition = [`#${relation.cle_etrangere} -{ $__ids__`, ...spec.restrict_conditions].join(' & ')
+                    rows_directe = await creer_search_all(schemas)(
+                        table_cible.name,
+                        condition,
+                        { $__ids__: ids_lignes, $context: contexte_enforce.context, $request: contexte_enforce.request },
+                        { enforce_rules: true }
+                    )
+                }
+                else
+                {
+                    rows_directe = await lire_lignes_par_in(table_cible, relation.cle_etrangere, ids_lignes)
+                }
+                const index_rows = indexer_lignes_par_clef(rows_directe, relation.cle_etrangere)
 
                 for (let i = 0; i < lignes.length; i++)
                 {
@@ -576,8 +657,22 @@ const projeter_lignes_select = async (schemas, modele, lignes, select) =>
                 continue
             }
 
-            const rows = await lire_lignes_par_in(table_source, pk_source.name, valeurs_fk)
-            const map_rows = new Map(rows.map(ligne_rel => [ligne_rel[pk_source.name], decrypter_ligne(table_source, ligne_rel)]))
+            let rows_inverse
+            if (spec.restrict_conditions?.length)
+            {
+                const condition = [`#${pk_source.name} -{ $__ids__`, ...spec.restrict_conditions].join(' & ')
+                rows_inverse = await creer_search_all(schemas)(
+                    table_source.name,
+                    condition,
+                    { $__ids__: valeurs_fk, $context: contexte_enforce.context, $request: contexte_enforce.request },
+                    { enforce_rules: true }
+                )
+            }
+            else
+            {
+                rows_inverse = await lire_lignes_par_in(table_source, pk_source.name, valeurs_fk)
+            }
+            const map_rows = new Map(rows_inverse.map(ligne_rel => [ligne_rel[pk_source.name], decrypter_ligne(table_source, ligne_rel)]))
 
             for (let i = 0; i < lignes.length; i++)
             {
@@ -602,9 +697,9 @@ const projeter_lignes_select = async (schemas, modele, lignes, select) =>
     return resultats
 }
 
-const projeter_ligne_select = async (schemas, modele, ligne, select) =>
+const projeter_ligne_select = async (schemas, modele, ligne, select, contexte_enforce = null) =>
 {
-    const resultats = await projeter_lignes_select(schemas, modele, [ligne], select)
+    const resultats = await projeter_lignes_select(schemas, modele, [ligne], select, contexte_enforce)
     return resultats[0] ?? null
 }
 
@@ -787,6 +882,7 @@ const normaliser_options_liste = (modele, options) =>
             offset: 0,
             select: null,
             aux_conditions: {},
+            enforce_rules : false,
         }
 
     if (typeof options !== 'object' || Array.isArray(options))
@@ -851,13 +947,16 @@ const normaliser_options_liste = (modele, options) =>
         aux_conditions_norm[cle.trim()] = valeur.trim()
     }
 
+    const enforce_rules = options.enforce_rules === true
+
     return {
         order,
         dir,
         limit : limit ?? null,
         offset,
         select,
-        aux_conditions: aux_conditions_norm
+        aux_conditions: aux_conditions_norm,
+        enforce_rules
     }
 }
 
@@ -1819,7 +1918,10 @@ const creer_search_one = (schemas) => async (nom_modele, condition, contexte_con
         if (!condition_ok)
             continue
 
-        return await projeter_ligne_select(schemas, modele, ligne_decryptee, options_norm.select)
+        const contexte_enforce = options_norm.enforce_rules
+            ? { context: contexte_norm.$context ?? {}, request: contexte_norm.$request ?? {} }
+            : null
+        return await projeter_ligne_select(schemas, modele, ligne_decryptee, options_norm.select, contexte_enforce)
     }
     return null
 }
@@ -1862,7 +1964,10 @@ const creer_search_all = (schemas) => async (nom_modele, condition, contexte_con
     }
 
     const resultats_paginees = appliquer_options_liste(resultats, options_norm, (ligne, nom) => ligne[nom])
-    return await projeter_lignes_select(schemas, modele, resultats_paginees, options_norm.select)
+    const contexte_enforce = options_norm.enforce_rules
+        ? { context: contexte_norm.$context ?? {}, request: contexte_norm.$request ?? {} }
+        : null
+    return await projeter_lignes_select(schemas, modele, resultats_paginees, options_norm.select, contexte_enforce)
 }
 
 // ─── $delete_one ─────────────────────────────────────────────────────────────

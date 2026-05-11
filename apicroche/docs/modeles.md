@@ -183,6 +183,31 @@ const resultats = await $search_all('profils',
 )
 ```
 
+### `enforce_rules` — Vérification des règles d'accès sur les relations
+
+Quand cette option est activée, le moteur vérifie les règles d'accès pour chaque relation demandée dans la projection `select`, récursivement à chaque niveau d'imbrication.
+
+Pour chaque relation rencontrée, le moteur vérifie dans l'ordre :
+
+1. Le `can_search` du champ de relation (ou `rev_can_search` pour le sens inverse) — lève une erreur si absent ou faux.
+2. Le `can_search` global du modèle d'arrivée — lève une erreur si faux.
+3. Le `restrict_search` du champ de relation et le `restrict_search` global du modèle d'arrivée sont fusionnés et appliqués comme conditions supplémentaires sur les lignes récupérées.
+
+```javascript
+const resultats = await $search_all('profils',
+    ':)',
+    { $context, $request },
+    {
+        select       : 'id ; pseudonyme ; gerants',
+        enforce_rules: true
+    }
+)
+```
+
+> **Note :** `enforce_rules` est activé automatiquement sur les routes `GET` auto-générées. Quand une vérification échoue, une exception avec le code `RELATION_FORBIDDEN` est levée — la route autogénérée la traduit en réponse `403`.
+>
+> Le contexte doit contenir `$context` et `$request` pour que les conditions `can_search` et `restrict_search` puissent être évaluées correctement.
+
 ---
 
 ## Annotations
@@ -240,6 +265,10 @@ Déclare la liste des champs de la table. Chaque champ est un bloc `{ }` contena
 | `restrict_search` | non | Condition relationnelle utilisée pour filtrer l'accès à la valeur du champ |
 | `prior_search` | non | Appel de fonction du bloc `@script` avant la recherche |
 | `post_search` | non | Appel de fonction du bloc `@script` après la recherche |
+| `can_search` (relation) | non | Condition augure pour autoriser la récupération de la relation dans les routes de recherche (sens direct). Si absent, la relation n'est pas récupérable. |
+| `restrict_search` (relation) | non | Condition SQL appliquée comme filtre sur les lignes de la relation (sens direct) |
+| `rev_can_search` | non | Condition augure pour le sens inverse de la relation. Prioritaire sur `can_search` pour le sens inverse. Si ni `rev_can_search` ni `can_search` n'est présent, la relation inverse n'est pas récupérable. |
+| `rev_restrict_search` | non | Condition SQL pour le sens inverse de la relation. Prioritaire sur `restrict_search` pour le sens inverse. |
 
 ### `type`
 
@@ -407,6 +436,24 @@ Les arguments reconnus sont :
 | `$request` | Objet requête construit par le cadriciel |
 | `$context` | Contexte applicatif fourni à la requête |
 | `$results` | Résultats de recherche après filtrage des champs et des restrictions |
+
+### Exemple avec relation
+
+Pour contrôler l'accès à une relation dans les routes de recherche, les mêmes propriétés s'appliquent sur les champs de type relation :
+
+```
+{
+    name            : gerants
+    entry           : gerant
+    ref             : comptes
+    count           : N-N
+    can_search      : "$context.compte != null"
+    restrict_search : "#gerants.id = $context.compte.id"
+    rev_can_search  : "$context.compte != null"
+}
+```
+
+Dans cet exemple, la relation `gerants` n'est récupérable que si un compte est connecté (`can_search`), et uniquement les profils dont le compte connecté est gérant sont retournés (`restrict_search`). Le `rev_can_search` s'applique quand on accède à cette relation depuis le sens inverse — par exemple `is_gerant_of_profils` depuis le modèle `comptes`.
 
 ---
 

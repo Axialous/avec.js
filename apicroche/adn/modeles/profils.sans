@@ -21,7 +21,7 @@
         size : 1-65
         rule : "$identifiant ~= /^(?=.{1,32}(?:\.|$))(?=[a-z0-9-]*[a-z])[a-z0-9]+(?:-[a-z0-9]+)*(?:\.(?=.{1,32}$)(?=[a-z0-9-]*[a-z])[a-z0-9]+(?:-[a-z0-9]+)*)?$/"
 
-        can_create   : ":)"
+        can_create   : ':)'
         prior_create : $valider_creation_profil($values)
         post_create  : $lier_createur_au_profil($values)
     }
@@ -31,7 +31,7 @@
         type : char
         size : 1-64
 
-        can_create : ":)"
+        can_create : ':)'
     }
 
     {

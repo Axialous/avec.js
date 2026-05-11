@@ -416,13 +416,14 @@ const normaliser_projection_recherche = (table, projection) =>
     const ensemble_physique = new Set(champs_physiques)
 
     if (typeof projection !== 'string')
-        return champs_physiques
+        return { physiques: champs_physiques, select: null }
 
     const brut = projection.trim()
     if (!brut)
-        return champs_physiques
+        return { physiques: champs_physiques, select: null }
 
-    const selection = []
+    const physiques = []
+    const tokens_select = []
     const vus = new Set()
 
     for (const morceau of brut.split(';'))
@@ -432,19 +433,22 @@ const normaliser_projection_recherche = (table, projection) =>
             continue
 
         if (token === '*')
-            return champs_physiques
+            return { physiques: champs_physiques, select: null }
 
-        if (token.includes('.'))
-            continue
-
-        if (!ensemble_physique.has(token) || vus.has(token))
+        if (vus.has(token))
             continue
 
         vus.add(token)
-        selection.push(token)
+        tokens_select.push(token)
+
+        // Extraire la racine pour savoir si c'est un champ physique
+        const racine = token.includes('.') ? token.slice(0, token.indexOf('.')).split(',').pop().trim() : token.split(',')[0].trim()
+
+        if (ensemble_physique.has(racine))
+            physiques.push(racine)
     }
 
-    return selection
+    return { physiques, select: tokens_select.join(';') }
 }
 
 const construire_condition_pk_recherche = (table) =>
@@ -1133,7 +1137,7 @@ export const construire_routes = (schemas, index = null) =>
                 }
 
                 const projection = new URL(req.url, 'http://localhost').searchParams.get('projection')
-                const projection_physique = normaliser_projection_recherche(table, projection)
+                const { physiques: projection_physique, select: projection_select } = normaliser_projection_recherche(table, projection)
                 const contexte_can_search = { $request, $context }
                 const champs_retenus = []
                 const aux_conditions = {}
@@ -1161,9 +1165,16 @@ export const construire_routes = (schemas, index = null) =>
                     return
                 }
 
+                // Construire le select final : champs physiques retenus + reste de la projection (relations, imbriqués)
+                const select_physiques = champs_retenus.join(';')
+                const select_final = projection_select
+                    ? [select_physiques, ...projection_select.split(';').map(t => t.trim()).filter(t => t && !projection_physique.includes(t.split('.')[0].split(',').pop().trim()))].filter(Boolean).join(';')
+                    : select_physiques
+
                 const options_recherche = {
-                    select: champs_retenus.join(';'),
-                    aux_conditions
+                    select        : select_final,
+                    aux_conditions,
+                    enforce_rules : true
                 }
 
                 const nom_modele = route_recherche.is_one ? (table.entry_name ?? table.name) : table.name
@@ -1221,9 +1232,29 @@ export const construire_routes = (schemas, index = null) =>
                         return
                 }
 
-                let resultats = route_recherche.is_one
-                    ? await fonctions_magasin_requete.$search_one(nom_modele, condition_recherche, { $params: req.params ?? {} }, options_recherche)
-                    : await fonctions_magasin_requete.$search_all(nom_modele, condition_recherche, { $params: req.params ?? {} }, options_recherche)
+                let resultats
+                    try
+                    {
+                        resultats = route_recherche.is_one
+                            ? await fonctions_magasin_requete.$search_one(nom_modele, condition_recherche, { $params: req.params ?? {}, $context, $request }, options_recherche)
+                            : await fonctions_magasin_requete.$search_all(nom_modele, condition_recherche, { $params: req.params ?? {}, $context, $request }, options_recherche)
+                    }
+                    catch (err)
+                    {
+                        if (est_reponse_deja(err))
+                            return
+
+                        if (err.code === 'RELATION_FORBIDDEN')
+                        {
+                            $indicate(403, err.message)
+                            return
+                        }
+
+                        console.log(`/!\\ erreur GET ${route_recherche.chemin} : ${err.message}`)
+                        if (!rep.headersSent)
+                            $indicate(500, 'Erreur interne')
+                        return
+                    }
 
                 if (route_recherche.is_one)
                     resultats = resultats ? [resultats] : []

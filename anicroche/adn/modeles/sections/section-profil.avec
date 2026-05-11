@@ -3,6 +3,11 @@ section [profil]
         "Votre profil"
     carte
         "Le système de profils va arriver bientôt !"
+    <div>
+        @for-each [$i] in [$compte.is_gerant_of_profils]
+            @for-each [$key] in [$compte.is_gerant_of_profils[$i]]
+                <p>
+                    "$key : "
     <img src="https://cdn.pixabay.com/photo/2020/03/11/16/26/illustration-4922627_1280.jpg">
     <h1>
         "Bienvenue sur Anicroche !"

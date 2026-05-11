@@ -162,8 +162,9 @@ const tokeniser = (str) =>
                     while (pos < str.length && str[pos] !== ']' && str[pos] !== guillemet) { clef += str[pos]; pos++ }
                     if (guillemet) pos++
                     pos++ // ]
-                    const clef_finale = guillemet ? clef : parseFloat(clef)
-                    tokens.push({ type: 'acces', valeur: clef_finale })
+                    // Garder comme chaîne si c'est une variable ($var), sinon parser numériquement
+                    const clef_finale = guillemet ? clef : (clef.startsWith('$') ? clef : parseFloat(clef))
+                    tokens.push({ type: 'acces', valeur: clef_finale, est_dynamique: clef.startsWith('$') })
                 }
             }
             continue
@@ -617,7 +618,7 @@ const parser_primaire = (etat) =>
         // Accès profond sur valeur littérale (rare mais possible)
         while (etat.pos < etat.tokens.length && etat.tokens[etat.pos].type === 'acces')
         {
-            noeud = { type: 'acces', cible: noeud, clef: etat.tokens[etat.pos].valeur }
+            noeud = { type: 'acces', cible: noeud, clef: etat.tokens[etat.pos].valeur, est_dynamique: etat.tokens[etat.pos].est_dynamique }
             etat.pos++
         }
 
@@ -630,7 +631,7 @@ const parser_primaire = (etat) =>
 
         while (etat.pos < etat.tokens.length && etat.tokens[etat.pos].type === 'acces')
         {
-            noeud = { type: 'acces', cible: noeud, clef: etat.tokens[etat.pos].valeur }
+            noeud = { type: 'acces', cible: noeud, clef: etat.tokens[etat.pos].valeur, est_dynamique: etat.tokens[etat.pos].est_dynamique }
             etat.pos++
         }
 
@@ -798,16 +799,26 @@ const evaluer_noeud = (noeud, donnees) =>
     {
         const cible = evaluer_noeud(noeud.cible, donnees)
         if (est_erreur(cible)) return ERREUR
+
+        // Si la clef est dynamique (variable), l'évaluer
+        let clef = noeud.clef
+        if (noeud.est_dynamique && typeof noeud.clef === 'string' && noeud.clef.startsWith('$'))
+        {
+            const lecture = lire_variable(donnees?.scope, donnees?.args || {}, noeud.clef, true)
+            if (!lecture.trouve) return ERREUR
+            clef = lecture.valeur
+        }
+
         if (est_liste(cible))
         {
-            const idx = parseInt(noeud.clef)
+            const idx = parseInt(clef)
             if (isNaN(idx) || idx < 0 || idx >= cible.length) return ERREUR
             return cible[idx]
         }
         if (est_dict(cible))
         {
-            if (!Object.prototype.hasOwnProperty.call(cible, noeud.clef)) return ERREUR
-            return cible[noeud.clef]
+            if (!Object.prototype.hasOwnProperty.call(cible, clef)) return ERREUR
+            return cible[clef]
         }
         return ERREUR
     }
@@ -894,5 +905,21 @@ export const evaluer = (str, donnees) =>
     catch (e)
     {
         return false
+    }
+}
+
+// Retourne la valeur brute (nombre, liste, dict, texte, bool-like tokens VRAI/FAUX, etc.)
+export const evaluer_valeur = (str, donnees) =>
+{
+    try
+    {
+        const tokens = tokeniser(str)
+        const ast    = parser(tokens)
+        const result = evaluer_noeud(ast, donnees)
+        return result
+    }
+    catch (e)
+    {
+        return null
     }
 }

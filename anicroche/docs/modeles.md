@@ -134,6 +134,25 @@ Ces blocs sont **réactifs** : si une variable de scope utilisée dans la condit
 
 > Dans les formes `@repeat` + `@while`/`@until`, les deux instructions doivent être au même niveau d'indentation (sœurs dans le même bloc parent).
 
+**Parcours de collection** :
+
+```
+@for-each $element of $elements
+    "affiché pour chaque valeur (tableau ou itérable)"
+
+@for-each $i in $elements
+    "affiché pour chaque indice (0,1,2...)"
+
+@for-each $k in $objet
+    "affiché pour chaque clé d'objet"
+
+@for-each $v of $objet
+    "affiché pour chaque valeur d'objet"
+
+`in` renvoie les clés/indices : indices numériques pour tableaux et chaînes, clés pour objets.
+`of` renvoie les valeurs : éléments pour tableaux/itérables, caractères pour chaînes, valeurs pour objets.
+`in` parcourt les clés ou indices, `of` parcourt les valeurs ou l'itérable selon la source.
+
 ### `@stud`
 
 Marque un emplacement où le contenu passé en enfant lors de l'appel du modèle sera inséré. Un modèle peut en contenir plusieurs : le contenu apparaîtra à chacun des emplacements.

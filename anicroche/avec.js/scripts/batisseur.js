@@ -1,6 +1,6 @@
 import {charger_modele} from './heraut.js'
 import {valoriser} from './scribe.js'
-import {evaluer} from './augure.js'
+import {evaluer, evaluer_valeur} from './augure.js'
 import {activer_style, desactiver_style} from './decorateur.js'
 import {
     initialiser_sculpteur, executer_script, executer_script_async,
@@ -655,6 +655,7 @@ const construire_enfants = (bloc, donnees) =>
                 elsable = false
                 break
             case `@for-each`:
+                enfants.push(...construire_for_each(enfant, donnees))
                 elsable = false
                 break
             case `@stud`:
@@ -812,6 +813,168 @@ const construire_conditionnel = (chaine, donnees) =>
     }
 
     return [ancre_debut, ...noeuds_actifs, ancre_fin]
+}
+
+const normaliser_iteration = (valeur, operateur) =>
+{
+    if (valeur == null)
+        return []
+    // Arrays
+    if (Array.isArray(valeur))
+    {
+        if (operateur === `in`)
+            return Array.from({ length: valeur.length }, (_, i) => i)
+        return Array.from(valeur)
+    }
+
+    // Strings
+    if (typeof valeur === 'string')
+    {
+        if (operateur === `in`)
+            return Array.from({ length: valeur.length }, (_, i) => i)
+        return Array.from(valeur)
+    }
+
+    // Plain objects
+    if (valeur !== null && typeof valeur === 'object')
+    {
+        if (operateur === `in`)
+            return Object.keys(valeur)
+        return Object.values(valeur)
+    }
+
+    // Fallback for generic iterables
+    if (typeof valeur === 'object' && typeof valeur[Symbol.iterator] === 'function')
+    {
+        const arr = Array.from(valeur)
+        if (operateur === `in`)
+            return Array.from({ length: arr.length }, (_, i) => i)
+        return arr
+    }
+
+    return []
+}
+
+const construire_for_each = (bloc, donnees) =>
+{
+    const ancre_debut = document.createComment(`@for-each`)
+    const ancre_fin = document.createComment(`/@for-each`)
+    const variable_brut = bloc.args[1]
+    const operateur = bloc.args[2]
+    const source_brute = bloc.args[3]
+
+    // Extraire le nom de variable attendu (ex: [$profil] -> $profil)
+    const variable_nom = decapsuler_si_entoure(variable_brut).trim()
+    if (!/^[\$][a-zA-Z_][\w]*$/.test(variable_nom))
+        throw new Error(`@for-each invalide : nom de variable attendu, obtenu '${variable_brut}'`)
+
+    let noeuds_rendus = []
+    let deps_source = new Set()
+
+    const construire_noeuds = () =>
+    {
+        definir_noeud_courant(ancre_debut)
+        // Essayer d'obtenir la valeur réelle de l'expression (liste, objet, etc.)
+        const expr = decapsuler_si_entoure(source_brute)
+        // Toujours évaluer la valeur via le parseur pour gérer les accès profonds ($compte.profils)
+        const source = evaluer_valeur(expr, donnees)
+        effacer_noeud_courant()
+
+        // aucun log de débogage en production
+
+        deps_source = ancre_debut._avec_deps ?? new Set()
+        const iterations = normaliser_iteration(source, operateur)
+        const noeuds = []
+
+        for (const element of iterations)
+        {
+            const scope_enfant = creer_scope(donnees.scope)
+            scope_enfant.variables[variable_nom] = element
+
+            const donnees_enfant = {
+                ...donnees,
+                scope: scope_enfant
+            }
+
+            noeuds.push(...construire_enfants({ enfants: bloc.enfants }, donnees_enfant))
+        }
+
+        return noeuds
+    }
+
+    const rendre = async () =>
+    {
+        const noeuds_a_supprimer = []
+        let noeud = ancre_debut.nextSibling
+        while (noeud && noeud !== ancre_fin)
+        {
+            noeuds_a_supprimer.push(noeud)
+            noeud = noeud.nextSibling
+        }
+
+        await Promise.all(noeuds_a_supprimer.map(n => demonter_noeud(n)))
+
+        for (const n of noeuds_a_supprimer)
+        {
+            if (n.parentNode)
+                n.parentNode.removeChild(n)
+        }
+
+        for (const n of noeuds_a_supprimer)
+            nettoyer_noeud(n)
+
+        noeuds_rendus = construire_noeuds()
+        ancre_fin.before(...noeuds_rendus)
+
+        queueMicrotask(() => {
+            noeuds_rendus.forEach(n => {
+                if (n.nodeType === 1 && document.contains(n))
+                    monter_noeud(n)
+            })
+        })
+    }
+
+    noeuds_rendus = construire_noeuds()
+
+    let rendu_en_cours = false
+    let rerendu_en_attente = false
+
+    const executer_rendu = async () =>
+    {
+        if (rendu_en_cours)
+        {
+            rerendu_en_attente = true
+            return
+        }
+
+        rendu_en_cours = true
+        await rendre()
+        rendu_en_cours = false
+
+        if (rerendu_en_attente)
+        {
+            rerendu_en_attente = false
+            executer_rendu()
+        }
+    }
+
+    if (deps_source.size > 0)
+    {
+        const desabonner = observer_sculpteur((propriete) =>
+        {
+            if (!deps_source.has(propriete)) return
+
+            if (!ancre_debut.parentNode)
+            {
+                desabonner()
+                return
+            }
+
+            executer_rendu()
+        })
+    }
+
+    return [ancre_debut, ...noeuds_rendus, ancre_fin]
 }
 
 const construire_texte = (bloc, donnees) =>

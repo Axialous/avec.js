@@ -2,6 +2,9 @@
     $connecte = ':('
     $jeton_acces = null
 
+    $compte = null
+    $profil = null
+
     $add_action('prior_requested', (options) =>
     {
         if ($jeton_acces)

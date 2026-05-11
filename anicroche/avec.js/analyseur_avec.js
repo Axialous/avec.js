@@ -148,7 +148,7 @@ const valider_bloc_avec = (bloc, str, pos, fichier) =>
         }
         else if (bloc.args[0] == `@for-each`)
         {
-            if (bloc.args.length != 4 || (bloc.args[2] != 'in' && bloc.args[0] != 'of'))
+            if (bloc.args.length != 4 || (bloc.args[2] != 'in' && bloc.args[2] != 'of'))
                 erreur(`${bloc.args[0]} doit avoir trois arguments : ${bloc.args[0]} [variable] in|of [variable]`, fichier, str, pos)
             if (bloc.enfants.length <= 0)
                 erreur(`${bloc.args[0]} doit avoir au moins un enfant`, fichier, str, pos)

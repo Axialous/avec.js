@@ -117,10 +117,11 @@ Les variables de type liste ou dictionnaire supportent l'accès à leurs éléme
 | Booléen vrai | `:)` | `@if [:)]` |
 | Booléen faux | `:(` | `@unless [:(]` |
 | Erreur | `:x` | (résultat interne, rarement utilisé directement) |
-
-Dans le moteur, ces littéraux sont évalués comme des booléens natifs `true` / `false`; la syntaxe `:)` / `:(` reste propre au langage d'expressions.
+| Null | `:o` | `@if [:o]` |
 | Liste | `[elem1, elem2, …]` | `[1, 2, 3]`, `["a", "b"]` |
 | Dictionnaire | `{clef: valeur, …}` | `{nom: "Alice", age: 30}` |
+
+Dans le moteur, ces littéraux sont évalués comme des valeurs natives JavaScript: `:)` / `:(` deviennent `true` / `false`, `:o` devient `null`, et la syntaxe reste propre au langage d'expressions.
 
 ---
 

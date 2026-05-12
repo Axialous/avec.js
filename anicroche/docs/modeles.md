@@ -36,7 +36,7 @@ Déclare les styles CSS du modèle. Ils sont injectés dans la page au montage d
 
 Déclare du code JavaScript exécuté une fois lors du premier chargement d'une instance de modèle. Typiquement utilisé pour initialiser des variables de scope ou déclarer des fonctions.
 
-Le bloc `@script` est du JavaScript standard : il utilise `true` et `false` comme n'importe quel code JS, et les chaînes `:)`, `:(` ou `:x` y restent de simples textes.
+Le bloc `@script` est du JavaScript standard : il utilise `true`, `false` et `null` comme n'importe quel code JS, et les chaînes `:)`, `:(`, `:x` ou `:o` y restent de simples textes.
 
 ```
 @script [

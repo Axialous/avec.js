@@ -8,6 +8,7 @@ import {ecrire_variable, lire_variable} from './sculpteur.js'
 const ERREUR = ':x'
 const VRAI   = true
 const FAUX   = false
+const NUL    = null
 
 const est_erreur  = (v) => v === ERREUR
 const est_booleen = (v) => v === VRAI || v === FAUX
@@ -30,6 +31,7 @@ const coercer_nombre = (v) =>
 const coercer_booleen = (v) =>
 {
     if (est_booleen(v)) return v
+    if (v === NUL) return FAUX
     if (est_erreur(v))  return FAUX
     return ERREUR
 }
@@ -38,7 +40,7 @@ const coercer_booleen = (v) =>
 // Lexer
 // ============================================================
 
-const SMILEYS = [':)', ':(', ':x']
+const SMILEYS = [':)', ':(', ':x', ':o']
 
 const OPERATEURS_COMPOSITES = [
     '!-{', '!}-', '-{', '}-',
@@ -77,7 +79,10 @@ const tokeniser = (str) =>
         const smiley = SMILEYS.find(s => str.startsWith(s, pos))
         if (smiley)
         {
-            tokens.push({ type: 'booleen', valeur: smiley === ':)' ? VRAI : smiley === ':(' ? FAUX : ERREUR })
+            tokens.push({
+                type: smiley === ':o' ? 'nul' : 'booleen',
+                valeur: smiley === ':)' ? VRAI : smiley === ':(' ? FAUX : smiley === ':o' ? NUL : ERREUR
+            })
             pos += smiley.length
             continue
         }
@@ -611,7 +616,7 @@ const parser_primaire = (etat) =>
 
     etat.pos++
 
-    if (token.type === 'nombre' || token.type === 'texte' || token.type === 'booleen' || token.type === 'liste' || token.type === 'dict')
+    if (token.type === 'nombre' || token.type === 'texte' || token.type === 'booleen' || token.type === 'nul' || token.type === 'liste' || token.type === 'dict')
     {
         let noeud = { type: 'valeur', valeur: token.valeur }
 
@@ -900,7 +905,7 @@ export const evaluer = (str, donnees) =>
         const tokens = tokeniser(str)
         const ast    = parser(tokens)
         const result = evaluer_noeud(ast, donnees)
-        return est_booleen(result) ? result : !est_erreur(result)
+        return result === NUL ? false : est_booleen(result) ? result : !est_erreur(result)
     }
     catch (e)
     {

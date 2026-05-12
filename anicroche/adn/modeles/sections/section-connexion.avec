@@ -62,12 +62,12 @@
         {
             $ids.push(reponse.data.id)
             $succes_clef   = "Une nouvelle clef a été envoyée"
-            $erreur_clef = ":("
+            $erreur_clef = false
         }
         else
         {
             $erreur_clef = "Veuillez réessayer dans trente secondes"
-            $succes_clef   = ":("
+            $succes_clef   = false
         }
     }
 
@@ -102,19 +102,19 @@
                 }
                 else
                 {
-                    $succes_clef = ':('
+                    $succes_clef = false
                     $erreur_clef = "Erreur serveur"
                 }
             }
             else
             {
-                $succes_clef = ':('
+                $succes_clef = false
                 $erreur_clef = "Réponse serveur invalide"
             }
         }
         else
         {
-            $succes_clef = ':('
+            $succes_clef = false
             $erreur_clef = "La clef de validation est invalide"
         }
     }
@@ -155,14 +155,14 @@
 
     $basculer_vers_section_courriel = ($node) =>
     {
-        $erreur_courriel = ':('
+        $erreur_courriel = false
         $basculer_vers_onglet_precedant($node)
     }
 
     $basculer_vers_section_clef = ($node) =>
     {
-        $succes_clef = ':('
-        $erreur_clef = ':('
+        $succes_clef = false
+        $erreur_clef = false
         $basculer_vers_onglet_precedant($node)
     }
 ]

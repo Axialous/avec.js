@@ -1,6 +1,6 @@
 @script [
     $type = 'password'
-    $visible = ':)'
+    $visible = true
 
     $basculer_visibilite_mot_de_passe = ($node) =>
     {
@@ -12,7 +12,7 @@
         const est_visible = $input.type === 'text'
         $input.type = est_visible ? 'password' : 'text'
         $type = est_visible ? 'password' : 'text'
-        $visible = est_visible ? ':)' : ':('
+        $visible = est_visible ? true : false
         $input.focus()
     }
 

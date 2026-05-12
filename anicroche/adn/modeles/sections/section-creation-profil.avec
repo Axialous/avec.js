@@ -1,5 +1,5 @@
 @script [
-    $erreur_creation_profil = ':('
+    $erreur_creation_profil = false
 
     $envoyer_formulaire_creation = async ($node, $event) =>
     {

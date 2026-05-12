@@ -1,5 +1,4 @@
 Liste de tâches
 
-- Faire correspondre correctement :) avec true et :( avec false dans le cadriciel
 - Ajouter :o pour représenter null ou undefined dans le cadriciel
 - Vérifier l'état de $connecte sur la plupart des pages

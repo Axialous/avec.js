@@ -7,11 +7,11 @@
 
     $courriels_clefs     = new Set()
 
-    $erreur_courriel     = ':('
-    $erreur_mot_de_passe = ':('
-    $succes_clef         = ':('
-    $erreur_clef         = ':('
-    $erreur_inscription  = ':('
+    $erreur_courriel     = false
+    $erreur_mot_de_passe = false
+    $succes_clef         = false
+    $erreur_clef         = false
+    $erreur_inscription  = false
 ]
 
 page [:(]

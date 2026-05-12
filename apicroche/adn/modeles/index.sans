@@ -30,7 +30,7 @@
         const name = typeof $body.name === 'string' ? $body.name.trim() : ''
         const projection  = $body.projection
         const restriction = ($body.restriction === undefined || $body.restriction === null)
-            ? ':)'
+            ? true
             : (typeof $body.restriction === 'string' ? $body.restriction.trim() : '')
 
         if (!name)

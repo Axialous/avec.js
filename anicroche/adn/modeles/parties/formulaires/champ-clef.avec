@@ -120,7 +120,7 @@
             $chiffres[i].value = nettoyage[i] ?? ''
 
         const focusable = index_focus_champ_clef($chiffres)
-        const modifiable = $cache.dataset.modifiable === ':)'
+        const modifiable = $cache.dataset.modifiable === true
 
         for (let i = 0; i < $chiffres.length; i++)
             $chiffres[i].tabIndex = modifiable && i === focusable ? 0 : -1
@@ -312,7 +312,7 @@
     {
         const racine = racine_champ_clef($node)
         const { $cache } = infos_champ_clef(racine)
-        if (!$cache || $cache.dataset.modifiable !== ':)')
+        if (!$cache || $cache.dataset.modifiable !== true)
             return
 
         if ($event?.target?.classList?.contains('chiffre'))
@@ -325,7 +325,7 @@
     {
         const racine = racine_champ_clef($node)
         const { $cache, $chiffres } = infos_champ_clef(racine)
-        if (!$cache || !$chiffres.length || $cache.dataset.modifiable !== ':)')
+        if (!$cache || !$chiffres.length || $cache.dataset.modifiable !== true)
             return
 
         const type = $event?.inputType || ''
@@ -344,7 +344,7 @@
     {
         const racine = racine_champ_clef($node)
         const { $cache, $chiffres } = infos_champ_clef(racine)
-        if (!$cache || !$chiffres.length || $cache.dataset.modifiable !== ':)')
+        if (!$cache || !$chiffres.length || $cache.dataset.modifiable !== true)
             return
 
         if ($event.key !== 'Backspace' && $event.key !== 'Delete')

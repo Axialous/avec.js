@@ -7,8 +7,8 @@
 // ============================================================
 
 const ERREUR = ':x'
-const VRAI   = ':)'
-const FAUX   = ':('
+const VRAI   = true
+const FAUX   = false
 
 export { ERREUR }
 
@@ -751,7 +751,7 @@ export const evaluer = (expression, donnees) =>
         const tokens = tokeniser(expression)
         const ast    = parser(tokens)
         const result = evaluer_noeud(ast, donnees)
-        return est_booleen(result) ? result === VRAI : !est_erreur(result)
+        return est_booleen(result) ? result : !est_erreur(result)
     }
     catch
     {

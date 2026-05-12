@@ -1,5 +1,5 @@
 @script [
-    $erreur_edition_profil = ':('
+    $erreur_edition_profil = false
 
     $envoyer_formulaire_edition = async ($node, $event) =>
     {

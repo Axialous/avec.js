@@ -1,5 +1,5 @@
 @script [
-    $connecte = ':('
+    $connecte = false
     $jeton_acces = null
 
     $compte = null
@@ -23,7 +23,7 @@
         
         if (data && data.est_connecte !== undefined)
         {
-            $connecte = data.est_connecte ? ':)' : ':('
+            $connecte = data.est_connecte ? true : false
         }
     })
 ]

@@ -6,8 +6,8 @@ import {ecrire_variable, lire_variable} from './sculpteur.js'
 // ============================================================
 
 const ERREUR = ':x'
-const VRAI   = ':)'
-const FAUX   = ':('
+const VRAI   = true
+const FAUX   = false
 
 const est_erreur  = (v) => v === ERREUR
 const est_booleen = (v) => v === VRAI || v === FAUX
@@ -900,7 +900,7 @@ export const evaluer = (str, donnees) =>
         const tokens = tokeniser(str)
         const ast    = parser(tokens)
         const result = evaluer_noeud(ast, donnees)
-        return est_booleen(result) ? result === VRAI : !est_erreur(result)
+        return est_booleen(result) ? result : !est_erreur(result)
     }
     catch (e)
     {

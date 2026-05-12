@@ -475,33 +475,33 @@ Exemple basé sur `profils.sans`, avec les règles et hooks de recherche ajouté
         name : id
         type : char
         size : 15
-        can_search : ":)"
+        can_search : ':)'
     }
 
     {
         name : type
         type : courriel/telephone
         size : 0-16
-        can_search : ":)"
+        can_search : ':)'
     }
 
     {
         name : coordonnee
         type : crypt
         size : 0-512
-        can_search : ":)"
+        can_search : ':)'
     }
 
     {
         name : hachage_coordonnee
         type : hash
-        can_search : ":)"
+        can_search : ':)'
     }
 
     {
         name : est_principale
         type : boolean
-        can_search : ":)"
+        can_search : ':)'
     }
 
     {

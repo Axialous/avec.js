@@ -1,5 +1,5 @@
 @script [
-    $mode_formulaire = ''
+    $mode_formulaire = null
 
     $courriel_formulaire = ''
     $clef_formulaire     = ''
@@ -14,7 +14,7 @@
     $erreur_inscription  = false
 ]
 
-page [:(]
+page [:(, $authentification : interdite]
     navigation
         <div .gauche>
             fleche-retour
@@ -24,7 +24,7 @@ page [:(]
                 "Connexion"
 
         <div .droite>
-            ancre-boite [/preferences, Préférences]
+            boite-ancre [/preferences, Préférences]
                 icone-engrenage
 
     onglet

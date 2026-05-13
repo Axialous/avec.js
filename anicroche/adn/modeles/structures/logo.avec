@@ -38,6 +38,6 @@
 ]
 
 <div #logo>
-    ancre-boite [/, Anicroche]
+    boite-ancre [/, Anicroche]
         icone-anicroche
         logotype-anicroche

@@ -28,33 +28,33 @@
 ]
 
 <nav #menu>
-    ancre-boite [/, Accueil]
+    boite-ancre [/, Accueil]
         icone-maison
         <span>
             "Accueil"
 
-    ancre-boite [/explorer, Explorer]
+    boite-ancre [/explorer, Explorer]
         icone-arc
         <span>
             "Explorer"
 
-    ancre-boite [/creer, Créer]
+    boite-ancre [/creer, Créer]
         icone-baguette
         <span>
             "Créer"
 
-    ancre-boite [/autre, Autre]
+    boite-ancre [/autre, Autre]
         icone-bonbon
         <span>
             "Autre"
 
     @if [$connecte]
-        ancre-boite [/profil, Profil]
+        boite-ancre [/profil, Profil]
             icone-masque
             <span>
                 "Profil"
     @else
-        ancre-boite [/connexion, Profil]
+        boite-ancre [/connexion, Profil]
             icone-masque
             <span>
                 "Profil"

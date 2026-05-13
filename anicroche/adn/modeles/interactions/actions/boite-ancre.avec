@@ -1,5 +1,5 @@
 @style [
-    .ancre-boite {
+    .boite-ancre {
         display: flex;
         flex-flow: row nowrap;
         align-items: center;
@@ -14,7 +14,7 @@
 
 @args [$adresse, $alt : '']
 
-<a .ancre-boite href="$adresse">
+<a .boite-ancre href="$adresse">
     @if [$alt != '']
         alt
             "$alt"

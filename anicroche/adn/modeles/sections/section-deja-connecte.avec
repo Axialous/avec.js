@@ -1,0 +1,21 @@
+@script [
+    $deconnecter_compte = async () =>
+    {
+        const reponse = await $create('deconnexion')
+
+        if (!reponse.error)
+        {
+            $navigate_to("/")
+        }
+    }
+]
+
+section [deja-connecte]
+    titre
+        "Vous êtes déjà connecté"
+    carte
+        ligne
+            bouton-ancre [/profil]
+                "Profil"
+            bouton-action [$deconnecter_compte]
+                "Déconnexion"

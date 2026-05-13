@@ -1,4 +1,4 @@
-page
+page [$authentification : requise]
     navigation
         <div .gauche>
             fleche-retour [/profil]

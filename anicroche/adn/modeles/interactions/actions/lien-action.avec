@@ -56,7 +56,7 @@
         $vars.chronometre = chronometre
     }
 
-    $monter_lien_formulaire = ($node, $vars, $delai) =>
+    $monter_lien_action = ($node, $vars, $delai) =>
     {
         const delai = Math.max(0, Math.floor(Number($delai) || 0))
 
@@ -65,7 +65,7 @@
         demarrer_compte_a_rebours($node, $vars, delai)
     }
 
-    $demonter_lien_formulaire = ($vars) =>
+    $demonter_lien_action = ($vars) =>
     {
         if (!$vars.chronometre) return
 
@@ -73,7 +73,7 @@
         $vars.chronometre = null
     }
 
-    $clic_lien_formulaire = async ($node, $vars, $fonction) =>
+    $clic_lien_action = async ($node, $vars, $fonction) =>
     {
         if ($node.disabled) return
 
@@ -87,7 +87,7 @@
 ]
 
 @style [
-    .lien-formulaire {
+    .lien-action {
         display: inline;
         width: fit-content;
 
@@ -96,11 +96,11 @@
         transition: text-decoration-color var(--d-animation);
     }
 
-    .lien-formulaire:hover {
+    .lien-action:hover {
         text-decoration-color: var(--c-flux);
     }
 
-    .lien-formulaire:disabled {
+    .lien-action:disabled {
         cursor: not-allowed;
         text-decoration: none;
     }
@@ -112,11 +112,11 @@
 ]
 
 <button
-    .lien-formulaire
+    .lien-action
     type="button"
-    @mount="$monter_lien_formulaire($node, $vars, $delai)"
-    @unmount="$demonter_lien_formulaire($vars)"
-    @click="$clic_lien_formulaire($node, $vars, $fonction)"
+    @mount="$monter_lien_action($node, $vars, $delai)"
+    @unmount="$demonter_lien_action($vars)"
+    @click="$clic_lien_action($node, $vars, $fonction)"
 >
     @stud
 

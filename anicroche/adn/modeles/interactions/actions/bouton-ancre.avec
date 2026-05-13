@@ -1,5 +1,5 @@
 @style [
-    .bouton-formulaire {
+    .bouton-ancre {
         position: relative;
 
         height: 2rem;
@@ -23,26 +23,25 @@
         --p-fonte: var(--p-bouton);
     }
 
-    .bouton-formulaire:has(> .icone):not(:has(> .icone ~ .icone)):not(:has(> :not(.icone):not(.alt))) {
+    .bouton-ancre:has(> .icone):not(:has(> .icone ~ .icone)):not(:has(> :not(.icone):not(.alt))) {
         flex: 1;
     }
 
-    .bouton-formulaire:hover,
-    .bouton-formulaire:focus {
+    .bouton-ancre:hover,
+    .bouton-ancre:focus {
         --f-fond: var(--c-plus);
         --c-fond: var(--c-plus);
     }
 
-    .bouton-formulaire .icone {
+    .bouton-ancre .icone {
         margin: -0.25rem;
     }
 ]
 
-@args [$fonction]
+@args [$adresse, $alt : '']
 
-<button
-    .bouton-formulaire
-    type="button"
-    @click="$fonction($node)"
->
+<a .bouton-ancre href="$adresse">
+    @if [$alt != '']
+        alt
+            "$alt"
     @stud

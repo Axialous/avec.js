@@ -1,4 +1,4 @@
-page
+page [$authentification : requise]
     navigation
         <div .centre>
             barre-onglets
@@ -10,7 +10,7 @@ page
                         "Compte"
 
         <div .droite>
-            ancre-boite [/preferences, Préférences]
+            boite-ancre [/preferences, Préférences]
                 icone-engrenage
 
     onglet

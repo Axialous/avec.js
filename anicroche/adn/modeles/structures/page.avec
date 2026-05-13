@@ -169,7 +169,7 @@
     }
 ]
 
-@args [$defilable : :)]
+@args [$defilable : :), $authentification : libre]
 
 <div
     .page
@@ -177,4 +177,36 @@
     @mount="$monter_page($node, $vars)"
     @unmount="await $demonter_page($node, $vars)"
 >
-    @stud
+    @static
+        @if [$authentification = interdite & $connecte]
+            navigation
+                <div .gauche>
+                    fleche-retour
+
+                <div .centre>
+                    <span>
+                        "Déjà connecté"
+
+                <div .droite>
+                    icone-horloge
+
+            onglet
+                section-deja-connecte
+
+        @else-if [$authentification = requise & ! $connecte]
+            navigation
+                <div .gauche>
+                    fleche-retour
+
+                <div .centre>
+                    <span>
+                        "Pas encore conecté"
+
+                <div .droite>
+                    icone-horloge
+
+            onglet
+                section-pas-encore-connecte
+
+        @else
+            @stud

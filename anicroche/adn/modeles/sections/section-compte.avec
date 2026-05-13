@@ -14,7 +14,7 @@ section [compte]
     titre
         "Votre compte"
     carte
-        bouton-formulaire [$deconnecter_compte]
+        bouton-action [$deconnecter_compte]
             "Déconnexion"
     <img src="https://cdn.pixabay.com/photo/2020/03/11/16/26/illustration-4922627_1280.jpg">
     <h1>

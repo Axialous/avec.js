@@ -1,0 +1,48 @@
+@style [
+    .bouton-action {
+        position: relative;
+
+        height: 2rem;
+        flex: 1024;
+
+        border: 0.125rem solid var(--c-vif);
+        border-radius: 0.5rem;
+        padding: 0.375rem 1.375rem;
+
+        display: flex;
+        justify-content: center;
+
+        transition: outline-color var(--d-animation),
+                    background var(--d-animation);
+
+        --f-fond:  var(--c-vif);
+        --c-fond:  var(--c-vif);
+        --c-flux:  var(--c-creme);
+        --c-focus: var(--c-vif);
+        --e-fonte: var(--e-bouton);
+        --p-fonte: var(--p-bouton);
+    }
+
+    .bouton-action:has(> .icone):not(:has(> .icone ~ .icone)):not(:has(> :not(.icone):not(.alt))) {
+        flex: 1;
+    }
+
+    .bouton-action:hover,
+    .bouton-action:focus {
+        --f-fond: var(--c-plus);
+        --c-fond: var(--c-plus);
+    }
+
+    .bouton-action .icone {
+        margin: -0.25rem;
+    }
+]
+
+@args [$fonction]
+
+<button
+    .bouton-action
+    type="button"
+    @click="$fonction($node)"
+>
+    @stud

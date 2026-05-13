@@ -155,6 +155,30 @@ Ces blocs sont **réactifs** : si une variable de scope utilisée dans la condit
 `of` renvoie les valeurs : éléments pour tableaux/itérables, caractères pour chaînes, valeurs pour objets.
 `in` parcourt les clés ou indices, `of` parcourt les valeurs ou l'itérable selon la source.
 
+### `@static`
+
+Désactive la **réactivité** des instructions enfantes directes. Exception au démarrage : si une dépendance vaut `null` au montage, elle reste surveillée jusqu'à ce qu'elle passe à une valeur non-`null` — à ce moment la transition se déclenche une dernière fois, puis la réactivité s'arrête définitivement pour cette dépendance.
+
+```
+@static
+    @if [$authentification = interdite & $connecte]
+        "Déjà connecté"
+
+    @else-if [$authentification = requise & ! $connecte]
+        "Pas encore connecté"
+
+    @else
+        contenu-par-defaut
+```
+
+Cela est utile pour :
+
+- Les branches conditionnelles qui ne doivent pas être réévaluées après le chargement initial (optimisation performance).
+- Les décisions prises une seule fois, au montage du modèle.
+- Les données chargées tardivement (`null` au départ), figées après leur première résolution.
+
+> **Note :** `@static` n'affecte que les **enfants directs** (première génération). Les instructions imbriquées plus profondément conservent leur réactivité normale.
+
 ### `@stud`
 
 Marque un emplacement où le contenu passé en enfant lors de l'appel du modèle sera inséré. Un modèle peut en contenir plusieurs : le contenu apparaîtra à chacun des emplacements.

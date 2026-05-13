@@ -1,4 +1,1 @@
 Liste de tâches
-
-- Ajouter :o pour représenter null ou undefined dans le cadriciel
-- Vérifier l'état de $connecte sur la plupart des pages

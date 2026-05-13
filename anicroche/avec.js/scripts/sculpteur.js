@@ -1,7 +1,8 @@
 export const etat_sculpteur = {
     instance: null,
     racine: null,
-    prochain_id_scope: 1
+    prochain_id_scope: 1,
+    scopes: new Map()
 }
 
 const scripts_actifs = new Map()
@@ -20,6 +21,31 @@ export const observer_sculpteur = (fn) =>
     return () => observateurs.delete(fn) // Retourne une fonction pour se désabonner
 }
 
+export const lire_dependance_par_clef = (clef, args = {}) =>
+{
+    if (typeof clef !== 'string') return undefined
+
+    if (clef.startsWith(`arg:`))
+    {
+        const propriete = clef.slice(4)
+        return args && Object.prototype.hasOwnProperty.call(args, propriete)
+            ? args[propriete]
+            : undefined
+    }
+
+    const pos = clef.indexOf(`:`)
+    if (pos <= 0) return undefined
+
+    const scope_id  = Number(clef.slice(0, pos))
+    const propriete = clef.slice(pos + 1)
+    if (!Number.isFinite(scope_id) || !propriete) return undefined
+
+    const scope = etat_sculpteur.scopes.get(scope_id)
+    if (!scope) return undefined
+
+    return scope.variables[propriete]
+}
+
 const notifier = (propriete, valeur, ancienne_valeur) =>
 {
     for (const fn of observateurs)
@@ -28,11 +54,13 @@ const notifier = (propriete, valeur, ancienne_valeur) =>
 
 const creer_scope_interne = (parent = null) =>
 {
-    return {
+    const scope = {
         id: etat_sculpteur.prochain_id_scope++,
         parent,
         variables: Object.create(null)
     }
+    etat_sculpteur.scopes.set(scope.id, scope)
+    return scope
 }
 
 const clef_dependance = (scope, propriete) => `${scope.id}:${String(propriete)}`

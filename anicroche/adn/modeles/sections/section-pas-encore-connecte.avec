@@ -1,0 +1,9 @@
+section [pas-encore-connecte]
+    titre
+        "Vous n'êtes pas encore connecté"
+    carte
+        ligne
+            bouton-ancre [/]
+                "Accueil"
+            bouton-ancre [/connexion]
+                "Connexion"

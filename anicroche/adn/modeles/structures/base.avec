@@ -1,5 +1,5 @@
 @script [
-    $connecte = false
+    $connecte = null
     $jeton_acces = null
 
     $compte = null

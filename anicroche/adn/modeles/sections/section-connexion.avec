@@ -202,7 +202,7 @@
                 ]
                 champ-mot-de-passe ["Mot de passe", mot_de_passe]
                 ligne
-                    bouton-formulaire [$basculer_vers_section_courriel]
+                    bouton-action [$basculer_vers_section_courriel]
                         icone-fleche-gauche
                         alt
                             "Retour"
@@ -227,10 +227,10 @@
                     $modifiable : :(
                 ]
                 champ-clef ["Clef de validation", clef]
-                lien-formulaire [$renvoyer_clef, 30]
+                lien-action [$renvoyer_clef, 30]
                     "Renvoyer la clef"
                 ligne
-                    bouton-formulaire [$basculer_vers_section_courriel]
+                    bouton-action [$basculer_vers_section_courriel]
                         icone-fleche-gauche
                         alt
                             "Retour"
@@ -259,7 +259,7 @@
                     $longueur_maximale : 128
                 ]
                 ligne
-                    bouton-formulaire [$basculer_vers_section_clef]
+                    bouton-action [$basculer_vers_section_clef]
                         icone-fleche-gauche
                         alt
                             "Retour"

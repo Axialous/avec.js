@@ -7,7 +7,8 @@ import {
     activer_script, desactiver_script,
     observer_sculpteur,
     creer_scope, obtenir_scope_racine, lire_variable,
-    definir_noeud_courant, effacer_noeud_courant
+    definir_noeud_courant, effacer_noeud_courant,
+    lire_dependance_par_clef
 } from './sculpteur.js'
 
 const chargements_en_cours = new Map()
@@ -658,6 +659,11 @@ const construire_enfants = (bloc, donnees) =>
                 enfants.push(...construire_for_each(enfant, donnees))
                 elsable = false
                 break
+            case `@static`:
+                const donnees_static = { ...donnees, static_direct: true }
+                enfants.push(...construire_enfants({ enfants: enfant.enfants }, donnees_static))
+                elsable = false
+                break
             case `@stud`:
                 if (donnees.tenons.length > 0)
                 {
@@ -718,7 +724,6 @@ const construire_conditionnel = (chaine, donnees) =>
     const ancre_debut = document.createComment(`@if`)
     const ancre_fin   = document.createComment(`/@if`)
 
-    // Tracker les dépendances des conditions
     for (const branche of chaine)
     {
         if (branche.args[1])
@@ -731,7 +736,6 @@ const construire_conditionnel = (chaine, donnees) =>
 
     const deps_condition = ancre_debut._avec_deps ?? new Set()
 
-    // Construire le contenu initial
     let branche_active = evaluer_chaine(chaine, donnees)
     const noeuds_actifs = branche_active
         ? construire_enfants(branche_active, donnees)
@@ -789,27 +793,64 @@ const construire_conditionnel = (chaine, donnees) =>
             }
         }
 
-        const desabonner = observer_sculpteur((propriete) =>
+        if (donnees.static_direct)
         {
-            if (!deps_condition.has(propriete)) return
-
-            if (!ancre_debut.parentNode)
+            const deps_null = new Set()
+            for (const clef of deps_condition)
             {
-                desabonner()
-                return
+                const val = lire_dependance_par_clef(clef, donnees.args)
+                if (val === null || val === undefined)
+                    deps_null.add(clef)
             }
 
-            const nouvelle_branche = evaluer_chaine(chaine, donnees)
+            if (deps_null.size > 0)
+            {
+                const desabonner = observer_sculpteur((propriete) =>
+                {
+                    if (!deps_null.has(propriete)) return
+                    if (!ancre_debut.parentNode) { desabonner(); return }
 
-            if (nouvelle_branche === branche_active) return
+                    const val = lire_dependance_par_clef(propriete, donnees.args)
+                    if (val === null || val === undefined) return
 
-            branche_active = nouvelle_branche
+                    deps_null.delete(propriete)
 
-            if (transition_en_cours)
-                branche_en_attente = nouvelle_branche
-            else
-                executer_transition(nouvelle_branche)
-        })
+                    const nouvelle_branche = evaluer_chaine(chaine, donnees)
+                    if (nouvelle_branche !== branche_active)
+                    {
+                        branche_active = nouvelle_branche
+                        executer_transition(nouvelle_branche)
+                    }
+
+                    if (deps_null.size === 0)
+                        desabonner()
+                })
+            }
+        }
+        else
+        {
+            const desabonner = observer_sculpteur((propriete) =>
+            {
+                if (!deps_condition.has(propriete)) return
+
+                if (!ancre_debut.parentNode)
+                {
+                    desabonner()
+                    return
+                }
+
+                const nouvelle_branche = evaluer_chaine(chaine, donnees)
+
+                if (nouvelle_branche === branche_active) return
+
+                branche_active = nouvelle_branche
+
+                if (transition_en_cours)
+                    branche_en_attente = nouvelle_branche
+                else
+                    executer_transition(nouvelle_branche)
+            })
+        }
     }
 
     return [ancre_debut, ...noeuds_actifs, ancre_fin]
@@ -1298,6 +1339,22 @@ const construire_modele = (bloc, donnees) =>
                         scope: donnees.scope,
                         args: donnees.args || {}
                     }
+                    continue
+                }
+                
+                // Si c'est une string literal, valoriser directement sans passer par evaluer_valeur
+                if (valeur_brute.startsWith('"') && valeur_brute.endsWith('"'))
+                {
+                    args[nom] = valoriser(valeur_decapsule, donnees)
+                    continue
+                }
+                
+                const valeur_evaluee = evaluer_valeur(valeur_decapsule, donnees)
+                if (valeur_evaluee !== ':x')
+                {
+                    args[nom] = typeof valeur_evaluee === 'string'
+                        ? valoriser(valeur_evaluee, donnees)
+                        : valeur_evaluee
                     continue
                 }
                 

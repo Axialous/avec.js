@@ -384,10 +384,10 @@ Des arguments peuvent être passés aux modèles d'attente et de repli de la mê
 Un appel de modèle peut être suivi d'un ou plusieurs **suffixes de classe** séparés par des points `.`. Ces classes seront ajoutées à tous les nœuds de premier niveau produits par le modèle.
 
 ```
-defilement-vertical.onglet
+defilement.onglet
 ```
 
-Cet appel charge le modèle `defilement-vertical` et ajoute la classe `onglet` à chacun de ses nœuds racines.
+Cet appel charge le modèle `defilement` et ajoute la classe `onglet` à chacun de ses nœuds racines.
 
 Plusieurs classes peuvent être ajoutées en les enchaînant :
 

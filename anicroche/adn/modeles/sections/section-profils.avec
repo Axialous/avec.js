@@ -1,0 +1,16 @@
+@style [
+    .section-profils .liste-profils {
+        flex-direction: row;
+    }
+]
+
+section [profils]
+    titre
+        "Vos profils"
+
+    defilement.liste-profils [horizontal]
+        @for-each [$profil] of [$compte.is_gerant_of_profils]
+            carte
+                @for-each [$key] in [$profil]
+                    <p>
+                        "$key : $compte.is_gerant_of_profils[$i][$key]"

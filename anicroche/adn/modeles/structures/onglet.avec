@@ -23,6 +23,6 @@
     }
 ]
 
-defilement-vertical.onglet
+defilement.onglet [$integration : :(]
     <div .contenu>
         @stud

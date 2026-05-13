@@ -17,4 +17,5 @@ page [$authentification : requise]
         section-profil
 
     onglet
+        section-profils
         section-compte

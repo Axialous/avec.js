@@ -1,0 +1,268 @@
+@script [
+    $monter_defilement = ($node, $vars) =>
+    {
+        const piste      = $node.querySelector('.piste')
+        const poigne     = $node.querySelector('.poignee')
+        const horizontal = $node.classList.contains('horizontal')
+
+        const calculer_geometrie = () =>
+        {
+            const style = getComputedStyle($node)
+
+            if (horizontal)
+            {
+                const padding_gauche  = parseFloat(style.paddingLeft)
+                const padding_droite  = parseFloat(style.paddingRight)
+                const largeur_piste   = $node.clientWidth - padding_gauche - padding_droite
+                const largeur_poigne  = Math.max(32, ($node.clientWidth / $node.scrollWidth) * largeur_piste)
+                return { padding_debut: padding_gauche, padding_fin: padding_droite, taille_piste: largeur_piste, taille_poigne: largeur_poigne }
+            }
+            else
+            {
+                const padding_haut   = parseFloat(style.paddingTop)
+                const padding_bas    = parseFloat(style.paddingBottom)
+                const hauteur_piste  = $node.clientHeight - padding_haut - padding_bas
+                const hauteur_poigne = Math.max(32, ($node.clientHeight / $node.scrollHeight) * hauteur_piste)
+                return { padding_debut: padding_haut, padding_fin: padding_bas, taille_piste: hauteur_piste, taille_poigne: hauteur_poigne }
+            }
+        }
+
+        const actualiser_poigne = () =>
+        {
+            const { padding_debut, taille_piste, taille_poigne } = calculer_geometrie()
+
+            if (horizontal)
+            {
+                const scroll_max = $node.scrollWidth - $node.clientWidth
+                const invisible  = scroll_max <= 0
+
+                piste.classList.toggle('cachee', invisible)
+                piste.style.left   = `${$node.scrollLeft + padding_debut}px`
+                piste.style.width  = `${taille_piste}px`
+
+                if (invisible) return
+
+                const ratio = $node.scrollLeft / scroll_max
+                const left  = ratio * (taille_piste - taille_poigne)
+
+                poigne.style.width = `${taille_poigne}px`
+                poigne.style.left  = `${left}px`
+            }
+            else
+            {
+                const scroll_max = $node.scrollHeight - $node.clientHeight
+                const invisible  = scroll_max <= 0
+
+                piste.classList.toggle('cachee', invisible)
+                piste.style.top    = `${$node.scrollTop + padding_debut}px`
+                piste.style.height = `${taille_piste}px`
+
+                if (invisible) return
+
+                const ratio = $node.scrollTop / scroll_max
+                const top   = ratio * (taille_piste - taille_poigne)
+
+                poigne.style.height = `${taille_poigne}px`
+                poigne.style.top    = `${top}px`
+            }
+        }
+
+        let glissement = null
+
+        const sur_souris_bougee = (evenement) =>
+        {
+            if (!glissement) return
+
+            const { taille_piste, taille_poigne } = calculer_geometrie()
+            const delta      = horizontal
+                ? evenement.clientX - glissement.depart_x
+                : evenement.clientY - glissement.depart_y
+            const scroll_max = horizontal
+                ? $node.scrollWidth  - $node.clientWidth
+                : $node.scrollHeight - $node.clientHeight
+            const ratio      = delta / (taille_piste - taille_poigne)
+
+            if (horizontal)
+                $node.scrollLeft = glissement.depart_scroll + ratio * scroll_max
+            else
+                $node.scrollTop  = glissement.depart_scroll + ratio * scroll_max
+        }
+
+        const sur_souris_relachee = () =>
+        {
+            glissement = null
+            document.removeEventListener('mousemove', sur_souris_bougee)
+            document.removeEventListener('mouseup',   sur_souris_relachee)
+        }
+
+        poigne.addEventListener('mousedown', (evenement) =>
+        {
+            glissement = {
+                depart_x      : evenement.clientX,
+                depart_y      : evenement.clientY,
+                depart_scroll : horizontal ? $node.scrollLeft : $node.scrollTop
+            }
+            evenement.preventDefault()
+            document.addEventListener('mousemove', sur_souris_bougee)
+            document.addEventListener('mouseup',   sur_souris_relachee)
+        })
+
+        const evenement_scroll = horizontal ? 'scroll' : 'scroll'
+        $node.addEventListener('scroll', actualiser_poigne)
+
+        $vars.observateur_taille  = new ResizeObserver(actualiser_poigne)
+        $vars.observateur_contenu = new MutationObserver(actualiser_poigne)
+
+        $vars.observateur_taille.observe($node)
+        $vars.observateur_contenu.observe($node, { childList: true, subtree: true })
+
+        $vars.actualiser_poigne   = actualiser_poigne
+        $vars.sur_souris_bougee   = sur_souris_bougee
+        $vars.sur_souris_relachee = sur_souris_relachee
+
+        requestAnimationFrame(() =>
+            requestAnimationFrame(() =>
+            {
+                if ($node.isConnected)
+                    actualiser_poigne()
+            })
+        )
+    }
+
+    $demonter_defilement = ($node, $vars) =>
+    {
+        $node.removeEventListener('scroll', $vars.actualiser_poigne)
+
+        if ($vars.observateur_taille)  $vars.observateur_taille.disconnect()
+        if ($vars.observateur_contenu) $vars.observateur_contenu.disconnect()
+
+        document.removeEventListener('mousemove', $vars.sur_souris_bougee)
+        document.removeEventListener('mouseup',   $vars.sur_souris_relachee)
+    }
+]
+
+@style [
+    .defilement {
+        position: relative;
+        scrollbar-width: none;
+    }
+
+    .defilement.vertical {
+        overflow-y: scroll;
+    }
+
+    .defilement.horizontal {
+        overflow-x: scroll;
+    }
+
+    .defilement.integre {
+        margin: calc(0rem - var(--l-marge));
+        padding: var(--l-marge);
+    }
+
+    .defilement.vertical.integre {
+        mask: linear-gradient(to bottom, transparent 0%, white var(--l-marge), white calc(100% - var(--l-marge)), transparent 100%);
+    }
+
+    .defilement.horizontal.integre {
+        mask: linear-gradient(to right, transparent 0%, white var(--l-marge), white calc(100% - var(--l-marge)), transparent 100%);
+    }
+
+    .defilement::-webkit-scrollbar {
+        display: none;
+    }
+
+    .defilement > .piste {
+        position: absolute;
+        z-index: 5;
+
+        pointer-events: none;
+        opacity: 0%;
+
+        transition: opacity var(--d-animation);
+    }
+
+    .defilement.vertical > .piste {
+        top: 0;
+        right: 0rem;
+        bottom: 0;
+        width: 0.75rem;
+    }
+
+    .defilement.horizontal > .piste {
+        right: 0;
+        bottom: 0;
+        left: 0;
+        height: 0.75rem;
+    }
+
+    :root:not(.grossier) .defilement:hover > .piste:not(.cachee),
+    :root:not(.grossier) .defilement > .piste:not(.cachee):has(> .poignee:active) {
+        opacity: 100%;
+    }
+
+    .defilement > .piste.cachee > .poignee,
+    .grossier .defilement > .piste > .poignee {
+        pointer-events: none;
+    }
+
+    .defilement > .piste > .poignee {
+        position: absolute;
+        width: 0.75rem;
+        padding: 0.25rem;
+        cursor: grab;
+        pointer-events: auto;
+
+        opacity: 50%;
+
+        transition: opacity var(--d-animation);
+    }
+
+    .defilement.vertical > .piste > .poignee {
+        width: 0.75rem;
+        // top: auto;
+        // left: 0;
+    }
+
+    .defilement.horizontal > .piste > .poignee {
+        height: 0.75rem;
+        // top: auto;
+        // left: 0;
+    }
+
+    .precis .defilement > .piste > .poignee:hover {
+        opacity: 100%;
+    }
+
+    .precis .defilement > .piste > .poignee:active {
+        opacity: 100%;
+        cursor: grabbing;
+    }
+
+    .defilement > .piste > .poignee::after {
+        content: "";
+
+        height: 100%;
+        width: 100%;
+
+        background: var(--c-flux);
+        border-radius: 0.125rem;
+    }
+]
+
+@args [$orientation : vertical, $integration : :)]
+
+<div
+    .defilement
+    [$orientation = horizontal] ? .horizontal : .vertical
+    [$integration] ? .integre
+    @mount="$monter_defilement($node, $vars)"
+    @unmount="$demonter_defilement($node, $vars)"
+>
+    <div .piste>
+        <div .poignee>
+    @stud
+
+
+
+score_alexis = score_alexis << 1

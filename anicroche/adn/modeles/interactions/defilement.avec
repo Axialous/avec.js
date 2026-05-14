@@ -262,7 +262,3 @@
     <div .piste>
         <div .poignee>
     @stud
-
-
-
-score_alexis = score_alexis << 1

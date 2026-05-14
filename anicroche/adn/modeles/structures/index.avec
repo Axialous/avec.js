@@ -130,15 +130,18 @@
         --l-blur: 4rem;
         --l-tete: 10.625rem;
         --h-navigation: 3.5rem;
+        --h-avatar: 2rem;
 
         --e-fonte:  var(--e-texte);
         --e-titre:  450;
         --e-texte:  400;
+        --e-gras:   600;
         --e-bouton: 600;
 
         --d-animation:  500ms;
 
         --t-theme: 30;
+        --t-avatar: var(--t-theme);
 
         --s-theme: 0.2;
 

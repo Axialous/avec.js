@@ -47,6 +47,7 @@ const OPERATEURS_COMPOSITES = [
     '>=', '<=', '!=', '~=',
     ':+', ':-',
     '&', '|', '!',
+    '_',
     '+', '-', '*', '/', '%', '^',
     '=', '>', '<',
     '(', ')'
@@ -59,6 +60,7 @@ const OPERATEURS_REGLES = {
     '(': { avant: ['('], apres: TOUS },
     ')': { avant: TOUS, apres: [')'] },
     '!': { avant: ['('], apres: AUCUN },
+    '_': { avant: ['('], apres: AUCUN },
 }
 
 const tokeniser = (str) =>
@@ -470,6 +472,15 @@ const op_non = (a) =>
     return ba === VRAI ? FAUX : VRAI
 }
 
+const op_longueur = (a) =>
+{
+    if (est_erreur(a)) return ERREUR
+    if (est_texte(a)) return Array.from(a).length
+    if (est_liste(a)) return a.length
+    if (est_dict(a))  return Object.keys(a).length
+    return ERREUR
+}
+
 const OPERATEURS_BINAIRES = {
     '+':   op_addition,
     '-':   op_soustraction,
@@ -591,11 +602,12 @@ const parser_puissance = (etat) =>
 
 const parser_unaire = (etat) =>
 {
-    if (etat.pos < etat.tokens.length && etat.tokens[etat.pos].valeur === '!')
+    if (etat.pos < etat.tokens.length && (etat.tokens[etat.pos].valeur === '!' || etat.tokens[etat.pos].valeur === '_'))
     {
+        const op = etat.tokens[etat.pos].valeur
         etat.pos++
         const operande = parser_unaire(etat)
-        return { type: 'op_unaire', op: '!', operande }
+        return { type: 'op_unaire', op, operande }
     }
     return parser_primaire(etat)
 }
@@ -886,6 +898,7 @@ const evaluer_noeud = (noeud, donnees) =>
     {
         const operande = evaluer_noeud(noeud.operande, donnees)
         if (noeud.op === '!') return op_non(operande)
+        if (noeud.op === '_') return op_longueur(operande)
         return ERREUR
     }
 

@@ -1,6 +1,33 @@
 @style [
     .section-profils .liste-profils {
         flex-direction: row;
+
+        --h-avatar: 4rem;
+    }
+
+    .section-profils .liste-profils .carte {
+        align-items: center;
+        width: 10rem;
+    }
+
+    .section-profils .liste-profils .carte .noms {
+        max-width: 100%;
+
+        --l-ecart: 0.5rem;
+    }
+
+    .section-profils .liste-profils .carte .noms span {
+        width: 100%;
+
+        overflow: hidden;
+        text-overflow: ellipsis;
+
+        white-space: nowrap;
+        text-align: center;
+    }
+
+    .section-profils .liste-profils .carte .pseudonyme {
+        --e-fonte: var(--e-gras);
     }
 ]
 
@@ -8,9 +35,19 @@ section [profils]
     titre
         "Vos profils"
 
-    defilement.liste-profils [horizontal]
-        @for-each [$profil] of [$compte.is_gerant_of_profils]
-            carte
-                @for-each [$key] in [$profil]
-                    <p>
-                        "$key : $compte.is_gerant_of_profils[$i][$key]"
+    @if [_ $compte.is_gerant_of_profils = 0]
+        <p>
+            "Vous n'avez pas encore créé de profil."
+        bouton-ancre [/profil/creation]
+            "Créer un profil"
+
+    @else
+        defilement.liste-profils [horizontal]
+            @for-each [$p] of [$compte.is_gerant_of_profils]
+                carte
+                    avatar [$p]
+                    <div .noms>
+                        <span .pseudonyme>
+                            "$p.pseudonyme"
+                        <span .identifiant>
+                            "@$p.identifiant"

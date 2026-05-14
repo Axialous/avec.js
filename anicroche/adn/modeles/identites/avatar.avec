@@ -1,0 +1,29 @@
+@style [
+    .avatar {
+        height: var(--h-avatar);
+        aspect-ratio: 1 / 1;
+
+        overflow: hidden;
+        user-select: none;
+
+        border-radius: 50%;
+
+        display: grid;
+        place-items: center;
+
+        --p-fonte: var(--p-titre);
+        --e-fonte: var(--e-titre);
+        --l-fonte: calc(var(--h-avatar) / 2);
+
+        --f-fond: oklch(0.85 0.20 var(--t-avatar));
+        --c-fond: oklch(0.85 0.20 var(--t-avatar));
+        --c-flux: oklch(0.95 0.01 var(--t-avatar));
+    }
+]
+
+@args [$profil_avatar]
+
+<div .avatar>
+    <span>
+        "$profil_avatar.pseudonyme[0]"
+

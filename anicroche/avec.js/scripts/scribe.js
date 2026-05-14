@@ -32,6 +32,16 @@ const resoudre_acces = (valeur, clef_brute, donnees) =>
     const clef = resoudre_clef(clef_brute, donnees)
     if (!clef.trouve) return { trouve: false }
 
+    // Accès par index sur les chaînes (supporte bien les caractères Unicode)
+    if (typeof valeur === 'string')
+    {
+        const chars = Array.from(valeur)
+        const index = parseInt(clef.valeur)
+        if (!Number.isNaN(index) && index >= 0 && index < chars.length)
+            return { trouve: true, valeur: chars[index] }
+        return { trouve: false }
+    }
+
     if (Array.isArray(valeur))
     {
         const index = parseInt(clef.valeur)

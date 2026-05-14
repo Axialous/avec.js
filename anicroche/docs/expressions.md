@@ -159,6 +159,14 @@ Les comparaisons peuvent être **chaînées** : `1 < $n < 10` est équivalent à
 | `\|` | Ou logique (court-circuit : le membre droit n'est pas évalué si le gauche est vrai) |
 | `!` | Non logique |
 
+### Longueur
+
+| Opérateur | Description | Exemple |
+|---|---|---|
+| `_` | Retourne la longueur d'une valeur (chaîne, liste ou dictionnaire). Il doit y avoir un espace entre l'opérateur `_` et l'expression qui suit (ex : `_ $var`). | `_ $nom`, `_ $liste`, `_ $objet` |
+
+L'opérateur `_` renvoie un nombre entier: le nombre de caractères d'une chaîne (comptés en points de code Unicode), la longueur d'une liste, ou le nombre de clés propres d'un dictionnaire. Si le type n'est pas pris en charge, l'opérateur échoue.
+
 ### Appartenance
 
 Ces opérateurs vérifient si une valeur est présente dans une liste, ou si une clé est présente dans un dictionnaire.

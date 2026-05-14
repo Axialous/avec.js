@@ -36,6 +36,58 @@
         flex: 1;
         height: 100%;
     }
+
+    #page::before {
+        content: "";
+
+        position: absolute;
+        z-index: 99;
+        top: 0;
+        right: 0;
+        left: var(--l-tete);
+
+        height: var(--h-navigation);
+
+        background: var(--f-fond);
+
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity var(--d-animation);
+
+        --f-fond: var(--f-degrade-vif);
+        --c-fond: var(--c-vif);
+    }
+
+    #page::after {
+        content: "";
+
+        position: absolute;
+        z-index: 99;
+        top: var(--h-navigation);
+        right: 0;
+        bottom: 0;
+        left: var(--l-tete);
+
+        background: var(--f-fond);
+
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity var(--d-animation);
+
+        --f-fond: var(--c-theme);
+        --c-fond: var(--c-theme);
+    }
+
+    .petit.portrait #page::after {
+        bottom: var(--h-tete);
+    }
+
+    #page:has(> .page.entree)::before,
+    #page:has(> .page.sortie)::before,
+    #page:has(> .page.entree)::after,
+    #page:has(> .page.sortie)::after {
+        opacity: 100%;
+    }
 ]
 
 <main

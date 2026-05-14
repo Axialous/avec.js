@@ -36,10 +36,8 @@
     }
 
     #fond .empreinte-navigation {
-        transition: opacity var(--d-animation);
-
-        --f-fond: var(--f-degrade-vif);
-        --c-fond: var(--c-vif);
+        --f-fond: var(--f-analogue);
+        --c-fond: var(--c-analogue);
     }
 
     .interieur #fond .empreinte-navigation {

@@ -129,6 +129,7 @@
         --l-marge: 1rem;
         --l-blur: 4rem;
         --l-tete: 10.625rem;
+        --h-tete: 100vh;
         --h-navigation: 3.5rem;
         --h-avatar: 2rem;
 
@@ -183,6 +184,7 @@
 
     html.petit.portrait {
         --l-tete: 0rem;
+        --h-tete: 3.5rem;
     }
 
     .clair {

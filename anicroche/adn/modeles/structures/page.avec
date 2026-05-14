@@ -155,14 +155,6 @@
         display: none;
     }
 
-    .page.entree {
-        opacity: 0;
-    }
-
-    .page.sortie {
-        opacity: 0;
-    }
-
     .page img {
         border-radius: 1rem;
         max-width: 100%;

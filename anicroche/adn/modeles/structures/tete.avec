@@ -32,13 +32,16 @@
 
         padding: 1rem;
 
-        // backdrop-filter: blur(var(--l-blur));
 
-        transition: opacity var(--d-animation);
+        transition: opacity var(--d-animation), background var(--d-animation);
 
-        // --f-fond: var(--c-analogue-trans);
         --c-fond: var(--c-analogue);
         --l-ecart: 2rem;
+    }
+
+    #tete:has(+ #corps > #page > .page.entree),
+    #tete:has(+ #corps > #page > .page.sortie) {
+        --f-fond: var(--c-analogue);
     }
 
     #tete.entree {

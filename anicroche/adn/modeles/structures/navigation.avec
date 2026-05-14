@@ -11,15 +11,11 @@
 
         flex-direction: row;
 
-        backdrop-filter: blur(var(--l-blur));
-
-        --f-fond: var(--c-trans);
         --c-fond: var(--c-vif);
         --c-flux: var(--c-creme);
     }
 
     .interieur .navigation {
-        --f-fond: var(--c-analogue-trans);
         --c-fond: var(--c-analogue);
         --c-flux: var(--c-inverse);
     }
@@ -27,18 +23,51 @@
     .navigation::before {
         content: "";
 
-        position: fixed;
+        position: absolute;
         z-index: -1;
-        inset: 0;
+        top: 0;
+        left: calc(0rem - var(--l-tete));
 
+        height: 100vh;
+        width: 100vw;
+
+        background: var(--f-fond);
         backdrop-filter: blur(var(--l-blur));
+
+        clip-path: polygon(
+            0             0,
+            100vw         0,
+            100vw         var(--h-navigation),
+            var(--l-tete) var(--h-navigation),
+            var(--l-tete) 100vh,
+            0             100vh
+        );
+        pointer-events: none;
+
+        --f-fond: var(--c-analogue-trans);
+        --c-fond: var(--c-analogue);
+    }
+
+    .navigation::after {
+        content: "";
+
+        position: absolute;
+        z-index: -1;
+        top: 0;
+        left: 0;
+
+        height: var(--h-navigation);
+        width: 100%;
+
+        background: var(--f-fond);
+
         transition: opacity var(--d-animation);
 
-        --f-fond: var(--f-degrade-vif-trans);
+        --f-fond: var(--f-degrade-vif);
         --c-fond: var(--c-vif);
     }
 
-    .interieur .navigation::before {
+    .interieur .navigation::after {
         opacity: 0;
     }
 

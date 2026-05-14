@@ -6,8 +6,9 @@
     }
 
     .section-profils .liste-profils .carte {
-        align-items: center;
+        flex: none;
         width: 10rem;
+        align-items: center;
     }
 
     .section-profils .liste-profils .carte .noms {

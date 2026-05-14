@@ -32,11 +32,11 @@
 
         padding: 1rem;
 
-        backdrop-filter: blur(var(--l-blur));
+        // backdrop-filter: blur(var(--l-blur));
 
         transition: opacity var(--d-animation);
 
-        --f-fond: var(--c-analogue-trans);
+        // --f-fond: var(--c-analogue-trans);
         --c-fond: var(--c-analogue);
         --l-ecart: 2rem;
     }

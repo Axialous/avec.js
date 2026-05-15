@@ -1,8 +1,7 @@
 @script [
-    $selectionner_profil = () =>
+    $selectionner_profil = (id) =>
     {
-        alert("test")
-        console.log($node)
+        $profil = $compte.is_gerant_of_profils.find(p => p.id == id)
     }
 ]
 
@@ -54,8 +53,8 @@ section [profils]
     @else
         defilement.liste-profils [horizontal]
             @for-each [$p] of [$compte.is_gerant_of_profils]
-                carte
-                    boite-action [$selectionner_profil]
+                carte [$selectionnee : $profil.id = $p.id]
+                    boite-action [$selectionner_profil($p.id)]
                         "T"
                     avatar [$p]
                     <div .noms>

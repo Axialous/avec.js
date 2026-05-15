@@ -6,7 +6,17 @@
         --f-fond: var(--c-analogue);
         --c-fond: var(--c-analogue);
     }
+
+    .carte.selectionnee {
+        --f-fond: red;
+    }
 ]
 
-<div .carte>
+@args [$selectionnee : :(]
+
+<div
+    .carte
+    [$selectionnee] ? .selectionnee
+>
+    "$selectionnee"
     @stud

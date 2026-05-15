@@ -1179,6 +1179,20 @@ const appliquer_attribut = (noeud, clef, valeur) =>
     }
 }
 
+const extraire_appel_fonction = (str) =>
+{
+    const brut = str.trim()
+
+    // Doit commencer par $nom_de_variable
+    const match = brut.match(/^(\$[a-zA-Z_][\w]*)(\(.*\))$/s)
+    if (!match) return null
+
+    const nom_fn = match[1]
+    const args_bruts = match[2] // "(arg1, arg2, ...)" ou "()"
+
+    return { nom_fn, args_bruts }
+}
+
 const construire_modele = (bloc, donnees) =>
 {
     const nom_complet = bloc.args[0]
@@ -1341,6 +1355,25 @@ const construire_modele = (bloc, donnees) =>
                     }
                     continue
                 }
+
+                const appel = extraire_appel_fonction(valeur_decapsule)
+                if (appel)
+                {
+                    const { nom_fn, args_bruts } = appel
+                    const lecture = lire_variable(donnees.scope, donnees.args || {}, nom_fn, false)
+                    if (lecture.trouve && typeof lecture.valeur === 'function')
+                    {
+                        // Évaluer les arguments au moment de la construction (dans le scope courant)
+                        const args_evalues_bruts = decouper_haut_niveau(
+                            decapsuler(args_bruts),
+                            new Set([','])
+                        )
+                        const args_evalues = args_evalues_bruts.map(a => evaluer_valeur(a.trim(), donnees))
+
+                        args[nom] = () => lecture.valeur(...args_evalues)
+                        continue
+                    }
+                }
                 
                 // Si c'est une string literal, valoriser directement sans passer par evaluer_valeur
                 if (valeur_brute.startsWith('"') && valeur_brute.endsWith('"'))
@@ -1350,14 +1383,12 @@ const construire_modele = (bloc, donnees) =>
                 }
                 
                 const valeur_evaluee = evaluer_valeur(valeur_decapsule, donnees)
-                if (valeur_evaluee !== ':x')
+                if (valeur_evaluee !== null && valeur_evaluee !== ':x')
                 {
-                    args[nom] = typeof valeur_evaluee === 'string'
-                        ? valoriser(valeur_evaluee, donnees)
-                        : valeur_evaluee
+                    args[nom] = valeur_evaluee
                     continue
                 }
-                
+
                 const lecture = lire_variable(donnees.scope, donnees.args || {}, valeur_decapsule, false)
                 if (lecture.trouve)
                 {

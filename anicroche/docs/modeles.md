@@ -150,10 +150,10 @@ Ces blocs sont **réactifs** : si une variable de scope utilisée dans la condit
 
 @for-each $v of $objet
     "affiché pour chaque valeur d'objet"
+```
 
 `in` renvoie les clés/indices : indices numériques pour tableaux et chaînes, clés pour objets.
 `of` renvoie les valeurs : éléments pour tableaux/itérables, caractères pour chaînes, valeurs pour objets.
-`in` parcourt les clés ou indices, `of` parcourt les valeurs ou l'itérable selon la source.
 
 ### `@static`
 
@@ -353,6 +353,40 @@ carte ["Mon titre", "Ma description"]
     <span>
         "autre enfant"
 ```
+
+### Passer une fonction en argument
+
+Il est possible de passer une fonction comme argument d'un modèle. Trois formes sont disponibles selon le besoin :
+
+| Syntaxe | Signification |
+|---|---|
+| `[$fn]` | Passe la **référence** de la fonction — le modèle appelé la reçoit telle quelle |
+| `[$fn()]` | Passe une **closure sans argument** — équivalent à `() => $fn()` |
+| `[$fn($a, $b)]` | Passe une **closure avec arguments** — équivalent à `() => $fn($a, $b)` |
+
+Dans les deux dernières formes, la fonction n'est **pas appelée immédiatement** : le cadriciel construit une closure qui sera invoquée plus tard par le modèle destinataire (typiquement au clic, au montage, etc.). Le modèle destinataire reçoit dans tous les cas une simple fonction `$fonction` qu'il appelle avec `$fonction()`, sans se soucier de savoir si des arguments y sont liés.
+
+**Exemple — passer un identifiant capturé dans une boucle :**
+
+```
+@script [
+    $selectionner_profil = (id) =>
+    {
+        alert(id)
+    }
+]
+
+@for-each [$p] of [$compte.profils]
+    boite-action [$selectionner_profil($p.id)]
+```
+
+Ici, `$p.id` est évalué **au moment du rendu** de chaque itération, et capturé dans la closure. Chaque instance de `boite-action` reçoit donc une fonction différente, liée à l'identifiant du profil correspondant.
+
+> **Note :** les arguments passés à la closure (`$p.id` dans l'exemple) sont évalués au moment de la construction du modèle, pas au moment de l'appel. Si une variable réactive change après le rendu, la closure conservera la valeur capturée lors du rendu initial.
+
+### `$node` dans une fonction passée en argument
+
+Quand le modèle destinataire appelle `$fonction()` depuis un gestionnaire d'événement (ex : `@click="$fonction()"`), la variable `$node` disponible dans la fonction sera le nœud DOM du modèle destinataire — pas celui du modèle appelant. Ce comportement est cohérent avec le fonctionnement général des gestionnaires d'événements.
 
 ### Types de chargement
 

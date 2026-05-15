@@ -8,12 +8,39 @@ export const etat_sculpteur = {
 const scripts_actifs = new Map()
 const observateurs   = new Set()
 let nettoyages_script_en_cours = null
+const contexte_script_en_cours = []
 
 // Le nœud en cours de construction (pour tracker ses dépendances)
 let noeud_courant = null
 
 export const definir_noeud_courant = (noeud) => { noeud_courant = noeud }
 export const effacer_noeud_courant = ()       => { noeud_courant = null  }
+
+const obtenir_contexte_script_actif = () => contexte_script_en_cours.at(-1) ?? null
+
+const empiler_contexte_script = (contexte) =>
+{
+    if (contexte)
+        contexte_script_en_cours.push(contexte)
+}
+
+const depiler_contexte_script = (contexte) =>
+{
+    if (!contexte)
+        return
+
+    if (contexte_script_en_cours.at(-1) === contexte)
+    {
+        contexte_script_en_cours.pop()
+        return
+    }
+
+    const index = contexte_script_en_cours.lastIndexOf(contexte)
+    if (index === -1)
+        return
+
+    contexte_script_en_cours.splice(index, 1)
+}
 
 export const observer_sculpteur = (fn) =>
 {
@@ -177,16 +204,16 @@ export const ecrire_variable = (scope, args, propriete, valeur) =>
     return true
 }
 
-const creer_runtime = (scope, args = {}) =>
+const creer_runtime = (scope, args = {}, contexte_script_source = null) =>
 {
     const cible = Object.create(null)
     const VARIABLES_CONTEXTE_SCRIPT = new Set([`$event`, `$node`, `$vars`])
 
+    const obtenir_contexte_script = () => obtenir_contexte_script_actif() || (contexte_script_source?._avec_contexte_script ?? null)
+
     return new Proxy(cible, {
         has(objet, propriete)
         {
-            if (typeof propriete === 'string' && VARIABLES_CONTEXTE_SCRIPT.has(propriete))
-                return false
             if (typeof propriete === 'string' && propriete.startsWith(`$`))
                 return true
             return Reflect.has(objet, propriete)
@@ -196,6 +223,13 @@ const creer_runtime = (scope, args = {}) =>
         {
             if (typeof propriete === 'symbol')
                 return Reflect.get(objet, propriete)
+
+            const contexte_script = obtenir_contexte_script()
+            if (typeof propriete === 'string' && contexte_script && VARIABLES_CONTEXTE_SCRIPT.has(propriete))
+            {
+                if (Object.prototype.hasOwnProperty.call(contexte_script, propriete))
+                    return contexte_script[propriete]
+            }
 
             const lecture = lire_variable(scope, args, propriete, true)
             if (lecture.trouve)
@@ -209,6 +243,13 @@ const creer_runtime = (scope, args = {}) =>
             if (typeof propriete !== 'string')
                 return Reflect.set(objet, propriete, valeur)
 
+            const contexte_script = obtenir_contexte_script()
+            if (contexte_script && VARIABLES_CONTEXTE_SCRIPT.has(propriete))
+            {
+                contexte_script[propriete] = valeur
+                return true
+            }
+
             if (propriete.startsWith(`$`))
                 return ecrire_variable(scope, args, propriete, valeur)
 
@@ -220,7 +261,7 @@ const creer_runtime = (scope, args = {}) =>
 export const creer_runtime_contexte = (scope, args = {}) =>
 {
     initialiser_sculpteur()
-    return creer_runtime(scope || etat_sculpteur.racine, args)
+    return creer_runtime(scope || etat_sculpteur.racine, args, scope || etat_sculpteur.racine)
 }
 
 export const definir_variable_racine = (propriete, valeur) =>
@@ -262,19 +303,34 @@ export const executer_script_async = async (script, evenement, noeud, scope = nu
     {
         try
         {
-            const runtime = creer_runtime_contexte(scope || noeud?._avec_scope, args || noeud?._avec_args || {})
+            const scope_effectif = scope || noeud?._avec_scope
+            const runtime = creer_runtime_contexte(scope_effectif, args || noeud?._avec_args || {})
+            const contexte_script = scope_effectif
+                ? (scope_effectif._avec_contexte_script = scope_effectif._avec_contexte_script || Object.create(null))
+                : null
+            if (scope_effectif)
+            {
+                scope_effectif._avec_contexte_script.$event = evenement
+                scope_effectif._avec_contexte_script.$node = noeud
+                scope_effectif._avec_contexte_script.$vars = noeud?._avec_vars
+            }
+            empiler_contexte_script(contexte_script)
             const FonctionAsync = async function(){}.constructor
-            await new FonctionAsync(
-                `runtime`,
-                `$event`,
-                `$node`,
-                `$vars`,
-                `
-                with (runtime) {
-                    ${script}
-                }
-                `
-            )(runtime, evenement, noeud, noeud?._avec_vars)
+            try
+            {
+                await new FonctionAsync(
+                    `runtime`,
+                    `
+                    with (runtime) {
+                        ${script}
+                    }
+                    `
+                )(runtime)
+            }
+            finally
+            {
+                depiler_contexte_script(contexte_script)
+            }
         }
         catch (erreur)
         {
@@ -289,18 +345,33 @@ export const executer_script = (script, evenement, noeud, scope = null, args = n
     {
         try
         {
-            const runtime = creer_runtime_contexte(scope || noeud?._avec_scope, args || noeud?._avec_args || {})
-            new Function(
-                `runtime`,
-                `$event`,
-                `$node`,
-                `$vars`,
-                `
-                with (runtime) {
-                    ${script}
-                }
-                `
-            )(runtime, evenement, noeud, noeud?._avec_vars)
+            const scope_effectif = scope || noeud?._avec_scope
+            const runtime = creer_runtime_contexte(scope_effectif, args || noeud?._avec_args || {})
+            const contexte_script = scope_effectif
+                ? (scope_effectif._avec_contexte_script = scope_effectif._avec_contexte_script || Object.create(null))
+                : null
+            if (scope_effectif)
+            {
+                scope_effectif._avec_contexte_script.$event = evenement
+                scope_effectif._avec_contexte_script.$node = noeud
+                scope_effectif._avec_contexte_script.$vars = noeud?._avec_vars
+            }
+            empiler_contexte_script(contexte_script)
+            try
+            {
+                new Function(
+                    `runtime`,
+                    `
+                    with (runtime) {
+                        ${script}
+                    }
+                    `
+                )(runtime)
+            }
+            finally
+            {
+                depiler_contexte_script(contexte_script)
+            }
         }
         catch (erreur)
         {
@@ -323,6 +394,7 @@ export const activer_script = (modele, js, scope = null, args = {}) =>
     else
     {
         commencer_collecte_nettoyages()
+        scope_effectif._avec_contexte_script = scope_effectif._avec_contexte_script || Object.create(null)
         const runtime = creer_runtime_contexte(scope_effectif, args)
         const fonction = new Function(
             `runtime`,
@@ -335,7 +407,16 @@ export const activer_script = (modele, js, scope = null, args = {}) =>
 
         try
         {
-            fonction(runtime)
+            const contexte_script = scope_effectif._avec_contexte_script
+            empiler_contexte_script(scope_effectif._avec_contexte_script)
+            try
+            {
+                fonction(runtime)
+            }
+            finally
+            {
+                depiler_contexte_script(contexte_script)
+            }
             const nettoyages = recuperer_nettoyages_script()
 
             scripts_actifs.set(clef_script, {

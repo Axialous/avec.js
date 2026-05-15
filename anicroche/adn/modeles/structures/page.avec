@@ -1,5 +1,5 @@
 @script [
-    $monter_page = ($node, $vars) =>
+    $monter_page = () =>
     {
         $node.classList.add('entree')
         void $node.offsetWidth
@@ -9,7 +9,7 @@
             )
         )
 
-        marquer_onglet_actif($node, 1, $vars)
+        marquer_onglet_actif($node, 1)
 
         $node.addEventListener('scroll', () =>
         {
@@ -30,11 +30,11 @@
 
             const onglets = $node.querySelectorAll(':scope > .onglet')
             const n = Math.round(ratio * (onglets.length - 1)) + 1
-            marquer_onglet_actif($node, n, $vars)
+            marquer_onglet_actif($node, n)
         })
     }
 
-    $demonter_page = async ($node, $vars) =>
+    $demonter_page = async () =>
     {
         if ($vars.onglet_actif && $vars.sur_scroll_onglet)
             $vars.onglet_actif.removeEventListener('scroll', $vars.sur_scroll_onglet)
@@ -59,9 +59,9 @@
         await new Promise(r => setTimeout(r, maxTime))
     }
 
-    $basculer_vers_onglet = (n, $node) =>
+    $basculer_vers_onglet = (n, noeud = $node) =>
     {
-        const page = $node.closest('.page')
+        const page = noeud.closest('.page')
         if (!page) return
 
         const onglets = page.querySelectorAll(':scope > .onglet')
@@ -73,31 +73,31 @@
         marquer_onglet_actif(page, n)
     }
 
-    $basculer_vers_onglet_suivant = ($node) =>
+    $basculer_vers_onglet_suivant = (noeud = $node) =>
     {
-        const page = $node.closest('.page')
+        const page = noeud.closest('.page')
         if (!page) return
 
         const onglets = page.querySelectorAll(':scope > .onglet')
         const actif = [...onglets].findIndex(onglet => onglet.classList.contains('actif'))
         if (actif === -1 || actif === onglets.length - 1) return
 
-        $basculer_vers_onglet(actif + 2, $node)
+        $basculer_vers_onglet(actif + 2, noeud)
     }
 
-    $basculer_vers_onglet_precedant = ($node) =>
+    $basculer_vers_onglet_precedant = (noeud = $node) =>
     {
-        const page = $node.closest('.page')
+        const page = noeud.closest('.page')
         if (!page) return
 
         const onglets = page.querySelectorAll(':scope > .onglet')
         const actif = [...onglets].findIndex(onglet => onglet.classList.contains('actif'))
         if (actif <= 0) return
 
-        $basculer_vers_onglet(actif, $node)
+        $basculer_vers_onglet(actif, noeud)
     }
 
-    const marquer_onglet_actif = (page, n, $vars) =>
+    const marquer_onglet_actif = (page, n) =>
     {
         const boutons_onglets = page.querySelectorAll(':scope .bouton-onglet')
         boutons_onglets.forEach((bouton_onglet, i) =>
@@ -166,8 +166,8 @@
 <div
     .page
     [$defilable] ? .defilable
-    @mount="$monter_page($node, $vars)"
-    @unmount="await $demonter_page($node, $vars)"
+    @mount="$monter_page()"
+    @unmount="await $demonter_page()"
 >
     @static
         @if [$authentification = interdite & $connecte]

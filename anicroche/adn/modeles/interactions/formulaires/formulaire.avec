@@ -1,8 +1,8 @@
 @script [
-    $envoyer_formulaire = ($node, $event) =>
+    $envoyer_formulaire = () =>
     {
         $event.preventDefault()
-        $fonction($node, $event)
+        $fonction()
     }
 ]
 
@@ -14,5 +14,5 @@
 
 @args [$fonction]
 
-<form .formulaire @submit="$envoyer_formulaire($node, $event)">
+<form .formulaire @submit="$envoyer_formulaire()">
     @stud

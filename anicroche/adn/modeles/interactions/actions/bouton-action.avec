@@ -43,6 +43,6 @@
 <button
     .bouton-action
     type="button"
-    @click="$fonction($node)"
+    @click="$fonction()"
 >
     @stud

@@ -1,3 +1,11 @@
+@script [
+    $selectionner_profil = () =>
+    {
+        alert("test")
+        console.log($node)
+    }
+]
+
 @style [
     .section-profils .liste-profils {
         flex-direction: row;
@@ -35,6 +43,7 @@
 section [profils]
     titre
         "Vos profils"
+    "$profil.pseudonyme"
 
     @if [_ $compte.is_gerant_of_profils = 0]
         <p>
@@ -46,6 +55,8 @@ section [profils]
         defilement.liste-profils [horizontal]
             @for-each [$p] of [$compte.is_gerant_of_profils]
                 carte
+                    boite-action [$selectionner_profil]
+                        "T"
                     avatar [$p]
                     <div .noms>
                         <span .pseudonyme>

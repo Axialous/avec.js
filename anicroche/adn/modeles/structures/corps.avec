@@ -1,5 +1,5 @@
 @script [
-    $monter_corps = ($node) =>
+    $monter_corps = () =>
     {
         $node.classList.add('entree')
         requestAnimationFrame(() => 
@@ -92,7 +92,7 @@
 
 <main
     #corps
-    @mount="$monter_corps($node)"
+    @mount="$monter_corps()"
 >
     <section #page>
         routeur

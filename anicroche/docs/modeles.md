@@ -244,7 +244,7 @@ Exemples :
 
 <button
     [$actif] ? .actif : .inactif
-    [$edition] ? @click="$enregistrer($event)" : @click="$ouvrir($event)"
+    [$edition] ? @click="$enregistrer()" : @click="$ouvrir()"
 >
 ```
 
@@ -259,7 +259,7 @@ Les événements DOM s'écrivent avec le préfixe `@` ou `on` :
 <input onchange="$valeur = $event.target.value">
 ```
 
-Dans le script du gestionnaire, les variables suivantes sont disponibles :
+Dans le script du gestionnaire, les variables suivantes sont disponibles, et elles restent accessibles dans toute fonction appelée depuis ce script (fonctions imbriquées, callbacks passés en argument, etc.) :
 
 | Variable | Description |
 |---|---|
@@ -276,8 +276,8 @@ Dans le script du gestionnaire, les variables suivantes sont disponibles :
 
 ```
 <div
-    @mount="$initialiser($node, $vars)"
-    @unmount="$nettoyer($node, $vars)"
+    @mount="$initialiser()"
+    @unmount="$nettoyer()"
 >
 ```
 

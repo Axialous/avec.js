@@ -72,16 +72,16 @@ En cas de conflit de nom, `@args` est prioritaire sur les variables de scope.
 
 ### Variables de nœud
 
-Les variables de nœud (`$vars`) permettent de stocker des données associées à un élément DOM précis. Elles persistent entre le montage et le démontage de l'élément, mais ne sont **accessibles que dans les scripts** (`@script`, `@mount`, `@unmount` et gestionnaires d'événements) — pas dans les expressions ni les textes du gabarit.
+Les variables de nœud (`$vars`) permettent de stocker des données associées à un élément DOM précis. Elles persistent entre le montage et le démontage de l'élément, mais ne sont **accessibles que dans les scripts** (`@script`, `@mount`, `@unmount` et gestionnaires d'événements) — pas dans les expressions ni les textes du gabarit. Dans ces scripts, `$event`, `$node` et `$vars` sont injectés automatiquement, y compris dans les fonctions déclarées à l'intérieur du script.
 
 ```
 @script [
-    $monter = ($node, $vars) =>
+    $monter = () =>
     {
         $vars.intervalle = setInterval(() => { ... }, 1000)
     }
 
-    $demonter = ($node, $vars) =>
+    $demonter = () =>
     {
         clearInterval($vars.intervalle)
         $vars.intervalle = null
@@ -89,8 +89,8 @@ Les variables de nœud (`$vars`) permettent de stocker des données associées �
 ]
 
 <div
-    @mount="$monter($node, $vars)"
-    @unmount="$demonter($node, $vars)"
+    @mount="$monter()"
+    @unmount="$demonter()"
 >
 ```
 

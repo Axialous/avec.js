@@ -1,5 +1,5 @@
 @script [
-    $envoyer_formulaire_courriel = async ($node, $event) =>
+    $envoyer_formulaire_courriel = async () =>
     {
         $mode_formulaire = $event.submitter.value
 
@@ -20,7 +20,7 @@
                 if (reponse)
                     $ids.push(reponse.data.id)
                 $courriel_formulaire = data.get('courriel')
-                $basculer_vers_onglet_suivant($node)
+                $basculer_vers_onglet_suivant()
                 $courriels_clefs.add($courriel_formulaire)
             }
             else
@@ -31,11 +31,11 @@
         else if ($mode_formulaire == 'mot_de_passe')
         {
             $courriel_formulaire = data.get('courriel')
-            $basculer_vers_onglet_suivant($node)
+            $basculer_vers_onglet_suivant()
         }
     }
 
-    $envoyer_formulaire_mot_de_passe = async ($node, $event) =>
+    $envoyer_formulaire_mot_de_passe = async () =>
     {
         data = new FormData($node)
 
@@ -54,7 +54,7 @@
         }
     }
 
-    $renvoyer_clef = async ($node, $event) =>
+    $renvoyer_clef = async () =>
     {
         let reponse = await $create('clef', {type: 'authentification', coordonnee: $courriel_formulaire})
 
@@ -71,7 +71,7 @@
         }
     }
 
-    $envoyer_formulaire_clef = async ($node, $event) =>
+    $envoyer_formulaire_clef = async () =>
     {
         data = new FormData($node)
         $clef_formulaire = data.get('clef')
@@ -87,7 +87,7 @@
             type = reponse.data?.type
             if (type == 'inscription')
             {
-                $basculer_vers_onglet_suivant($node)
+                $basculer_vers_onglet_suivant()
             }
             else if (type == 'connexion')
             {
@@ -119,7 +119,7 @@
         }
     }
 
-    $envoyer_formulaire_inscription = async ($node, $event) =>
+    $envoyer_formulaire_inscription = async () =>
     {
         data = new FormData($node)
 
@@ -153,17 +153,17 @@
         }
     }
 
-    $basculer_vers_section_courriel = ($node) =>
+    $basculer_vers_section_courriel = () =>
     {
         $erreur_courriel = false
-        $basculer_vers_onglet_precedant($node)
+        $basculer_vers_onglet_precedant()
     }
 
-    $basculer_vers_section_clef = ($node) =>
+    $basculer_vers_section_clef = () =>
     {
         $succes_clef = false
         $erreur_clef = false
-        $basculer_vers_onglet_precedant($node)
+        $basculer_vers_onglet_precedant()
     }
 ]
 

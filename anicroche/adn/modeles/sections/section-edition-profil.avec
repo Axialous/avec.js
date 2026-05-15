@@ -1,7 +1,7 @@
 @script [
     $erreur_edition_profil = false
 
-    $envoyer_formulaire_edition = async ($node, $event) =>
+    $envoyer_formulaire_edition = async () =>
     {
         data = new FormData($node)
 

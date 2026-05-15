@@ -1,5 +1,5 @@
 @script [
-    $monter_chargement = ($node) =>
+    $monter_chargement = () =>
     {
         $node.classList.add('entree')
         requestAnimationFrame(() => 
@@ -9,7 +9,7 @@
         )
     }
 
-    $demonter_chargement = async ($node) =>
+    $demonter_chargement = async () =>
     {
         const style = getComputedStyle($node)
 
@@ -65,8 +65,8 @@
 
 <div
     #chargement
-    @mount="$monter_chargement($node)"
-    @unmount="await $demonter_chargement($node)"
+    @mount="$monter_chargement()"
+    @unmount="await $demonter_chargement()"
 >
     <section>
         <span>

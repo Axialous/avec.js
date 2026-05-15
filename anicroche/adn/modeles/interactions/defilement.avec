@@ -1,5 +1,5 @@
 @script [
-    $monter_defilement = ($node, $vars) =>
+    $monter_defilement = () =>
     {
         const piste      = $node.querySelector('.piste')
         const poigne     = $node.querySelector('.poignee')
@@ -129,7 +129,7 @@
         )
     }
 
-    $demonter_defilement = ($node, $vars) =>
+    $demonter_defilement = () =>
     {
         $node.removeEventListener('scroll', $vars.actualiser_poigne)
 
@@ -256,8 +256,8 @@
     .defilement
     [$orientation = horizontal] ? .horizontal : .vertical
     [$integration] ? .integre
-    @mount="$monter_defilement($node, $vars)"
-    @unmount="$demonter_defilement($node, $vars)"
+    @mount="$monter_defilement()"
+    @unmount="$demonter_defilement()"
 >
     <div .piste>
         <div .poignee>

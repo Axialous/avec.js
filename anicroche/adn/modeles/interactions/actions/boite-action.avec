@@ -1,0 +1,25 @@
+@style [
+    .boite-action {
+        display: flex;
+        flex-flow: row nowrap;
+        align-items: center;
+
+        height: fit-content;
+
+        border-radius: 0.1875rem;
+
+        --l-ecart: 1rem;
+    }
+]
+
+@args [$fonction, $alt : '']
+
+<button
+    .boite-action
+    type="button"
+    @click="$fonction()"
+>
+    @if [$alt != '']
+        alt
+            "$alt"
+    @stud

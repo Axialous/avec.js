@@ -1,5 +1,5 @@
 @script [
-    $monter_barre_onglets = ($node) =>
+    $monter_barre_onglets = () =>
     {
         const boutons = $node.querySelectorAll(':scope > .bouton-onglet')
         if (!boutons.length) return
@@ -30,6 +30,6 @@
     }
 ]
 
-<nav .barre-onglets @mount="$monter_barre_onglets($node)">
+<nav .barre-onglets @mount="$monter_barre_onglets()">
     @stud
     <div .indicateur>

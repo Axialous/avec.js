@@ -2,7 +2,7 @@
     $type = 'password'
     $visible = true
 
-    $basculer_visibilite_mot_de_passe = ($node) =>
+    $basculer_visibilite_mot_de_passe = () =>
     {
         const $conteneur = $node.closest('.champ-mot-de-passe')
         const $input = $conteneur.querySelector('input[type="password"], input[type="text"]')
@@ -16,7 +16,7 @@
         $input.focus()
     }
 
-    $mettre_a_jour_barre_progression = ($node) =>
+    $mettre_a_jour_barre_progression = () =>
     {
         const $conteneur = $node.closest('.champ-mot-de-passe')
         const $barre = $conteneur.querySelector('.barre-progression')
@@ -123,14 +123,14 @@
         [! $modifiable] ? readonly
         [$longueur_minimale] ? minlength="$longueur_minimale"
         [$longueur_maximale] ? maxlength="$longueur_maximale"
-        [$longueur_minimale] ? @input="$mettre_a_jour_barre_progression($node)"
+        [$longueur_minimale] ? @input="$mettre_a_jour_barre_progression()"
     >
 
     @if [$modifiable]
         <button
             .bascule
             type="button"
-            @click="$basculer_visibilite_mot_de_passe($node)"
+            @click="$basculer_visibilite_mot_de_passe()"
         >
             icone-oeil [$visible]
 

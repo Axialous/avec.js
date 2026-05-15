@@ -1,5 +1,5 @@
 @script [
-    $monter_icone_horloge = ($node, $vars) =>
+    $monter_icone_horloge = () =>
     {
         const horloge = {
             aiguilles : {
@@ -22,16 +22,16 @@
             ]
         }
 
-        actualiser(horloge, $vars)
+        actualiser(horloge)
 
         const maintenant = new Date()
         const temps_restant = (60 - maintenant.getSeconds()) * 1000 - maintenant.getMilliseconds()
 
         const chrono_timeout = setTimeout(() => {
-            actualiser(horloge, $vars)
+            actualiser(horloge)
 
             const chrono_interval = setInterval(() => {
-                actualiser(horloge, $vars)
+                actualiser(horloge)
             }, 3000)
 
             $vars.chronometre = chrono_interval
@@ -40,7 +40,7 @@
         $vars.chronometre = chrono_timeout
     }
 
-    $demonter_icone_horloge = ($node, $vars) =>
+    $demonter_icone_horloge = () =>
     {
         if ($vars.chronometre)
         {
@@ -49,7 +49,7 @@
         }
     }
 
-    const actualiser = (horloge, $vars = {}) =>
+    const actualiser = (horloge) =>
     {
         const maintenant = new Date()
 
@@ -184,8 +184,8 @@
 <svg
     .icone
     .icone-horloge
-    @mount="$monter_icone_horloge($node, $vars)"
-    @unmount="$demonter_icone_horloge($node, $vars)"
+    @mount="$monter_icone_horloge()"
+    @unmount="$demonter_icone_horloge()"
     viewBox="0 0 24 24"
 >
     <path                    d="M12 14C13.1046 14 14 13.1046 14 12C14 10.8954 13.1046 10 12 10C10.8954 10 10 10.8954 10 12C10 13.1046 10.8954 14 12 14Z">

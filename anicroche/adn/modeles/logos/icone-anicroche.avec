@@ -1,5 +1,5 @@
 @script [
-    $monter_icone_anicroche = ($node, $vars) =>
+    $monter_icone_anicroche = () =>
     {
         const etoile = $node.querySelector('.etoile')
         const parent = $node.closest('a[href], button:not(:disabled)')
@@ -28,7 +28,7 @@
         parent.addEventListener('focusin',    animer)
     }
 
-    $demonter_icone_anicroche = ($node, $vars) =>
+    $demonter_icone_anicroche = () =>
     {
         const { animer, parent } = $vars
 
@@ -66,8 +66,8 @@
 <svg
     .icone
     .icone-anicroche
-    @mount="$monter_icone_anicroche($node, $vars)"
-    @unmount="$demonter_icone_anicroche($node, $vars)"
+    @mount="$monter_icone_anicroche()"
+    @unmount="$demonter_icone_anicroche()"
     viewBox="0 0 24 24"
 > 
     <path         d="M16 1H8C4.13401 1 1 4.13401 1 8V16C1 19.866 4.13401 23 8 23H16C19.866 23 23 19.866 23 16V8C23 4.13401 19.866 1 16 1Z">

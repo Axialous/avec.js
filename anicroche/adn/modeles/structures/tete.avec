@@ -1,5 +1,5 @@
 @script [
-    $monter_tete = ($node) =>
+    $monter_tete = () =>
     {
         $node.classList.add('entree')
         requestAnimationFrame(() => 
@@ -60,7 +60,7 @@
 
 <header
     #tete
-    @mount="$monter_tete($node)"
+    @mount="$monter_tete()"
 >
     logo
     menu

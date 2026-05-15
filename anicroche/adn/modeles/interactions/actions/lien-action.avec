@@ -1,5 +1,5 @@
 @script [
-    const demarrer_compte_a_rebours = ($node, $vars, delai) =>
+    const demarrer_compte_a_rebours = (delai) =>
     {
         const compte_a_rebours = $node.querySelector('.compte-a-rebours')
 
@@ -56,16 +56,16 @@
         $vars.chronometre = chronometre
     }
 
-    $monter_lien_action = ($node, $vars, $delai) =>
+    $monter_lien_action = ($delai) =>
     {
         const delai = Math.max(0, Math.floor(Number($delai) || 0))
 
         $vars.delai = delai
 
-        demarrer_compte_a_rebours($node, $vars, delai)
+        demarrer_compte_a_rebours(delai)
     }
 
-    $demonter_lien_action = ($vars) =>
+    $demonter_lien_action = () =>
     {
         if (!$vars.chronometre) return
 
@@ -73,15 +73,15 @@
         $vars.chronometre = null
     }
 
-    $clic_lien_action = async ($node, $vars, $fonction) =>
+    $clic_lien_action = async () =>
     {
         if ($node.disabled) return
 
-        await $fonction($node)
+        await $fonction()
 
         if ($vars.delai > 0)
         {
-            demarrer_compte_a_rebours($node, $vars, $vars.delai)
+            demarrer_compte_a_rebours($vars.delai)
         }
     }
 ]
@@ -114,9 +114,9 @@
 <button
     .lien-action
     type="button"
-    @mount="$monter_lien_action($node, $vars, $delai)"
-    @unmount="$demonter_lien_action($vars)"
-    @click="$clic_lien_action($node, $vars, $fonction)"
+    @mount="$monter_lien_action($delai)"
+    @unmount="$demonter_lien_action()"
+    @click="$clic_lien_action()"
 >
     @stud
 

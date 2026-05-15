@@ -1,5 +1,5 @@
 @script [
-    $monter_fond = ($node) =>
+    $monter_fond = () =>
     {
         $node.classList.add('entree')
         requestAnimationFrame(() => 
@@ -93,7 +93,7 @@
 
 <div
     #fond
-    @mount="$monter_fond($node)"
+    @mount="$monter_fond()"
 >
     <div .empreinte-tete>
     <div .empreinte-navigation>

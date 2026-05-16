@@ -5,7 +5,7 @@
         outline-offset: -0.125rem;
         padding: calc(var(--l-marge) - 0.125rem);
 
-        transition: outline-color var(--d-animation);
+        transition: outline-color var(--d-animation), transform var(--d-animation);
 
         --f-fond: var(--c-analogue);
         --c-fond: var(--c-analogue);

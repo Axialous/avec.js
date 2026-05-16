@@ -18,6 +18,15 @@
         align-items: center;
     }
 
+    .section-profils .liste-profils .carte.selectionnee {
+        z-index: 1;
+        transform: translateX(calc(var(--var-i) * -11rem));
+    }
+
+    .section-profils .liste-profils .carte:has(~ .carte.selectionnee) {
+        transform: translatex(11rem);
+    }
+
     .section-profils .liste-profils .carte .noms {
         max-width: 100%;
 

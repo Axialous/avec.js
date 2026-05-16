@@ -982,16 +982,44 @@ const construire_for_each = (bloc, donnees) =>
             const scope_enfant = creer_scope(donnees.scope)
 
             if (cle_nom)
+            {
                 scope_enfant.variables[cle_nom] = entry.key
-
-            scope_enfant.variables[valeur_nom] = entry.value
+                scope_enfant.variables[valeur_nom] = entry.value
+            }
+            else if (operateur === 'in')
+            {
+                // Avec 'in', la seule variable reçoit la clé
+                scope_enfant.variables[valeur_nom] = entry.key
+            }
+            else
+            {
+                // Avec 'of', la seule variable reçoit la valeur
+                scope_enfant.variables[valeur_nom] = entry.value
+            }
 
             const donnees_enfant = {
                 ...donnees,
                 scope: scope_enfant
             }
 
-            noeuds.push(...construire_enfants({ enfants: bloc.enfants }, donnees_enfant))
+            const nouveaux = construire_enfants({ enfants: bloc.enfants }, donnees_enfant)
+
+            // Exposer la variable de clé comme variable CSS
+            // Avec deux variables [$cle, $val], expose --var-$cle
+            // Avec une variable [$i] et opérateur 'in', expose --var-$i
+            const var_clef = cle_nom || (operateur === 'in' ? valeur_nom : null)
+            if (var_clef)
+            {
+                const nom_css = `--var-${var_clef.slice(1)}`
+                const valeur_css = String(entry.key)
+                for (const n of nouveaux)
+                {
+                    if (n.nodeType === 1)
+                        n.style.setProperty(nom_css, valeur_css)
+                }
+            }
+
+            noeuds.push(...nouveaux)
         }
 
         return noeuds

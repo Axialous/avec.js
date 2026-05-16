@@ -139,21 +139,60 @@ Ces blocs sont **réactifs** : si une variable de scope utilisée dans la condit
 **Parcours de collection** :
 
 ```
-@for-each $element of $elements
+@for-each [$element] of [$elements]
     "affiché pour chaque valeur (tableau ou itérable)"
 
-@for-each $i in $elements
+@for-each [$i] in [$elements]
     "affiché pour chaque indice (0,1,2...)"
 
-@for-each $k in $objet
+@for-each [$k] in [$objet]
     "affiché pour chaque clé d'objet"
 
-@for-each $v of $objet
+@for-each [$v] of [$objet]
     "affiché pour chaque valeur d'objet"
 ```
 
-`in` renvoie les clés/indices : indices numériques pour tableaux et chaînes, clés pour objets.
-`of` renvoie les valeurs : éléments pour tableaux/itérables, caractères pour chaînes, valeurs pour objets.
+**Clé + valeur simultanément** :
+
+```
+@for-each [$i, $element] of [$elements]
+    "indice et valeur : $i est l'indice, $element est la valeur"
+
+@for-each [$k, $v] in [$objet]
+    "clé et valeur : $k est la clé, $v est la valeur"
+```
+
+Les variables de clé/indice peuvent être séparées par `,` ou par un retour à la ligne :
+
+```
+@for-each [
+    $i
+    $element
+] of [$elements]
+```
+
+#### Sémantique
+
+- `in` renvoie les **clés/indices** : indices numériques pour tableaux et chaînes, clés pour objets.
+- `of` renvoie les **valeurs** : éléments pour tableaux/itérables, caractères pour chaînes, valeurs pour objets.
+- Avec **une seule variable** et `in`, la variable reçoit la clé/l'indice.
+- Avec **une seule variable** et `of`, la variable reçoit la valeur.
+- Avec **deux variables**, la première reçoit toujours la clé/l'indice, la deuxième reçoit la valeur.
+
+#### Variables CSS
+
+Les variables de clé/indice sont automatiquement exposées comme **variables CSS** sur les nœuds enfants générés, au format `--var-<nom>` (sans le `$`) :
+
+```
+@for-each [$i] in [$elements]
+    <div>
+        # $i vaut 0, 1, 2... et --var-i vaut "0", "1", "2..." en CSS
+        # Utiliser : color: hsl(calc(var(--var-i) * 10), 50%, 50%);
+
+@for-each [$idx, $item] of [$items]
+    <div>
+        # --var-idx contient l'indice en CSS
+```
 
 ### `@static`
 

@@ -46,6 +46,7 @@
 
         if (!reponse.error)
         {
+            await $obtenir_compte()
             $navigate_to("/")
         }
         else
@@ -98,6 +99,7 @@
                 })
                 if (!reponse.error)
                 {
+                    await $obtenir_compte()
                     $navigate_to("/")
                 }
                 else
@@ -140,6 +142,7 @@
 
             if (!reponse.error)
             {
+                await $obtenir_compte()
                 $navigate_to("/")
             }
             else

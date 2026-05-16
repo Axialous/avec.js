@@ -1,4 +1,6 @@
 @script [
+    $phase = 'chargement'
+
     $connecte = null
     $jeton_acces = null
 
@@ -26,6 +28,17 @@
             $connecte = data.est_connecte ? true : false
         }
     })
+
+    $obtenir_compte = async () =>
+    {
+        const reponse = await $search('moi')
+        console.log(reponse)
+        if (!reponse.error)
+        {
+            $compte = reponse.data
+        }
+        $phase = 'navigation'
+    }
 ]
 
 tete

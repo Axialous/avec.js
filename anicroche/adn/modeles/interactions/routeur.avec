@@ -1,4 +1,7 @@
-@if [$path ~= '/']
+@if [$phase = chargement]
+    page-chargement
+
+@else-if [$path ~= '/']
     -page-accueil
 
 @else-if [$path ~= '/connexion']

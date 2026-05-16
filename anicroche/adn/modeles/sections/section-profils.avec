@@ -51,7 +51,6 @@
 section [profils]
     titre
         "Vos profils"
-    "$profil.pseudonyme"
 
     @if [_ $compte.is_gerant_of_profils = 0]
         <p>

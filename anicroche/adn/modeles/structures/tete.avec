@@ -8,17 +8,7 @@
             )
         )
 
-        obtenir_compte()
-    }
-
-    obtenir_compte = async () =>
-    {
-        const reponse = await $search('moi')
-        console.log(reponse)
-        if (!reponse.error)
-        {
-            $compte = reponse.data
-        }
+        $obtenir_compte()
     }
 ]
 

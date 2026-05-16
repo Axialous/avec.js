@@ -388,7 +388,7 @@ const op_puissance = (a, b) =>
 
 const op_egal = (a, b) =>
 {
-    if (est_erreur(a) || est_erreur(b)) return ERREUR
+    if (est_erreur(a) || est_erreur(b)) return FAUX  // ← FAUX au lieu de ERREUR
     const na = coercer_nombre(a), nb = coercer_nombre(b)
     if (!est_erreur(na) && !est_erreur(nb)) return na === nb ? VRAI : FAUX
     return String(a) === String(b) ? VRAI : FAUX

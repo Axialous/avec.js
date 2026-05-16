@@ -362,7 +362,7 @@ const op_puissance = (a, b) =>
 
 const op_egal = (a, b) =>
 {
-    if (est_erreur(a) || est_erreur(b)) return ERREUR
+    if (est_erreur(a) || est_erreur(b)) return FAUX  // ← FAUX au lieu de ERREUR
     const na = coercer_nombre(a), nb = coercer_nombre(b)
     if (!est_erreur(na) && !est_erreur(nb)) return na === nb ? VRAI : FAUX
     return String(a) === String(b) ? VRAI : FAUX
@@ -911,33 +911,22 @@ const evaluer_noeud = (noeud, donnees) =>
 // Export
 // ============================================================
 
-export const evaluer = (str, donnees) =>
-{
-    try
-    {
-        const tokens = tokeniser(str)
-        const ast    = parser(tokens)
-        const result = evaluer_noeud(ast, donnees)
-        return result === NUL ? false : est_booleen(result) ? result : !est_erreur(result)
-    }
-    catch (e)
-    {
-        return false
-    }
-}
-
-// Retourne la valeur brute (nombre, liste, dict, texte, bool-like tokens VRAI/FAUX, etc.)
 export const evaluer_valeur = (str, donnees) =>
 {
     try
     {
         const tokens = tokeniser(str)
         const ast    = parser(tokens)
-        const result = evaluer_noeud(ast, donnees)
-        return result
+        return evaluer_noeud(ast, donnees)
     }
     catch (e)
     {
         return null
     }
+}
+
+export const evaluer = (str, donnees) =>
+{
+    const result = evaluer_valeur(str, donnees)
+    return result === NUL ? false : est_booleen(result) ? result : !est_erreur(result)
 }

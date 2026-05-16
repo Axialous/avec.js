@@ -54,8 +54,12 @@ section [profils]
         defilement.liste-profils [horizontal]
             @for-each [$p] of [$compte.is_gerant_of_profils]
                 carte [$selectionnee : $profil.id = $p.id]
-                    boite-action [$selectionner_profil($p.id)]
-                        "T"
+                    @if [$profil.id != $p.id]
+                        boite-action [
+                            $selectionner_profil($p.id)
+                            $etendue : :)
+                            $alt : "Basculer sur le profil $p.identifiant"
+                        ]
                     avatar [$p]
                     <div .noms>
                         <span .pseudonyme>

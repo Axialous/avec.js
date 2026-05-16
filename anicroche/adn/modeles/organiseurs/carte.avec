@@ -1,14 +1,18 @@
 @style [
     .carte {
         border-radius: 1.5rem;
-        padding: var(--l-marge);
+        outline: solid 0.125rem transparent;
+        outline-offset: -0.125rem;
+        padding: calc(var(--l-marge) - 0.125rem);
+
+        transition: outline-color var(--d-animation);
 
         --f-fond: var(--c-analogue);
         --c-fond: var(--c-analogue);
     }
 
     .carte.selectionnee {
-        --f-fond: red;
+        outline-color: var(--c-plus);
     }
 ]
 
@@ -18,5 +22,4 @@
     .carte
     [$selectionnee] ? .selectionnee
 >
-    "$selectionnee"
     @stud

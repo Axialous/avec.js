@@ -129,7 +129,7 @@
         --l-marge: 1rem;
         --l-blur: 4rem;
         --l-tete: 10.625rem;
-        --h-tete: 100vh;
+        --h-tete: 100dvh;
         --h-navigation: 3.5rem;
         --h-avatar: 2rem;
 
@@ -230,8 +230,8 @@
     }
 
     body {
-        width: 100vw;
-        height: 100vh;
+        width: 100dvw;
+        height: 100dvh;
 
         gap: 0;
     }

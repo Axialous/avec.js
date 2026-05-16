@@ -10,12 +10,33 @@
 
         --l-ecart: 1rem;
     }
+
+    *:has(> .boite-action.etendue) {
+        position: relative;
+    }
+
+    .boite-action.etendue {
+        position: absolute;
+        top: 0;
+        left: 0;
+
+        height: 100%;
+        width: 100%;
+
+        border-radius: inherit;
+    }
+
+    *:has(> .boite-action.etendue) a,
+    *:has(> .boite-action.etendue) button {
+        z-index: 1;
+    }
 ]
 
-@args [$fonction, $alt : '']
+@args [$fonction, $alt : '', $etendue : :(]
 
 <button
     .boite-action
+    [$etendue] ? .etendue
     type="button"
     @click="$fonction()"
 >

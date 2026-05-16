@@ -1,3 +1,5 @@
+import {evaluer_valeur} from "./augure.js"
+
 export const etat_sculpteur = {
     instance: null,
     racine: null,
@@ -138,6 +140,16 @@ export const lire_variable = (scope, args, propriete, suivre_dependance = true) 
                 valeur: lecture_liaison.trouve ? lecture_liaison.valeur : ``,
                 est_arg: true,
                 clef: lecture_liaison.clef || null
+            }
+        }
+
+        if (valeur_arg && valeur_arg.__avec_expression === true)
+        {
+            return {
+                trouve: true,
+                valeur: evaluer_valeur(valeur_arg.expression, valeur_arg.donnees),
+                est_arg: true,
+                clef: null
             }
         }
 

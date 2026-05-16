@@ -1381,11 +1381,26 @@ const construire_modele = (bloc, donnees) =>
                     args[nom] = valoriser(valeur_decapsule, donnees)
                     continue
                 }
-                
+
+                const noeud_traceur = {}
+                definir_noeud_courant(noeud_traceur)
                 const valeur_evaluee = evaluer_valeur(valeur_decapsule, donnees)
+                effacer_noeud_courant()
+
                 if (valeur_evaluee !== null && valeur_evaluee !== ':x')
                 {
-                    args[nom] = valeur_evaluee
+                    if (noeud_traceur._avec_deps?.size > 0)
+                    {
+                        args[nom] = {
+                            __avec_expression: true,
+                            expression: valeur_decapsule,
+                            donnees
+                        }
+                    }
+                    else
+                    {
+                        args[nom] = valeur_evaluee
+                    }
                     continue
                 }
 

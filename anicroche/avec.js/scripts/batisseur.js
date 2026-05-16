@@ -904,10 +904,32 @@ const construire_for_each = (bloc, donnees) =>
     const operateur = bloc.args[2]
     const source_brute = bloc.args[3]
 
-    // Extraire le nom de variable attendu (ex: [$profil] -> $profil)
-    const variable_nom = decapsuler_si_entoure(variable_brut).trim()
-    if (!/^[\$][a-zA-Z_][\w]*$/.test(variable_nom))
-        throw new Error(`@for-each invalide : nom de variable attendu, obtenu '${variable_brut}'`)
+    // Supporte une ou deux variables dans les crochets : [$val] ou [$cle, $val] (',' ou '\n')
+    const vars_decapsule = decapsuler_si_entoure(variable_brut).trim()
+    const parts = decouper_haut_niveau(vars_decapsule, new Set([',', '\n'])).map(s => s.trim()).filter(Boolean)
+
+    let cle_nom = null
+    let valeur_nom = null
+
+    if (parts.length === 0)
+        throw new Error(`@for-each invalide : nom de variable manquant, obtenu '${variable_brut}'`)
+    else if (parts.length === 1)
+    {
+        valeur_nom = parts[0]
+        if (!/^[\$][a-zA-Z_][\w]*$/.test(valeur_nom))
+            throw new Error(`@for-each invalide : nom de variable attendu, obtenu '${valeur_nom}'`)
+    }
+    else if (parts.length === 2)
+    {
+        cle_nom = parts[0]
+        valeur_nom = parts[1]
+        if (!/^[\$][a-zA-Z_][\w]*$/.test(cle_nom) || !/^[\$][a-zA-Z_][\w]*$/.test(valeur_nom))
+            throw new Error(`@for-each invalide : noms de variables attendus, obtenu '${variable_brut}'`)
+    }
+    else
+    {
+        throw new Error(`@for-each invalide : trop de variables dans ${variable_brut}`)
+    }
 
     let noeuds_rendus = []
     let deps_source = new Set()
@@ -915,22 +937,54 @@ const construire_for_each = (bloc, donnees) =>
     const construire_noeuds = () =>
     {
         definir_noeud_courant(ancre_debut)
-        // Essayer d'obtenir la valeur réelle de l'expression (liste, objet, etc.)
         const expr = decapsuler_si_entoure(source_brute)
-        // Toujours évaluer la valeur via le parseur pour gérer les accès profonds ($compte.profils)
         const source = evaluer_valeur(expr, donnees)
         effacer_noeud_courant()
 
-        // aucun log de débogage en production
-
         deps_source = ancre_debut._avec_deps ?? new Set()
-        const iterations = normaliser_iteration(source, operateur)
+
+        // Construire une liste d'entrées { key, value } selon le type et l'opérateur
+        const entries = []
+
+        if (source == null)
+        {
+            // rien
+        }
+        else if (Array.isArray(source) || typeof source === 'string')
+        {
+            for (let i = 0; i < source.length; i++)
+                entries.push({ key: i, value: source[i] })
+        }
+        else if (source !== null && typeof source === 'object')
+        {
+            if (operateur === 'in')
+            {
+                for (const k of Object.keys(source))
+                    entries.push({ key: k, value: source[k] })
+            }
+            else
+            {
+                for (const [k, v] of Object.entries(source))
+                    entries.push({ key: k, value: v })
+            }
+        }
+        else if (typeof source === 'object' && typeof source[Symbol.iterator] === 'function')
+        {
+            const arr = Array.from(source)
+            for (let i = 0; i < arr.length; i++)
+                entries.push({ key: i, value: arr[i] })
+        }
+
         const noeuds = []
 
-        for (const element of iterations)
+        for (const entry of entries)
         {
             const scope_enfant = creer_scope(donnees.scope)
-            scope_enfant.variables[variable_nom] = element
+
+            if (cle_nom)
+                scope_enfant.variables[cle_nom] = entry.key
+
+            scope_enfant.variables[valeur_nom] = entry.value
 
             const donnees_enfant = {
                 ...donnees,

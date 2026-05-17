@@ -7,22 +7,40 @@
     $compte = null
     $profil = null
 
-    $add_action('prior_requested', (options) =>
+    $add_action('prior_requested', async (options) =>
     {
         if ($jeton_acces)
             options.headers['Authorization'] = `Bearer ${$jeton_acces}`
     })
 
-    $add_action('post_requested', (data, options) =>
+    $add_action('post_requested', async (data, options) =>
     {
         if (data?.data?.jeton_acces)
             $jeton_acces = data.data.jeton_acces
-        
+
+        if (options?.url?.pathname === '/connexion' && data?.code === 200)
+        {
+            console.log('connecté')
+            if (await $obtenir_compte())
+            {
+                $navigate_to('/')
+            }
+            else
+            {
+                $navigate_to(
+                    $compte?.is_gerant_of_profils?.length === 0
+                        ? '/profil/creation'
+                        : '/profil/selection'
+                )
+            }
+        }
+
         if (options?.url?.pathname === '/deconnexion' && data?.code === 200)
         {
             $jeton_acces = null
+            localStorage.removeItem('id_profil')
         }
-        
+
         if (data && data.est_connecte !== undefined)
         {
             $connecte = data.est_connecte ? true : false
@@ -32,12 +50,48 @@
     $obtenir_compte = async () =>
     {
         const reponse = await $search('moi')
-        console.log(reponse)
         if (!reponse.error)
         {
             $compte = reponse.data
         }
+
         $phase = 'navigation'
+
+        if (!reponse.error)
+        {
+            if ($compte?.is_gerant_of_profils?.length === 1)
+            {
+                return $selectionner_profil($compte.is_gerant_of_profils[0].id)
+            }
+            else
+            {
+                return $selectionner_profil(localStorage.getItem('id_profil'))
+            }
+        }
+        else
+        {
+            return false
+        }
+    }
+
+    $selectionner_profil = (id) =>
+    {
+        if (!id)
+        {
+            return false
+        }
+
+        const profil = $compte.is_gerant_of_profils.find(p => p.id == id)
+
+        if (!profil)
+        {
+            return false
+        }
+
+        $profil = profil
+        localStorage.setItem('id_profil', id)
+
+        return true
     }
 ]
 

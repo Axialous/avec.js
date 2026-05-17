@@ -44,12 +44,7 @@
             mot_de_passe: data.get('mot_de_passe')
         })
 
-        if (!reponse.error)
-        {
-            await $obtenir_compte()
-            $navigate_to("/")
-        }
-        else
+        if (reponse.error)
         {
             $erreur_mot_de_passe = "L'adresse électronique ou le mot de passe est invalide"
         }
@@ -97,12 +92,7 @@
                     clef: data.get('clef'),
                     ids: $ids
                 })
-                if (!reponse.error)
-                {
-                    await $obtenir_compte()
-                    $navigate_to("/")
-                }
-                else
+                if (reponse.error)
                 {
                     $succes_clef = false
                     $erreur_clef = "Erreur serveur"
@@ -140,12 +130,7 @@
                 mot_de_passe: data.get('mot_de_passe')
             })
 
-            if (!reponse.error)
-            {
-                await $obtenir_compte()
-                $navigate_to("/")
-            }
-            else
+            if (reponse.error)
             {
                 $erreur_inscription = "La connexion a échoué"
             }

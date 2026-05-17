@@ -1,10 +1,3 @@
-@script [
-    $selectionner_profil = (id) =>
-    {
-        $profil = $compte.is_gerant_of_profils.find(p => p.id == id)
-    }
-]
-
 @style [
     .section-profils .liste-profils {
         flex-direction: row;

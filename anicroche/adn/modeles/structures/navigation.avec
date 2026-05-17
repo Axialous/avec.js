@@ -4,7 +4,7 @@
         top: 0;
         left: var(--l-tete);
         right: 0;
-        z-index: 5;
+        z-index: 6;
 
         height: var(--h-navigation);
         padding: var(--l-marge);

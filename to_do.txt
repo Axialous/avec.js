@@ -1,2 +1,4 @@
 Liste de tâches :
 - ajouter la page '/profil/selection'
+- finaliser la page '/profil/creation'
+- empêcher que la piste soit forcément cachée pour un défilement qui a un défilement enfant

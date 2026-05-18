@@ -205,7 +205,14 @@ export const ecrire_variable = (scope, args, propriete, valeur) =>
 
     const base = scope || etat_sculpteur.racine
     const scope_proprietaire = trouver_scope_variable(base, propriete)
-    const cible = scope_proprietaire || base
+    // Si on assigne une fonction à une variable commençant par '$',
+    // écrire dans le scope local (base) pour éviter d'écraser une fonction
+    // définie dans un scope parent.
+    let cible
+    if (typeof propriete === 'string' && propriete.startsWith('$') && typeof valeur === 'function')
+        cible = base
+    else
+        cible = scope_proprietaire || base
 
     const ancienne_valeur = cible.variables[propriete]
     cible.variables[propriete] = valeur

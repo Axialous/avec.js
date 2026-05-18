@@ -48,6 +48,29 @@ Le bloc `@script` est du JavaScript standard : il utilise `true`, `false` et `nu
 
 > **Note :** `@script` est exécuté une seule fois **par instance de modèle** (c'est-à-dire par scope). Les variables déclarées dans `@script` sont accessibles à cette instance et à tous ses enfants. Pour du code lié à un nœud DOM spécifique, utiliser les événements `@mount` / `@unmount`.
 
+### Affectations des variables `$`
+
+Les variables dont le nom commence par `$` sont des variables d'instance liées au scope du modèle. Par défaut, affecter une variable `$nom` essaie de modifier la variable existante la plus proche dans la chaîne de scopes (comportement historique).
+
+Toutefois, pour éviter qu'une instance enfant n'écrase involontairement des fonctions d'instance définies par un ancêtre (par exemple `$monter = () => { ... }`), le cadriciel applique la règle suivante :
+
+- **Si la valeur affectée est une fonction et que le nom commence par `$`, l'affectation crée/modifie la variable dans le scope local (instance courante) — elle n'écrase pas la fonction du parent.**
+- **Pour les autres types (chaînes, nombres, objets, etc.), l'affectation conserve le comportement historique** : si une variable du même nom existe dans un scope parent, elle sera mise à jour dans ce scope.
+
+Cette règle préserve l'isolation des gestionnaires et des helpers déclarés par un modèle, tout en laissant la possibilité aux enfants de modifier les variables de données héritées.
+
+Exemples :
+
+```
+@script [
+    $foo = 'valeur'      # écrasera $foo dans le parent si présent
+
+    $handle = () => {}   # crée $handle dans le scope local (n'écrase pas $handle du parent)
+]
+```
+
+Si vous souhaitez explicitement écrire dans le scope parent, l'API du runtime permet de le faire via les fonctions de scope (interne) — mais cela doit être utilisé avec précaution.
+
 ### `@args`
 
 Déclare les paramètres acceptés par le modèle. Les valeurs sont passées lors de l'appel du modèle entre crochets, en positionnel et/ou en nommé.

@@ -1,6 +1,6 @@
-section [pas-encore-connecte]
-    titre
-        "Vous n'êtes pas encore connecté"
+section [pas-encore-connecte, centree]
+    titre [centre]
+        "Vous n'êtes pas connecté"
     carte
         ligne
             bouton-ancre [/]

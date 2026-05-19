@@ -176,8 +176,6 @@
                     fleche-retour
 
                 <div .centre>
-                    <span>
-                        "Déjà connecté"
 
                 <div .droite>
                     icone-horloge
@@ -185,20 +183,31 @@
             onglet
                 section-deja-connecte
 
-        @else-if [$authentification = requise & ! $connecte]
+        @else-if [$authentification -{ [requise, requise_sans_profil] & ! $connecte]
             navigation
                 <div .gauche>
                     fleche-retour
 
                 <div .centre>
-                    <span>
-                        "Pas encore conecté"
 
                 <div .droite>
                     icone-horloge
 
             onglet
                 section-pas-encore-connecte
+
+        @else-if [$authentification -{ [requise, libre] & $connecte & ! $profil]
+            navigation
+                <div .gauche>
+                    fleche-retour
+
+                <div .centre>
+
+                <div .droite>
+                    icone-horloge
+
+            onglet
+                section-pas-de-profil
 
         @else
             @stud

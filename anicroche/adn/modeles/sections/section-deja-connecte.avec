@@ -10,8 +10,8 @@
     }
 ]
 
-section [deja-connecte]
-    titre
+section [deja-connecte, centree]
+    titre [centre]
         "Vous êtes déjà connecté"
     carte
         ligne

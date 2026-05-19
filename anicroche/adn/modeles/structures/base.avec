@@ -55,8 +55,6 @@
             $compte = reponse.data
         }
 
-        $phase = 'navigation'
-
         if (!reponse.error)
         {
             if ($compte?.is_gerant_of_profils?.length === 1)

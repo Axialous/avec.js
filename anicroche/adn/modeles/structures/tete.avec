@@ -1,5 +1,5 @@
 @script [
-    $monter_tete = () =>
+    $monter_tete = async () =>
     {
         $node.classList.add('entree')
         requestAnimationFrame(() => 
@@ -8,7 +8,8 @@
             )
         )
 
-        $obtenir_compte()
+        await $obtenir_compte()
+        $phase = 'navigation'
     }
 ]
 

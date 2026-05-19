@@ -1,0 +1,13 @@
+section [pas-de-profil, centree]
+    titre [centre]
+        @if [_ $compte.is_gerant_of_profils = 0]
+            "Vous n'avez pas créé votre profil"
+        @else
+            "Vous n'avez pas sélectionné de profil"
+    carte
+        ligne
+            bouton-ancre [/profil/creation]
+                "Créer un profil"
+            @if [_ $compte.is_gerant_of_profils > 0]
+                bouton-ancre [/profil/selection]
+                    "Choisir un profil"

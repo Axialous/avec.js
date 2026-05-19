@@ -1,4 +1,4 @@
-page
+page [$authentification : libre_sans_profil]
     navigation
         <div .gauche>
             fleche-retour

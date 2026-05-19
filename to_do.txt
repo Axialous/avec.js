@@ -1,3 +1,4 @@
 Liste de tâches :
 - ajouter la page '/profil/selection'
 - finaliser la page '/profil/creation'
+- permettre la définition de l'ordre de récupération dans les modèles .sans du cadriciel d'API

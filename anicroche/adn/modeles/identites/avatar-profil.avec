@@ -1,5 +1,5 @@
 @style [
-    .avatar {
+    .avatar-profil {
         height: var(--h-avatar);
         aspect-ratio: 1 / 1;
 
@@ -23,7 +23,7 @@
 
 @args [$profil_avatar]
 
-<div .avatar>
+<div .avatar-profil>
     <span>
         "$profil_avatar.pseudonyme[0]"
 

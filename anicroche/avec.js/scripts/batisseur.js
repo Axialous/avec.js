@@ -266,6 +266,51 @@ const extraire_declarations_args = (str) =>
         .map(extraire_declaration_arg)
 }
 
+const extraire_ternaire = (str) =>
+{
+    const brut = str.trim()
+
+    // Doit commencer par un bloc crochet [condition]
+    if (!brut.startsWith('[')) return null
+
+    const ouvrants = { '(':')', '[':']', '{':'}', '"':'"', "'":"'", '`':'`' }
+    let blocs = ``
+    let pos_fin_condition = -1
+
+    for (let pos = 0; pos < brut.length; pos++)
+    {
+        const c = brut[pos]
+        if (c === ':' && /^[)(x]$/.test(brut[pos + 1]) && !/^["'`]$/.test(blocs.slice(-1)))
+        { pos++; continue }
+
+        if (c === blocs.slice(-1))        blocs = blocs.slice(0, -1)
+        else if (c === '<' && !/^[)\]}>"'`]$/.test(blocs.slice(-1))) blocs += '>'
+        else if (c in ouvrants && !/^["'`]$/.test(blocs.slice(-1)))  blocs += ouvrants[c]
+
+        if (blocs === `` && pos > 0) { pos_fin_condition = pos; break }
+    }
+
+    if (pos_fin_condition < 0) return null
+
+    const apres = brut.slice(pos_fin_condition + 1).trim()
+    if (!apres.startsWith('?')) return null
+
+    const condition = brut.slice(0, pos_fin_condition + 1) // "[...]" gardé tel quel pour decapsuler
+
+    // Découper vrai : faux au niveau haut dans ce qui suit le '?'
+    const apres_point = apres.slice(1).trim()
+    const parties = decouper_haut_niveau(apres_point, new Set([':']))
+
+    // Attention : ':(' ':x' ')' sont des smileys/tokens, pas des séparateurs —
+    // decouper_haut_niveau les ignore déjà grâce à la gestion ':' + /^[)(x]/
+    if (parties.length < 1) return null
+
+    const branche_vrai = parties[0].trim()
+    const branche_faux = parties[1]?.trim() ?? null
+
+    return { condition, vrai: branche_vrai, faux: branche_faux }
+}
+
 const extraire_argument_modele = (str) =>
 {
     const valeur = str.trim()
@@ -307,12 +352,18 @@ const extraire_argument_modele = (str) =>
             if (valeur.length === 0)
                 throw new Error(`argument nommé invalide : valeur manquante pour ${nom}`)
 
+            const ternaire = extraire_ternaire(valeur)
+            if (ternaire) return { nom, valeur, ternaire }
+
             return { nom, valeur }
         }
     }
 
     if (valeur.length === 0)
         throw new Error("argument de modèle invalide : valeur manquante")
+
+    const ternaire = extraire_ternaire(valeur)
+    if (ternaire) return { nom: null, valeur, ternaire }
 
     return { nom: null, valeur }
 }
@@ -1408,7 +1459,10 @@ const construire_modele = (bloc, donnees) =>
                     if (affectations.has(argument_appel.nom))
                         throw new Error(`conflit d'affectation : ${argument_appel.nom} est défini plusieurs fois`)
 
-                    affectations.set(argument_appel.nom, argument_appel.valeur)
+                    affectations.set(argument_appel.nom, {
+                        valeur_brute: argument_appel.valeur,
+                        ternaire: argument_appel.ternaire ?? null
+                    })
                     continue
                 }
 
@@ -1416,16 +1470,107 @@ const construire_modele = (bloc, donnees) =>
                 if (!argument_libre)
                     throw new Error(`trop d'arguments positionnels passés au modèle ${nom}`)
 
-                affectations.set(argument_libre, argument_appel.valeur)
+                affectations.set(argument_libre, {
+                    valeur_brute: argument_appel.valeur,
+                    ternaire: argument_appel.ternaire ?? null
+                })
             }
 
             for (const declaration of declarations)
             {
                 const { nom, valeur_defaut } = declaration
-                const valeur_brute = affectations.has(nom)
+                const entree_affectation = affectations.has(nom)
                     ? affectations.get(nom)
-                    : (valeur_defaut ?? ``)
+                    : { valeur_brute: valeur_defaut ?? ``, ternaire: null }
+
+                const valeur_brute   = entree_affectation.valeur_brute
+                const ternaire_appel = entree_affectation.ternaire
                 const valeur_decapsule = decapsuler_si_entoure(valeur_brute)
+
+                if (ternaire_appel)
+                {
+                    const noeud_traceur = {}
+                    definir_noeud_courant(noeud_traceur)
+                    const condition_ok = evaluer(decapsuler(ternaire_appel.condition), donnees)
+                    const branche_initiale = condition_ok ? ternaire_appel.vrai : ternaire_appel.faux
+                    if (branche_initiale)
+                    {
+                        const branche_decapsule = decapsuler_si_entoure(branche_initiale)
+                        if (!extraire_appel_fonction(branche_decapsule))
+                            evaluer_valeur(branche_decapsule, donnees)
+                    }
+                    effacer_noeud_courant()
+
+                    if (noeud_traceur._avec_deps?.size > 0)
+                    {
+                        args[nom] = {
+                            __avec_expression: true,
+                            __evaluateur: (donnees) =>
+                            {
+                                const condition_ok = evaluer(
+                                    decapsuler(ternaire_appel.condition),
+                                    donnees
+                                )
+                                const branche = condition_ok
+                                    ? ternaire_appel.vrai
+                                    : ternaire_appel.faux
+
+                                if (!branche) return null
+
+                                const branche_decapsule = decapsuler_si_entoure(branche)
+
+                                const appel = extraire_appel_fonction(branche_decapsule)
+                                if (appel)
+                                {
+                                    const { nom_fn, args_bruts } = appel
+                                    const lecture = lire_variable(donnees.scope, donnees.args || {}, nom_fn, false)
+                                    if (lecture.trouve && typeof lecture.valeur === 'function')
+                                    {
+                                        const args_evalues_bruts = decouper_haut_niveau(
+                                            decapsuler(args_bruts),
+                                            new Set([','])
+                                        )
+                                        const args_evalues = args_evalues_bruts.map(a => evaluer_valeur(a.trim(), donnees))
+                                        return () => lecture.valeur(...args_evalues)
+                                    }
+                                }
+
+                                return evaluer_valeur(branche_decapsule, donnees)
+                            },
+                            expression: valeur_brute,
+                            donnees
+                        }
+                    }
+                    else
+                    {
+                        if (branche_initiale)
+                        {
+                            const branche_decapsule = decapsuler_si_entoure(branche_initiale)
+                            const appel = extraire_appel_fonction(branche_decapsule)
+                            if (appel)
+                            {
+                                const { nom_fn, args_bruts } = appel
+                                const lecture = lire_variable(donnees.scope, donnees.args || {}, nom_fn, false)
+                                if (lecture.trouve && typeof lecture.valeur === 'function')
+                                {
+                                    const args_evalues_bruts = decouper_haut_niveau(
+                                        decapsuler(args_bruts),
+                                        new Set([','])
+                                    )
+                                    const args_evalues = args_evalues_bruts.map(a => evaluer_valeur(a.trim(), donnees))
+                                    args[nom] = () => lecture.valeur(...args_evalues)
+                                    continue
+                                }
+                            }
+                            args[nom] = evaluer_valeur(branche_decapsule, donnees)
+                        }
+                        else
+                        {
+                            args[nom] = null
+                        }
+                    }
+                    continue
+                }
 
                 if (/^\$[a-zA-Z_][\w]*$/.test(valeur_decapsule))
                 {

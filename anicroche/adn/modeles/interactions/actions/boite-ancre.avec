@@ -10,11 +10,35 @@
 
         --l-ecart: 1rem;
     }
+
+    *:has(> .boite-ancre.etendue) {
+        position: relative;
+    }
+
+    .boite-ancre.etendue {
+        position: absolute;
+        top: 0;
+        left: 0;
+
+        height: 100%;
+        width: 100%;
+
+        border-radius: inherit;
+    }
+
+    *:has(> .boite-ancre.etendue) a,
+    *:has(> .boite-ancre.etendue) button {
+        z-index: 1;
+    }
 ]
 
-@args [$adresse, $alt : '']
+@args [$adresse, $alt : '', $etendue : :(]
 
-<a .boite-ancre href="$adresse">
+<a
+    .boite-ancre
+    [$etendue] ? .etendue
+    href="$adresse"
+>
     @if [$alt != '']
         alt
             "$alt"

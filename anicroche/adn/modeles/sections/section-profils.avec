@@ -5,39 +5,13 @@
         --h-avatar: 4rem;
     }
 
-    .section-profils .liste-profils .carte {
-        flex: none;
-        width: 10rem;
-        align-items: center;
-    }
-
-    .section-profils .liste-profils .carte.selectionnee {
+    .section-profils .liste-profils .carte-profil.selectionnee {
         z-index: 1;
         transform: translateX(calc(var(--var-i) * -11rem));
     }
 
-    .section-profils .liste-profils .carte:has(~ .carte.selectionnee) {
+    .section-profils .liste-profils .carte-profil:has(~ .carte.selectionnee) {
         transform: translatex(11rem);
-    }
-
-    .section-profils .liste-profils .carte .noms {
-        max-width: 100%;
-
-        --l-ecart: 0.5rem;
-    }
-
-    .section-profils .liste-profils .carte .noms span {
-        width: 100%;
-
-        overflow: hidden;
-        text-overflow: ellipsis;
-
-        white-space: nowrap;
-        text-align: center;
-    }
-
-    .section-profils .liste-profils .carte .pseudonyme {
-        --e-fonte: var(--e-gras);
     }
 ]
 
@@ -54,16 +28,9 @@ section [profils]
     @else
         defilement.liste-profils [horizontal]
             @for-each [$i, $p] of [$compte.is_gerant_of_profils]
-                carte [$selectionnee : $profil.id = $p.id]
-                    @if [$profil.id != $p.id]
-                        boite-action [
-                            $selectionner_profil($p.id)
-                            $etendue : :)
-                            $alt : "Basculer sur le profil $p.identifiant"
-                        ]
-                    avatar [$p]
-                    <div .noms>
-                        <span .pseudonyme>
-                            "$p.pseudonyme"
-                        <span .identifiant>
-                            "@$p.identifiant"
+                carte-profil [
+                    $p
+                    $selectionnee : $p.id = $profil.id
+                    $action : [$p.id != $profil.id] ? $selectionner_profil($p.id) : :(
+                    $alt : "Basculer sur le profil $p.identifiant"
+                ]

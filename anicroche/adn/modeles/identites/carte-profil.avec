@@ -1,0 +1,55 @@
+@style [
+    .carte-profil {
+        flex: none;
+        width: 10rem;
+        align-items: center;
+    }
+
+    .carte-profil > .noms {
+        max-width: 100%;
+
+        --l-ecart: 0.5rem;
+    }
+
+    .carte-profil > .noms > span {
+        width: 100%;
+
+        overflow: hidden;
+        text-overflow: ellipsis;
+
+        white-space: nowrap;
+        text-align: center;
+    }
+
+    .carte-profil > .noms > .pseudonyme {
+        --e-fonte: var(--e-gras);
+    }
+]
+
+@args [
+    $profil_carte
+    $selectionnee : :(
+    $action : :(
+    $ancre : :(
+    $alt : :(
+]
+
+carte.carte-profil [$selectionnee : $selectionnee]
+    @if [$ancre]
+        boite-ancre [
+            $ancre
+            $etendue : :)
+            $alt : $alt
+        ]
+    @else-if [$action]
+        boite-action [
+            $action()
+            $etendue : :)
+            $alt : $alt
+        ]
+    avatar-profil [$profil_carte]
+    <div .noms>
+        <span .pseudonyme>
+            "$p.pseudonyme"
+        <span .identifiant>
+            "@$p.identifiant"

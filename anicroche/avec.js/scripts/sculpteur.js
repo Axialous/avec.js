@@ -147,7 +147,9 @@ export const lire_variable = (scope, args, propriete, suivre_dependance = true) 
         {
             return {
                 trouve: true,
-                valeur: evaluer_valeur(valeur_arg.expression, valeur_arg.donnees),
+                valeur: valeur_arg.__evaluateur
+                    ? valeur_arg.__evaluateur(valeur_arg.donnees)
+                    : evaluer_valeur(valeur_arg.expression, valeur_arg.donnees),
                 est_arg: true,
                 clef: null
             }

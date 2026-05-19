@@ -1,0 +1,14 @@
+page [$authentification : requise]
+    navigation
+        <div .gauche>
+            fleche-retour [/profil]
+
+        <div .centre>
+            <span>
+                "Sélection de profil"
+
+        <div .droite>
+            icone-horloge
+
+    onglet
+        section-selection-profil

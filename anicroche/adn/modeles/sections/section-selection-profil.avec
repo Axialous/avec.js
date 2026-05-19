@@ -1,0 +1,20 @@
+@script [
+    $erreur_edition_profil = false
+
+    $selectionner_profil_puis_rediriger = (id) =>
+    {
+        $selectionner_profil(id)
+        $navigate_to('/profil')
+    }
+]
+
+section [creation-profil, centree]
+    titre [centre]
+        "Sélectionnez un profil"
+    defilement.centre [horizontal]
+        @for-each [$i, $p] of [$compte.is_gerant_of_profils]
+                carte-profil [
+                    $p
+                    $action : $selectionner_profil_puis_rediriger($p.id)
+                    $alt : "Basculer sur le profil $p.identifiant"
+                ]

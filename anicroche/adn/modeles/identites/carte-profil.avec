@@ -3,6 +3,8 @@
         flex: none;
         width: 10rem;
         align-items: center;
+
+        --h-avatar: 4rem;
     }
 
     .carte-profil > .noms {

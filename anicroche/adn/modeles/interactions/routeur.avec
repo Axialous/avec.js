@@ -13,6 +13,9 @@
 @else-if [$path ~= '/profil/creation']
     -page-creation-profil
 
+@else-if [$path ~= '/profil/selection']
+    -page-selection-profil
+
 @else-if [$path ~= '/profil/edition']
     -page-edition-profil
 

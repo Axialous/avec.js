@@ -147,11 +147,17 @@
         scrollbar-width: none;
     }
 
+    .defilement.centre {
+        justify-content: safe center;
+    }
+
     .defilement.vertical {
+        flex-direction: column;
         overflow-y: scroll;
     }
 
     .defilement.horizontal {
+        flex-direction: row;
         overflow-x: scroll;
     }
 
@@ -247,6 +253,10 @@
 
         background: var(--c-flux);
         border-radius: 0.125rem;
+    }
+
+    .section.centree > .defilement {
+        width: calc(2rem + min(48rem, 100%));
     }
 ]
 

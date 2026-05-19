@@ -1,16 +1,10 @@
 @style [
-    .section-profils .liste-profils {
-        flex-direction: row;
-
-        --h-avatar: 4rem;
-    }
-
-    .section-profils .liste-profils .carte-profil.selectionnee {
+    .section-profils .carte-profil.selectionnee {
         z-index: 1;
         transform: translateX(calc(var(--var-i) * -11rem));
     }
 
-    .section-profils .liste-profils .carte-profil:has(~ .carte.selectionnee) {
+    .section-profils .carte-profil:has(~ .carte.selectionnee) {
         transform: translatex(11rem);
     }
 ]
@@ -26,7 +20,7 @@ section [profils]
             "Créer un profil"
 
     @else
-        defilement.liste-profils [horizontal]
+        defilement [horizontal]
             @for-each [$i, $p] of [$compte.is_gerant_of_profils]
                 carte-profil [
                     $p

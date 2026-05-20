@@ -3,7 +3,7 @@
         border-radius: 1.5rem;
         outline: solid 0.125rem transparent;
         outline-offset: -0.125rem;
-        padding: calc(var(--l-marge) - 0.125rem);
+        padding: var(--l-marge);
 
         transition: outline-color var(--d-animation), transform var(--d-animation);
 

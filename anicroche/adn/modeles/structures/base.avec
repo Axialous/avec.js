@@ -20,7 +20,6 @@
 
         if (options?.url?.pathname === '/connexion' && data?.code === 200)
         {
-            console.log('connecté')
             if (await $obtenir_compte())
             {
                 $navigate_to('/')
@@ -44,6 +43,11 @@
         if (data && data.est_connecte !== undefined)
         {
             $connecte = data.est_connecte ? true : false
+            if (!$connecte)
+            {
+                $compte = null
+                $profil = null
+            }
         }
     })
 

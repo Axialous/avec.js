@@ -1,0 +1,7 @@
+@script [
+    console.log($choix)
+]
+
+@args [$etiquette, $nom, $choix, $requis : :)]
+
+"choix"

@@ -161,6 +161,32 @@ const decapsuler_si_entoure = (str) =>
     return decapsuler(str.trim())
 }
 
+const decapsuler_si_crochets_expression_unique = (str) =>
+{
+    const texte = str.trim()
+    if (texte.length < 2 || texte[0] !== '[' || texte[texte.length - 1] !== ']')
+        return texte
+
+    const contenu = texte.slice(1, -1)
+    const parties = decouper_haut_niveau(contenu, new Set([',', '\n']))
+    if (parties.length !== 1)
+        return texte
+
+    return parties[0]
+}
+
+const decapsuler_si_parentheses = (str) =>
+{
+    const texte = str.trim()
+    if (texte.length < 2 || texte[0] !== '(' || texte[texte.length - 1] !== ')')
+        return texte
+
+    if (!est_entoure_par_bloc(texte))
+        return texte
+
+    return decapsuler(texte)
+}
+
 const decouper_haut_niveau = (str, separateurs) =>
 {
     const brut = str.trim()
@@ -988,7 +1014,7 @@ const construire_for_each = (bloc, donnees) =>
     const construire_noeuds = () =>
     {
         definir_noeud_courant(ancre_debut)
-        const expr = decapsuler_si_entoure(source_brute)
+        const expr = decapsuler_si_crochets_expression_unique(source_brute)
         const source = evaluer_valeur(expr, donnees)
         effacer_noeud_courant()
 
@@ -1485,7 +1511,8 @@ const construire_modele = (bloc, donnees) =>
 
                 const valeur_brute   = entree_affectation.valeur_brute
                 const ternaire_appel = entree_affectation.ternaire
-                const valeur_decapsule = decapsuler_si_entoure(valeur_brute)
+                const valeur_decapsule = decapsuler_si_parentheses(valeur_brute)
+                const valeur_texte = decapsuler_si_entoure(valeur_brute)
 
                 if (ternaire_appel)
                 {
@@ -1495,7 +1522,7 @@ const construire_modele = (bloc, donnees) =>
                     const branche_initiale = condition_ok ? ternaire_appel.vrai : ternaire_appel.faux
                     if (branche_initiale)
                     {
-                        const branche_decapsule = decapsuler_si_entoure(branche_initiale)
+                        const branche_decapsule = decapsuler_si_parentheses(branche_initiale)
                         if (!extraire_appel_fonction(branche_decapsule))
                             evaluer_valeur(branche_decapsule, donnees)
                     }
@@ -1517,7 +1544,7 @@ const construire_modele = (bloc, donnees) =>
 
                                 if (!branche) return null
 
-                                const branche_decapsule = decapsuler_si_entoure(branche)
+                                const branche_decapsule = decapsuler_si_parentheses(branche)
 
                                 const appel = extraire_appel_fonction(branche_decapsule)
                                 if (appel)
@@ -1545,7 +1572,7 @@ const construire_modele = (bloc, donnees) =>
                     {
                         if (branche_initiale)
                         {
-                            const branche_decapsule = decapsuler_si_entoure(branche_initiale)
+                            const branche_decapsule = decapsuler_si_parentheses(branche_initiale)
                             const appel = extraire_appel_fonction(branche_decapsule)
                             if (appel)
                             {
@@ -1603,9 +1630,11 @@ const construire_modele = (bloc, donnees) =>
                 }
                 
                 // Si c'est une string literal, valoriser directement sans passer par evaluer_valeur
-                if (valeur_brute.startsWith('"') && valeur_brute.endsWith('"'))
+                if ((valeur_brute.startsWith('"') && valeur_brute.endsWith('"'))
+                 || (valeur_brute.startsWith("'") && valeur_brute.endsWith("'"))
+                 || (valeur_brute.startsWith('`') && valeur_brute.endsWith('`')))
                 {
-                    args[nom] = valoriser(valeur_decapsule, donnees)
+                    args[nom] = valoriser(valeur_texte, donnees)
                     continue
                 }
 

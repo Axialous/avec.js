@@ -1,5 +1,9 @@
 @style [
     .champ-texte {
+        --l-ecart: 0.5rem;
+    }
+
+    .champ-texte  > input {
         width: 100%;
         height: 2rem;
 
@@ -11,13 +15,13 @@
         --p-fonte: var(--p-champ);
     }
 
-    .champ-texte[readonly] {
+    .champ-texte > input[readonly] {
         cursor: not-allowed;
 
         --c-flux: var(--c-vif);
     }
 
-    .champ-texte::placeholder {
+    .champ-texte > input::placeholder {
         color: var(--c-plus);
         font-style: italic;
     }
@@ -25,12 +29,16 @@
 
 @args [$etiquette, $nom, $requis : :), $valeur : '', $modifiable : :)]
 
-<input
+<label
     .champ-texte
-    name="$nom"
-    type="text"
-    placeholder="$etiquette"
-    value="$valeur"
-    [$requis] ? required
-    [! $modifiable] ? readonly
+    for="champ-$nom"
 >
+    "$etiquette"
+    <input
+        #champ-$nom
+        name="$nom"
+        type="text"
+        value="$valeur"
+        [$requis] ? required
+        [! $modifiable] ? readonly
+    >

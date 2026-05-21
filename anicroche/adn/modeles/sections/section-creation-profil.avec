@@ -29,8 +29,15 @@ section [creation-profil, centree]
             @if [$erreur_creation_profil]
                 erreur-formulaire
                     "$erreur_creation_profil"
+            choix-unique [
+                "Type de profil", Type
+                $choix : [
+                    {etiquette : "Racine", nom : racine}
+                    {etiquette : "Dérivé", nom : derive}
+                ]
+            ]
             champ-texte [
-                "Identifiant", identifiant
+                "Identifiant unique", identifiant
             ]
             champ-texte [
                 "Pseudonyme", pseudonyme

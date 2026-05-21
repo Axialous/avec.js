@@ -1,3 +1,4 @@
 Liste de tâches :
 - finaliser la page '/profil/creation'
 - permettre la définition de l'ordre de récupération dans les modèles .sans du cadriciel d'API
+- améliorer le modèle de champ de clef

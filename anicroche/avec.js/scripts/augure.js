@@ -36,6 +36,49 @@ const coercer_booleen = (v) =>
     return ERREUR
 }
 
+const decouper_haut_niveau = (str, separateurs) =>
+{
+    const brut = str.trim()
+    if (brut.length === 0)
+        return []
+
+    const ouvrants = { '(':')', '[':']', '{':'}', '<':'>', '"':'"', "'":"'", '`':'`' }
+    const parties = []
+    let blocs = ``
+    let debut = 0
+
+    for (let pos = 0; pos < brut.length; pos++)
+    {
+        const c = brut[pos]
+
+        if (c === blocs.slice(-1))
+        {
+            blocs = blocs.slice(0, -1)
+        }
+        else if (c === '<' && !/^[)\]}>"'`]$/.test(blocs.slice(-1)))
+        {
+            blocs += '>'
+        }
+        else if (c in ouvrants && !/^['"]$/.test(blocs.slice(-1)))
+        {
+            blocs += ouvrants[c]
+        }
+        else if (separateurs.has(c) && blocs === ``)
+        {
+            const partie = brut.slice(debut, pos).trim()
+            if (partie.length > 0)
+                parties.push(partie)
+            debut = pos + 1
+        }
+    }
+
+    const derniere_partie = brut.slice(debut).trim()
+    if (derniere_partie.length > 0)
+        parties.push(derniere_partie)
+
+    return parties
+}
+
 // ============================================================
 // Lexer
 // ============================================================
@@ -181,19 +224,37 @@ const tokeniser = (str) =>
         if (str[pos] === '[')
         {
             pos++
-            const elements = []
-            let tampon = ''
-            while (pos < str.length && str[pos] !== ']')
+            let contenu = ''
+            let blocs = ''
+            while (pos < str.length)
             {
-                if (str[pos] === ',' || str[pos] === '\n')
+                const c = str[pos]
+                if (c === ']' && blocs === '')
+                    break
+
+                contenu += c
+
+                if (c === blocs.slice(-1))
                 {
-                    if (tampon.trim()) elements.push(tokeniser(tampon.trim())[0]?.valeur ?? tampon.trim())
-                    tampon = ''
+                    blocs = blocs.slice(0, -1)
                 }
-                else tampon += str[pos]
+                else if (c === '<' && !/^[)\]}>"'`]$/.test(blocs.slice(-1)))
+                {
+                    blocs += '>'
+                }
+                else if (c === '(' || c === '[' || c === '{')
+                {
+                    blocs += c === '(' ? ')' : c === '[' ? ']' : '}'
+                }
+                else if (c === '"' || c === "'" || c === '`')
+                {
+                    blocs += c
+                }
+
                 pos++
             }
-            if (tampon.trim()) elements.push(tokeniser(tampon.trim())[0]?.valeur ?? tampon.trim())
+            const elements = decouper_haut_niveau(contenu, new Set([',', '\n']))
+                .map(element => tokeniser(element)[0]?.valeur ?? element)
             pos++ // ]
             tokens.push({ type: 'liste', valeur: elements })
             continue
@@ -203,28 +264,47 @@ const tokeniser = (str) =>
         if (str[pos] === '{')
         {
             pos++
-            const dict = {}
-            let tampon = ''
-            const paires = []
-            while (pos < str.length && str[pos] !== '}')
+            let contenu = ''
+            let blocs = ''
+            while (pos < str.length)
             {
-                if (str[pos] === ',' || str[pos] === '\n')
+                const c = str[pos]
+                if (c === '}' && blocs === '')
+                    break
+
+                contenu += c
+
+                if (c === blocs.slice(-1))
                 {
-                    if (tampon.trim()) paires.push(tampon.trim())
-                    tampon = ''
+                    blocs = blocs.slice(0, -1)
                 }
-                else tampon += str[pos]
+                else if (c === '<' && !/^[)\]}>"'`]$/.test(blocs.slice(-1)))
+                {
+                    blocs += '>'
+                }
+                else if (c === '(' || c === '[' || c === '{')
+                {
+                    blocs += c === '(' ? ')' : c === '[' ? ']' : '}'
+                }
+                else if (c === '"' || c === "'" || c === '`')
+                {
+                    blocs += c
+                }
+
                 pos++
             }
-            if (tampon.trim()) paires.push(tampon.trim())
+            const dict = {}
+            const paires = decouper_haut_niveau(contenu, new Set([',', '\n']))
             pos++ // }
             for (const paire of paires)
             {
-                const idx = paire.indexOf(':')
-                if (idx !== -1)
+                const morceaux = decouper_haut_niveau(paire, new Set([':']))
+                if (morceaux.length >= 2)
                 {
-                    const clef   = tokeniser(paire.slice(0, idx).trim())[0]?.valeur ?? paire.slice(0, idx).trim()
-                    const valeur = tokeniser(paire.slice(idx + 1).trim())[0]?.valeur ?? paire.slice(idx + 1).trim()
+                    const clef_brute = morceaux[0]
+                    const valeur_brute = morceaux.slice(1).join(':')
+                    const clef   = tokeniser(clef_brute.trim())[0]?.valeur ?? clef_brute.trim()
+                    const valeur = tokeniser(valeur_brute.trim())[0]?.valeur ?? valeur_brute.trim()
                     dict[clef] = valeur
                 }
             }

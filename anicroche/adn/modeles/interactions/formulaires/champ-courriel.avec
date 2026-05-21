@@ -1,5 +1,9 @@
 @style [
     .champ-courriel {
+        --l-ecart: 0.5rem;
+    }
+
+    .champ-courriel > input {
         width: 100%;
         height: 2rem;
 
@@ -11,13 +15,13 @@
         --p-fonte: var(--p-champ);
     }
 
-    .champ-courriel[readonly] {
+    .champ-courriel > input[readonly] {
         cursor: not-allowed;
 
         --c-flux: var(--c-vif);
     }
 
-    .champ-courriel::placeholder {
+    .champ-courriel > input::placeholder {
         color: var(--c-plus);
         font-style: italic;
     }
@@ -25,12 +29,16 @@
 
 @args [$etiquette, $nom, $requis : :), $valeur : '', $modifiable : :)]
 
-<input
+<label
     .champ-courriel
-    name="$nom"
-    type="email"
-    placeholder="$etiquette"
-    value="$valeur"
-    [$requis] ? required
-    [! $modifiable] ? readonly
+    for="champ-$nom"
 >
+    "$etiquette"
+    <input
+        #champ-$nom
+        name="$nom"
+        type="email"
+        value="$valeur"
+        [$requis] ? required
+        [! $modifiable] ? readonly
+    >

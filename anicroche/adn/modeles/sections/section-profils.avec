@@ -1,3 +1,7 @@
+@script [
+    $ps = $compte.is_gerant_of_profils
+]
+
 @style [
     .section-profils .carte-profil.selectionnee {
         z-index: 1;
@@ -21,7 +25,7 @@ section [profils]
 
     @else
         defilement [horizontal]
-            @for-each [$i, $p] of [$compte.is_gerant_of_profils]
+            @for-each [$i, $p] of [$ps]
                 carte-profil [
                     $p
                     $selectionnee : $p.id = $profil.id

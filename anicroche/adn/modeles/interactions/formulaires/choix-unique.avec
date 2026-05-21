@@ -1,7 +1,191 @@
 @script [
-    console.log($choix)
+    $monter_choix_unique = () =>
+    {
+        const conteneur = $node.querySelector(':scope > div')
+        if (!conteneur)
+            return
+
+        const labels = Array.from(conteneur.querySelectorAll(':scope > label'))
+        const inputs = labels
+            .map(label => label.querySelector('input[type="radio"]'))
+            .filter(Boolean)
+
+        let timer_redimensionnement = null  // ← ajout
+
+        const actualiser = (sans_transition = false) =>  // ← paramètre
+        {
+            const selectionne = labels.find(label => {
+                const input = label.querySelector('input[type="radio"]')
+                return input && input.checked
+            }) || labels[0]
+
+            if (!selectionne)
+                return
+
+            const rect_conteneur = conteneur.getBoundingClientRect()
+            const rect_label = selectionne.getBoundingClientRect()
+
+            // ← bloc ajouté
+            if (sans_transition)
+            {
+                conteneur.style.setProperty('--d-animation', '0s')
+                clearTimeout(timer_redimensionnement)
+                timer_redimensionnement = setTimeout(() => conteneur.style.removeProperty('--d-animation'), 150)
+            }
+
+            conteneur.style.setProperty('--choix-x', `${rect_label.left - rect_conteneur.left}px`)
+            conteneur.style.setProperty('--choix-largeur', `${rect_label.width}px`)
+        }
+
+        const sur_changement = () => actualiser()
+        const sur_clic = () =>
+        {
+            requestAnimationFrame(() =>
+            {
+                const selectionne = inputs.find(input => input.checked) || inputs[0]
+                if (selectionne)
+                    selectionne.focus()
+            })
+        }
+
+        $vars.observateur_choix_unique = new ResizeObserver(() => actualiser(true))
+        $vars.inputs_choix_unique = inputs
+        $vars.sur_changement_choix_unique = sur_changement
+        $vars.sur_clic_choix_unique = sur_clic
+
+        $vars.observateur_choix_unique.observe(conteneur)
+        labels.forEach(label => $vars.observateur_choix_unique.observe(label))
+        inputs.forEach(input => input.addEventListener('change', sur_changement))
+        $node.addEventListener('click', sur_clic)
+
+        requestAnimationFrame(() =>
+            requestAnimationFrame(() =>
+            {
+                if ($node.isConnected)
+                    actualiser()
+            })
+        )
+    }
+
+    $demonter_choix_unique = () =>
+    {
+        if ($vars.inputs_choix_unique && $vars.sur_changement_choix_unique)
+            $vars.inputs_choix_unique.forEach(input => input.removeEventListener('change', $vars.sur_changement_choix_unique))
+
+        if ($vars.sur_clic_choix_unique)
+            $node.removeEventListener('click', $vars.sur_clic_choix_unique)
+
+        if ($vars.observateur_choix_unique)
+            $vars.observateur_choix_unique.disconnect()
+    }
 ]
 
-@args [$etiquette, $nom, $choix, $requis : :)]
+@style [
+    .choix-unique {
+        --l-ecart: 0.5rem;
+    }
 
-"choix"
+    .choix-unique > legend {
+        display: contents;
+        cursor: default;
+    }
+
+    .choix-unique > div {
+        position: relative;
+        overflow: hidden;
+
+        width: 100%;
+        height: 2rem;
+
+        border: 0.125rem solid var(--c-vif);
+        border-radius: 0.5rem;
+
+        flex-direction: row;
+
+        --c-focus: var(--c-vif);
+        --p-fonte: var(--p-champ);
+
+        --l-ecart: 0.25rem;
+    }
+
+    .choix-unique > div::before {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: calc(var(--choix-x) - 0.125rem);
+
+        content: "";
+
+        width: var(--choix-largeur);
+
+        transition: left var(--d-animation), width var(--d-animation);
+
+        background: var(--f-fond);
+
+        pointer-events: none;
+
+        --f-fond: var(--c-vif);
+        --c-fond: var(--c-vif);
+    }
+
+    .choix-unique > div:focus-within {
+        outline-color: var(--c-focus);
+    }
+
+    .choix-unique > div > label {
+        position: relative;
+        z-index: 1;
+
+        flex: 1;
+
+        margin: -0.125rem;
+        padding: 0.5rem;
+
+        text-align: center;
+
+        transition: color var(--d-animation), font-weight var(--d-animation);
+        cursor: pointer;
+    }
+
+    .choix-unique > div > label:has(> input:checked) {
+        --e-fonte: var(--e-bouton);
+        --c-flux: var(--c-creme);
+    }
+
+    .choix-unique > div > label > input[type="radio"] {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        margin: 0;
+        padding: 0;
+        border: 0;
+        clip-path: inset(50%);
+        overflow: hidden;
+        white-space: nowrap;
+        opacity: 0;
+        pointer-events: none;
+    }
+]
+
+@args [$etiquette, $nom, $choix]
+
+<fieldset
+    .choix-unique
+    @mount="$monter_choix_unique()"
+    @unmount="$demonter_choix_unique()"
+>
+    <legend>
+        "$etiquette"
+    <div>
+        @for-each [$i, $ch] of [$choix]
+            <label
+                for="champ-$nom-$ch.nom"
+            >
+                "$ch.etiquette"
+                <input
+                    #champ-$nom-$ch.nom
+                    name="$nom"
+                    type="radio"
+                    value="$ch.nom"
+                    [$i = 0s] ? checked
+                >

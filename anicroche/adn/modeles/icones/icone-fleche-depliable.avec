@@ -1,0 +1,24 @@
+@style [
+    .icone-fleche-depliable {
+        width: calc(var(--l-fonte) * 1.5);
+        height: calc(var(--l-fonte) * 1.5);
+    }
+
+    .icone-fleche-depliable .fleche {
+        transition: d var(--d-animation);
+    }
+
+    .icone-fleche-depliable.depliee .fleche {
+        d: path("M5 14.5L10.5859 8.91998C11.367 8.26 12.633 8.25998 13.4141 8.91998L19 14.5");
+    }
+]
+
+@args [$pliee : :)]
+
+<svg
+    .icone
+    .icone-fleche-depliable
+    [$pliee] ? .pliee : .depliee
+    viewBox="0 0 24 24"
+>
+    <path .fleche d="M5 8.91501L10.5859 14.5009C11.367 15.282 12.633 15.282 13.4141 14.5009L19 8.91501">

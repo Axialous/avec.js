@@ -1,13 +1,29 @@
 @script [
+    $type = 'racine'
     $erreur_creation_profil = false
+
+    $options = $compte.is_gerant_of_profils.map(profil => ({
+        etiquette: profil.identifiant,
+        nom: profil.identifiant
+    }))
+
+    $mettre_a_jour_type = () =>
+    {
+        $type = $node.value
+    }
 
     $envoyer_formulaire_creation = async () =>
     {
         data = new FormData($node)
 
+        const identifiant = data.get('type') == 'derive'
+            ? `${data.get('base')}.${data.get('identifiant')}`
+            : data.get('identifiant')
+        const pseudonyme = data.get('pseudonyme')
+
         const reponse = await $create('profil', {
-            identifiant: data.get('identifiant'),
-            pseudonyme : data.get('pseudonyme')
+            identifiant: identifiant,
+            pseudonyme : pseudonyme
         })
 
         if (!reponse.error)
@@ -21,6 +37,12 @@
     }
 ]
 
+@style [
+    .section-creation-profil .champ[data-disabled] {
+        display: none;
+    }
+]
+
 section [creation-profil, centree]
     titre [centre]
         "Créez votre profil"
@@ -29,19 +51,29 @@ section [creation-profil, centree]
             @if [$erreur_creation_profil]
                 erreur-formulaire
                     "$erreur_creation_profil"
-            choix-unique [
-                "Type de profil", Type
-                $choix : [
-                    {etiquette : "Nouveau", nom : racine}
-                    {etiquette : "Dérivé", nom : derive}
+            @if [_ $compte.is_gerant_of_profils > 0]
+                choix-unique [
+                    "Type de profil", type
+                    $choix : [
+                        {etiquette : "Nouveau", nom : racine}
+                        {etiquette : "Suffixé", nom : derive}
+                    ]
+                    $action : $mettre_a_jour_type()
                 ]
-            ]
+            ligne
+                choix-option [
+                    "Base", base
+                    $choix : $options
+                    $desactive : $type = racine
+                    $prefixe : @
+                ]
+                champ-texte [
+                    $etiquette : [$type = racine] ? "Identifiant unique" : "Suffixe"
+                    identifiant
+                    $prefixe : [$type = racine] ? @ : .
+                ]
             champ-texte [
-                "Identifiant unique", identifiant
-                $prefixe : @
-            ]
-            champ-texte [
-                "Pseudonyme", pseudonyme
+                "Nom d'affichage", pseudonyme
             ]
             bouton-soumission
                 "Créer le profil"

@@ -32,6 +32,8 @@
 
 @style [
     .champ-mot-de-passe {
+        flex: 1024;
+
         --l-ecart: 0.5rem;
     }
 
@@ -117,6 +119,7 @@
 ]
 
 <label
+    .champ
     .champ-mot-de-passe
     for="champ-$nom"
 >

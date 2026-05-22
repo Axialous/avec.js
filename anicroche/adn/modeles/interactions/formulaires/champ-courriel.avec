@@ -1,5 +1,7 @@
 @style [
     .champ-courriel {
+        flex: 1024;
+
         --l-ecart: 0.5rem;
     }
 
@@ -30,6 +32,7 @@
 @args [$etiquette, $nom, $requis : :), $valeur : '', $modifiable : :)]
 
 <label
+    .champ
     .champ-courriel
     for="champ-$nom"
 >

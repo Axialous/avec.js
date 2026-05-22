@@ -294,6 +294,8 @@
 
 @style [
     .champ-clef {
+        flex: 1024;
+
         --l-ecart: 0.5rem;
     }
 
@@ -376,6 +378,7 @@
 @args [$etiquette, $nom, $requis : :), $valeur : '', $modifiable : :)]
 
 <label
+    .champ
     .champ-clef
     for="champ-$nom"
 >

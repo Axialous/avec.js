@@ -82,6 +82,8 @@
 
 @style [
     .choix-unique {
+        flex: 1024;
+
         --l-ecart: 0.5rem;
     }
 
@@ -149,6 +151,7 @@
 
     .choix-unique > div > label:has(> input:checked) {
         --e-fonte: var(--e-bouton);
+        --c-fond: var(--c-vif);
         --c-flux: var(--c-creme);
     }
 
@@ -167,9 +170,10 @@
     }
 ]
 
-@args [$etiquette, $nom, $choix]
+@args [$etiquette, $nom, $choix, $action : :(]
 
 <fieldset
+    .champ
     .choix-unique
     @mount="$monter_choix_unique()"
     @unmount="$demonter_choix_unique()"
@@ -188,4 +192,5 @@
                     type="radio"
                     value="$ch.nom"
                     [$i = 0s] ? checked
+                    [$action] ? @change="$action()"
                 >

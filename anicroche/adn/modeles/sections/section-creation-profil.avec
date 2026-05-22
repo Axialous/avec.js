@@ -32,12 +32,13 @@ section [creation-profil, centree]
             choix-unique [
                 "Type de profil", Type
                 $choix : [
-                    {etiquette : "Racine", nom : racine}
+                    {etiquette : "Nouveau", nom : racine}
                     {etiquette : "Dérivé", nom : derive}
                 ]
             ]
             champ-texte [
                 "Identifiant unique", identifiant
+                $prefixe : @
             ]
             champ-texte [
                 "Pseudonyme", pseudonyme

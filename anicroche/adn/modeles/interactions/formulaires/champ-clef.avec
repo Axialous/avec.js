@@ -315,9 +315,11 @@
     }
 
     .champ-clef > div > div {
+        position: relative;
         flex: 1;
 
-        border: 0.125rem solid var(--c-vif);
+        border: 0.125rem var(--c-vif);
+        border-style: dashed solid;
         border-radius: 0.5rem;
         padding: 0.375rem;
 
@@ -326,6 +328,23 @@
         --c-focus: var(--c-vif);
         --p-fonte: var(--p-champ);
         --l-ecart: 0;
+    }
+
+    .champ-clef > div > div::after {
+        content : "";
+        pointer-events: none;
+
+        position: absolute;
+        inset: -0.125rem;
+
+        border: 0.125rem solid var(--c-vif);
+        border-radius: 0.5rem;
+
+        transition: opacity var(--d-animation);
+    }
+
+    .champ-clef > div > input:invalid ~ div::after {
+        opacity: 0;
     }
 
     .champ-clef > div:focus-within {

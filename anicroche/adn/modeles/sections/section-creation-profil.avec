@@ -1,11 +1,14 @@
 @script [
-    $type = 'racine'
     $erreur_creation_profil = false
 
-    $options = $compte.is_gerant_of_profils.map(profil => ({
-        etiquette: profil.identifiant,
-        nom: profil.identifiant
-    }))
+    $options = $compte.is_gerant_of_profils
+        .filter(profil => !profil.identifiant.includes('.'))
+        .map(profil => ({
+            etiquette: profil.identifiant,
+            nom: profil.identifiant
+        }))
+    
+    $type = $options.length < 5 ? 'racine' : 'derive'
 
     $mettre_a_jour_type = () =>
     {
@@ -16,7 +19,7 @@
     {
         data = new FormData($node)
 
-        const identifiant = data.get('type') == 'derive'
+        const identifiant = $type == 'derive'
             ? `${data.get('base')}.${data.get('identifiant')}`
             : data.get('identifiant')
         const pseudonyme = data.get('pseudonyme')
@@ -26,8 +29,16 @@
             pseudonyme : pseudonyme
         })
 
+        console.log(reponse)
+
         if (!reponse.error)
         {
+            const reponse_compte = await $search('moi')
+            if (!reponse_compte.error)
+            {
+                $compte = reponse_compte.data
+                $selectionner_profil($compte.is_gerant_of_profils.find(profil => profil.identifiant == identifiant).id)
+            }
             $navigate_to('/profil')
         }
         else
@@ -51,7 +62,7 @@ section [creation-profil, centree]
             @if [$erreur_creation_profil]
                 erreur-formulaire
                     "$erreur_creation_profil"
-            @if [_ $compte.is_gerant_of_profils > 0]
+            @if [_ $compte.is_gerant_of_profils > 0 & _ $options < 5]
                 choix-unique [
                     "Type de profil", type
                     $choix : [
@@ -71,6 +82,7 @@ section [creation-profil, centree]
                     $etiquette : [$type = racine] ? "Identifiant unique" : "Suffixe"
                     identifiant
                     $prefixe : [$type = racine] ? @ : .
+                    $regle : "/^(?=.{1,32}$)(?=[a-z0-9-]*[a-z])[a-z0-9]+(?:-[a-z0-9]+)*$/"
                 ]
             champ-texte [
                 "Nom d'affichage", pseudonyme

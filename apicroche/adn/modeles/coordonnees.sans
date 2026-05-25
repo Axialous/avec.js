@@ -13,7 +13,7 @@
         name : coordonnee
         type : crypt
         size : 1-512
-        rule : "($type = courriel & $coordonnee ~= /^[^@\s]+@[^@\s]+\.[^@\s]+$/) | ($type = telephone & $coordonnee ~= /^\+?[\d\s\-(). ]{7,20}$/)"
+        rule : "($type = courriel & $coordonnee ~= /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/) | ($type = telephone & $coordonnee ~= /^\+?[\d\s\-(). ]{7,20}$/)"
     }
 
     {

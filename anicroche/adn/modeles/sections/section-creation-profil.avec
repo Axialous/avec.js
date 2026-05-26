@@ -83,6 +83,7 @@ section [creation-profil, centree]
                     identifiant
                     $prefixe : [$type = racine] ? @ : .
                     $regle : "/^(?=.{1,32}$)(?=[a-z0-9-]*[a-z])[a-z0-9]+(?:-[a-z0-9]+)*$/"
+                    $indice : "Autorisés : a-z, 0-1, -"
                 ]
             champ-texte [
                 "Nom d'affichage", pseudonyme

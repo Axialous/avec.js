@@ -13,9 +13,8 @@
 
 @args [$type : classique]
 
-@if [$type = centre]
-    <h1 .titre .centre>
-        @stud
-@else
-    <h1 .titre>
-        @stud
+<h1
+    .titre 
+    [$type = centre] ? .centre
+>
+    @stud

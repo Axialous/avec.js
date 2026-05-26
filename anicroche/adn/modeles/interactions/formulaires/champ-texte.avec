@@ -91,6 +91,7 @@
     $modifiable : :)
     $prefixe : :(
     $regle : :(
+    $indice : :(
 ]
 
 <label
@@ -111,3 +112,6 @@
             [! $modifiable] ? readonly
             [$regle] ? @input="$tester_regle()"
         >
+    @if [$indice]
+        indication
+            "$indice"

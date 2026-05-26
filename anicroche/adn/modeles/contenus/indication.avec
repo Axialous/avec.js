@@ -1,0 +1,12 @@
+@style [
+    .indication {
+        font-style: italic;
+    }
+
+    .formulaire .indication {
+        --c-flux: var(--c-moins);
+    }
+]
+
+<p .indication>
+    @stud

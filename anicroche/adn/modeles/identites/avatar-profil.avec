@@ -2,6 +2,7 @@
     .avatar-profil {
         height: var(--h-avatar);
         aspect-ratio: 1 / 1;
+        flex-shrink: 0;
 
         overflow: hidden;
         user-select: none;
@@ -15,8 +16,8 @@
         --e-fonte: var(--e-titre);
         --l-fonte: calc(var(--h-avatar) / 2);
 
-        --f-fond: oklch(0.85 0.20 var(--t-avatar));
-        --c-fond: oklch(0.85 0.20 var(--t-avatar));
+        --f-fond: oklch(0.65 0.20 var(--t-avatar));
+        --c-fond: oklch(0.65 0.20 var(--t-avatar));
         --c-flux: oklch(0.95 0.01 var(--t-avatar));
     }
 ]

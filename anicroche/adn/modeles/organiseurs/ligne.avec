@@ -4,6 +4,10 @@
 
         flex-flow: row wrap;
     }
+
+    .ligne:has(> .bouton) {
+        --l-ecart: 0.5rem;
+    }
 ]
 
 <div .ligne>

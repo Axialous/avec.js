@@ -23,9 +23,9 @@ page [:(, $authentification : interdite]
             <span>
                 "Connexion"
 
-        <div .droite>
-            boite-ancre [/preferences, Préférences]
-                icone-engrenage
+        # <div .droite>
+        #     boite-ancre [/preferences, Préférences]
+        #         icone-engrenage
 
     onglet
         section-connexion [courriel]

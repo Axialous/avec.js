@@ -145,6 +145,7 @@
     .defilement {
         position: relative;
         scrollbar-width: none;
+        scroll-behavior: smooth;
     }
 
     .defilement.centre {

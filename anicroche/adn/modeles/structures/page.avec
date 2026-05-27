@@ -145,6 +145,7 @@
         padding-left: var(--l-tete);
 
         transition: opacity var(--d-animation);
+        scroll-behavior: smooth;
     }
 
     .page.defilable {

@@ -1,6 +1,7 @@
 @style [
     .section {
         flex: 0;
+        scroll-margin-top: calc(var(--h-navigation) + 1rem);
     }
 
     .section.centree {
@@ -18,6 +19,7 @@
 @args [$nom, $type : classique]
 
 <section
+    #$nom
     .section-$nom
     .section
     [$type = centree] ? .centree

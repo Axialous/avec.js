@@ -9,9 +9,9 @@ page [$authentification : requise]
                     <span>
                         "Compte"
 
-        <div .droite>
-            boite-ancre [/preferences, Préférences]
-                icone-engrenage
+        # <div .droite>
+        #     boite-ancre [/preferences, Préférences]
+        #         icone-engrenage
 
     onglet
         section-profil
